@@ -77,7 +77,7 @@ export function CookiePolicy() {
                 <strong>Google Analytics:</strong> per analisi d’uso
               </li>
               <li>
-                <strong>Firebase:</strong> per autenticazione e database
+                <strong>Supabase:</strong> per autenticazione e database
               </li>
             </ul>
           </section>

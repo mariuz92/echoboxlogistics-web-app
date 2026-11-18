@@ -1,0 +1,36 @@
+# Runs the web app container.
+#
+#   cp .env.example .env     # fill in VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY
+#   docker compose up --build
+#   open http://localhost:8080
+#
+# This file only runs the front end. The database / auth / Edge Functions live
+# in Supabase (hosted project, or the local stack started with `npm run db:start`).
+# Remember to add the app URL to Supabase Auth -> URL Configuration.
+
+services:
+  web:
+    build:
+      context: .
+    image: echoboxlogistics-web-app:latest
+    container_name: echoboxlogistics-web-app
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-8080}:8080"
+    environment:
+      VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:?Set VITE_SUPABASE_URL in .env}
+      VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY:?Set VITE_SUPABASE_ANON_KEY in .env}
+      VITE_GOOGLE_MAPS_API_KEY: ${VITE_GOOGLE_MAPS_API_KEY:-}
+      # "app" serves the dashboard on any host. Use "auto" behind a platform.<domain> split.
+      VITE_APP_MODE: ${VITE_APP_MODE:-app}
+      VITE_PUBLIC_BOOKING_SLUG: ${VITE_PUBLIC_BOOKING_SLUG:-}
+      VITE_ENABLE_GOOGLE_AUTH: ${VITE_ENABLE_GOOGLE_AUTH:-false}
+      VITE_MARKETING_URL: ${VITE_MARKETING_URL:-https://www.youngtour.it}
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/cache/nginx
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL

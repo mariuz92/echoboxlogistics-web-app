@@ -1,21 +1,17 @@
 {
   "short_name": "EchoBox",
-  "name": "EchoBox Delivery",
-  "description": "EchoBox Delivery",
-  "icons":[{"src":"/android-chrome-192x192.png","sizes":"192x192","type":"image/png"},{"src":"/android-chrome-512x512.png","sizes":"512x512","type":"image/png"}],
+  "name": "EchoBox Logistics",
+  "description": "Gestione di ordini, rider e canali radio per il noleggio di radioguide.",
+  "icons": [
+    { "src": "/android-chrome-192x192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/android-chrome-512x512.png", "sizes": "512x512", "type": "image/png" }
+  ],
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "theme_color": "#000000",
-  "background_color": "#ffffff",
-  "orientation": "portrait",
-  "prefer_related_applications": false,
-  "related_applications": [],
-  "categories": [
-    "travel",
-    "navigation",
-    "entertainment"
-  ],
+  "theme_color": "#14212f",
+  "background_color": "#14212f",
+  "categories": ["business", "productivity", "travel"],
   "dir": "ltr",
   "lang": "it-IT"
 }

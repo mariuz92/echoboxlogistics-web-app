@@ -1,445 +1,253 @@
-import {
-  AndroidOutlined,
-  CalendarOutlined,
-  DashboardOutlined,
-  FileOutlined,
-  GoogleOutlined,
-  SolutionOutlined,
-  TeamOutlined,
-} from "@ant-design/icons";
-import {
-  ErrorComponent,
-  RefineThemes,
-  useNotificationProvider,
-} from "@refinedev/antd";
-import {
-  AccessControlProvider,
-  Authenticated,
-  CanParams,
-  CanResponse,
-  Refine,
-  type AuthProvider,
-} from "@refinedev/core";
-
-import routerProvider, {
-  DocumentTitleHandler,
-  UnsavedChangesNotifier,
-} from "@refinedev/react-router";
-
-import "@refinedev/antd/dist/reset.css";
-import { App as AntdApp, ConfigProvider } from "antd";
+import { Suspense, lazy, type ReactNode } from "react";
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from "react-router";
-import { AuthPage } from "./features/auth";
-import { ThemedLayout } from "./layout";
-import { ThemedHeader } from "./layout/header";
-import { ThemedTitle } from "./layout/title";
+import { Authenticated, Refine } from "@refinedev/core";
+import routerProvider, { NavigateToResource } from "@refinedev/react-router";
+import { App as AntdApp, ConfigProvider } from "antd";
+import itIT from "antd/locale/it_IT";
 
-import JoinPage from "./features/auth/components/join";
-import { CalendarPage } from "./features/calendar/pages/calendar";
-import { DashboardPage } from "./features/dashboard/pages/dashboard";
-import GuideOrderPage from "./features/orders/pages/guideOrder";
-import { OrdersPage } from "./features/orders/pages/orders";
-import { ProfilePage } from "./features/profile/pages/profile";
-import { CONFIG } from "./config/configuration";
-import { auth } from "./config/firebaseConfig";
+import { env, isSupabaseConfigured } from "./config/env";
+import { getTheme } from "./config/theme";
+import { AppLayout } from "./layout/AppLayout";
+import { authProvider } from "./providers/auth-provider";
+import { accessControlProvider } from "./providers/access-control";
+import { CurrentUserProvider, useCurrentUser } from "./providers/current-user";
+import { useNotificationProvider } from "./providers/notification-provider";
+import { ThemeModeProvider, useThemeMode } from "./providers/theme-mode";
 import {
-  forgotPassword,
-  signInWithEmail,
-  signInWithGoogle,
-  signOutUser,
-  signUpWithEmail,
-} from "./features/auth/api/authApi";
-import UsersPage from "./features/users/pages/riders";
-import CustomOutlet from "./shared/components/customOutlet";
-import GuidesPage from "./features/users/pages/guide";
-import LandingPage from "./features/landing/landingPage";
-import PrivacyPolicy from "./features/landing/privacy";
-import TermsAndConditions from "./features/landing/terms";
-import CookiePolicy from "./features/landing/cookies";
-const App: React.FC = () => {
-  const authProvider: AuthProvider = {
-    forgotPassword: async ({ email }) => {
-      if (!email || typeof email !== "string") {
-        return {
-          success: false,
-          error: new Error(
-            "L'email non può essere vuota. Inserisci un'email valida."
-          ),
-        };
-      }
+  AccessDenied,
+  ConfigurationError,
+  FullPageSpinner,
+  NotFoundPage,
+  SectionSpinner,
+} from "./shared/components/Screens";
 
-      const response = await forgotPassword(email);
+import { LoginPage } from "./features/auth/LoginPage";
+import { RegisterPage } from "./features/auth/RegisterPage";
+import { ForgotPasswordPage } from "./features/auth/ForgotPasswordPage";
+import { UpdatePasswordPage } from "./features/auth/UpdatePasswordPage";
+import { JoinPage } from "./features/auth/JoinPage";
+import { OnboardingPage } from "./features/auth/OnboardingPage";
+import { OrdersPage } from "./features/orders/OrdersPage";
+import { RiderJobsPage } from "./features/orders/RiderJobsPage";
 
-      if (response.success) {
-        return {
-          success: true,
-          successNotification: {
-            message: response.message!,
-          },
-          redirectTo: "/login",
-        };
-      } else {
-        return {
-          success: false,
-          error: response.error!,
-        };
-      }
-    },
+// Heavy / rarely used screens are split into their own chunks.
+const DashboardPage = lazy(() => import("./features/dashboard/DashboardPage"));
+const CalendarPage = lazy(() => import("./features/calendar/CalendarPage"));
+const TeamPage = lazy(() => import("./features/members/TeamPage"));
+const GuidesPage = lazy(() => import("./features/guides/GuidesPage"));
+const SettingsPage = lazy(() => import("./features/settings/SettingsPage"));
+const ProfilePage = lazy(() => import("./features/settings/ProfilePage"));
+const BookingPage = lazy(() => import("./features/booking/BookingPage"));
+const LandingPage = lazy(() => import("./features/landing/landingPage"));
+const PrivacyPolicy = lazy(() => import("./features/landing/privacy"));
+const TermsAndConditions = lazy(() => import("./features/landing/terms"));
+const CookiePolicy = lazy(() => import("./features/landing/cookies"));
 
-    check: async () => {
-      const user = auth.currentUser || localStorage.getItem("email");
-      if (user) {
-        return { authenticated: true };
-      }
-      return {
-        authenticated: false,
-        error: {
-          name: "Not authenticated",
-          message: "User not logged in",
-        },
-        logout: true,
-        redirectTo: "/login",
-      };
-    },
-    onError: async (error) => {
-      if (error.response?.status === 401) {
-        return {
-          logout: true,
-        };
-      }
-      return { error };
-    },
-    login: async ({ providerName, email, password, companyName }) => {
-      try {
-        if (providerName === "google") {
-          await signInWithGoogle(companyName);
-          return {
-            success: true,
-            redirectTo: "/",
-          };
-        }
+const RESOURCES = [
+  { name: "orders", list: "/" },
+  { name: "calendar", list: "/calendar" },
+  { name: "dashboard", list: "/dashboard" },
+  { name: "riders", list: "/riders" },
+  { name: "guides", list: "/guides" },
+  { name: "settings", list: "/settings" },
+  { name: "profile", list: "/profile" },
+];
 
-        await signInWithEmail(companyName, email, password);
-        const storedUser = await localStorage.getItem("userInfo");
+function AdminOnly({ children }: { children: ReactNode }) {
+  const { isAdmin } = useCurrentUser();
+  return isAdmin ? <>{children}</> : <AccessDenied message="Questa sezione è riservata agli amministratori." />;
+}
 
-        if (storedUser) {
-          const user = JSON.parse(storedUser);
-          if (user!.role == "guide") {
-            return {
-              success: true,
-              redirectTo: "/OrdineGuida",
-            };
+/** Orders for admins, "my jobs" for riders. */
+function Home() {
+  const { isAdmin } = useCurrentUser();
+  return isAdmin ? <OrdersPage /> : <RiderJobsPage />;
+}
+
+function AppRoutes() {
+  return (
+    <Suspense fallback={<FullPageSpinner />}>
+      <Routes>
+        {/* Signed-out screens (signed-in users are sent home) */}
+        <Route
+          element={
+            <Authenticated key="public" fallback={<Outlet />} loading={<FullPageSpinner />}>
+              <NavigateToResource resource="orders" />
+            </Authenticated>
           }
-        }
-        return {
-          success: true,
-          redirectTo: "/",
-        };
-      } catch (error) {
-        return {
-          success: false,
-          error: {
-            message: "Login failed",
-            name: (error as Error).message,
-          },
-        };
-      }
-    },
-    register: async ({ email, password, companyName, name, phoneNumber }) => {
-      try {
-        await signUpWithEmail(email, password, companyName, name, phoneNumber);
-        const storedUser = await localStorage.getItem("userInfo");
-        if (storedUser) {
-          const user = JSON.parse(storedUser);
-          if (user!.role == "guide") {
-            return {
-              success: true,
-              redirectTo: "/OrdineGuida",
-            };
+        >
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        </Route>
+
+        {/* Reachable with or without a session (links from emails) */}
+        <Route path="/update-password" element={<UpdatePasswordPage />} />
+        <Route path="/join" element={<JoinPage />} />
+        <Route path="/onboarding" element={<OnboardingPage />} />
+
+        {/* Public booking form for guides */}
+        <Route path="/book/:slug" element={<BookingPage />} />
+        <Route path="/OrdineGuida" element={<BookingPage legacy />} />
+
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/terms" element={<TermsAndConditions />} />
+        <Route path="/cookies" element={<CookiePolicy />} />
+
+        {/* Signed-in app */}
+        <Route
+          element={
+            <Authenticated key="app" fallback={<Navigate to="/login" replace />} loading={<FullPageSpinner />}>
+              <AppLayout />
+            </Authenticated>
           }
-        }
-        return {
-          success: true,
-          redirectTo: "/",
-        };
-      } catch (error) {
-        return {
-          success: false,
-          error: {
-            message: "Registration failed",
-            name: (error as Error).message,
-          },
-        };
-      }
-    },
-    logout: async () => {
-      try {
-        await signOutUser();
-        return {
-          success: true,
-          redirectTo: "/login",
-        };
-      } catch (error) {
-        return {
-          success: false,
-          error: {
-            message: "Logout failed",
-            name: (error as Error).message,
-          },
-        };
-      }
-    },
-    getIdentity: async () => {
-      const email = localStorage.getItem("email");
-      if (email) {
-        return JSON.parse(email);
-      }
-      return null;
-    },
-    getPermissions: async () => {
-      const role = localStorage.getItem("role");
-      if (role) {
-        const user = JSON.parse(role);
-        return user.role;
-      }
-      return null;
-    },
-  };
+        >
+          <Route
+            index
+            element={
+              <Suspense fallback={<SectionSpinner />}>
+                <Home />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/calendar"
+            element={
+              <AdminOnly>
+                <Suspense fallback={<SectionSpinner />}>
+                  <CalendarPage />
+                </Suspense>
+              </AdminOnly>
+            }
+          />
+          <Route
+            path="/dashboard"
+            element={
+              <AdminOnly>
+                <Suspense fallback={<SectionSpinner />}>
+                  <DashboardPage />
+                </Suspense>
+              </AdminOnly>
+            }
+          />
+          <Route
+            path="/riders"
+            element={
+              <AdminOnly>
+                <Suspense fallback={<SectionSpinner />}>
+                  <TeamPage />
+                </Suspense>
+              </AdminOnly>
+            }
+          />
+          <Route
+            path="/guides"
+            element={
+              <AdminOnly>
+                <Suspense fallback={<SectionSpinner />}>
+                  <GuidesPage />
+                </Suspense>
+              </AdminOnly>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <AdminOnly>
+                <Suspense fallback={<SectionSpinner />}>
+                  <SettingsPage />
+                </Suspense>
+              </AdminOnly>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <Suspense fallback={<SectionSpinner />}>
+                <ProfilePage />
+              </Suspense>
+            }
+          />
 
-  const accessControlProvider: AccessControlProvider = {
-    can: async ({
-      resource,
-      action,
-      params,
-    }: CanParams): Promise<CanResponse> => {
-      const user = auth.currentUser || localStorage.getItem("email");
+          {/* URLs used by the previous version of the app */}
+          <Route path="/Calendario" element={<Navigate to="/calendar" replace />} />
+          <Route path="/Profilo" element={<Navigate to="/profile" replace />} />
+          <Route path="/Collaboratori" element={<Navigate to="/riders" replace />} />
+          <Route path="*" element={<NotFoundPage />} />
+        </Route>
+      </Routes>
+    </Suspense>
+  );
+}
 
-      // Define public pages that don't require authentication
-      const publicResources = ["OrdineGuida", "rider", "join"];
-
-      if (!user) {
-        if (resource && publicResources.includes(resource)) {
-          return { can: true };
-        } else {
-          return {
-            can: false,
-            reason: "Unauthorized",
-          };
-        }
-      }
-
-      // If the user is authenticated, allow access to all resources
-      return { can: true };
-    },
-    options: {
-      buttons: {
-        enableAccessControl: true,
-        hideIfUnauthorized: false, // Set to true if you want to hide buttons instead of disabling them
-      },
-    },
-  };
-  const hostname = window.location.hostname;
-
-  const isAppDomain = hostname.startsWith("platform.");
+function RefineApp() {
+  const notificationProvider = useNotificationProvider();
 
   return (
-    <BrowserRouter>
-      <ConfigProvider theme={RefineThemes.Blue}>
-        {isAppDomain ? (
-          <AntdApp>
-            <Refine
-              authProvider={authProvider}
-              routerProvider={routerProvider}
-              accessControlProvider={accessControlProvider}
-              resources={[
-                {
-                  name: "orders",
-                  list: "/",
-                  meta: {
-                    label: "Ordini",
-                    icon: <FileOutlined />,
-                  },
-                },
-                {
-                  name: "calendar",
-                  list: "/Calendario",
-                  meta: {
-                    label: "Calendario Ordini",
-                    icon: <CalendarOutlined />,
-                  },
-                },
-                {
-                  name: "dashboard",
-                  list: "/Dashboard",
-                  meta: {
-                    label: "Dashboard",
-                    icon: <DashboardOutlined />,
-                  },
-                },
-                {
-                  name: "users",
-                  list: "/Riders",
-                  meta: {
-                    label: "Gestione Riders",
-                    icon: <TeamOutlined />,
-                  },
-                },
-                {
-                  name: "guides",
-                  list: "/Guides",
-                  meta: {
-                    label: "Gestione Guide",
-                    icon: <SolutionOutlined />,
-                  },
-                },
-              ]}
-              notificationProvider={useNotificationProvider}
-              options={{
-                syncWithLocation: true,
-                warnWhenUnsavedChanges: true,
-                title: {
-                  text: CONFIG.appName,
-                  icon: CONFIG.logo,
-                },
-              }}
-            >
-              <Routes>
-                {/* Auth Routes */}
-                <Route
-                  path='/login'
-                  element={
-                    <AuthPage
-                      title={
-                        <ThemedTitle
-                          image={CONFIG.logo}
-                          icon={<AndroidOutlined />}
-                          text={CONFIG.appName}
-                          collapsed={false}
-                        />
-                      }
-                      type='login'
-                      formProps={{ initialValues: {} }}
-                      providers={[
-                        {
-                          name: "google",
-                          label: "Sign in with Google",
-                          icon: <GoogleOutlined style={{ fontSize: 24 }} />,
-                        },
-                      ]}
-                    />
-                  }
-                />
-                <Route
-                  path='/register'
-                  element={
-                    <AuthPage
-                      title={
-                        <ThemedTitle
-                          icon={<AndroidOutlined />}
-                          image={CONFIG.logo}
-                          text={CONFIG.appName}
-                          collapsed={true}
-                        />
-                      }
-                      type='register'
-                      providers={[
-                        {
-                          name: "google",
-                          label: "Sign in with Google",
-                          icon: <GoogleOutlined style={{ fontSize: 24 }} />,
-                        },
-                      ]}
-                    />
-                  }
-                />
-                <Route
-                  path='/forgot-password'
-                  element={
-                    <AuthPage
-                      title={
-                        <ThemedTitle
-                          icon={<AndroidOutlined />}
-                          image={CONFIG.logo}
-                          text={CONFIG.appName}
-                          collapsed={true}
-                        />
-                      }
-                      type='forgotPassword'
-                    />
-                  }
-                />
-                <Route
-                  path='/update-password'
-                  element={
-                    <AuthPage
-                      title={
-                        <ThemedTitle
-                          icon={<AndroidOutlined />}
-                          image={CONFIG.logo}
-                          text={CONFIG.appName}
-                          collapsed={false}
-                        />
-                      }
-                      type='updatePassword'
-                    />
-                  }
-                />
-
-                {/* Protected Routes */}
-                <Route
-                  element={
-                    <Authenticated
-                      fallback={<Navigate to='/login' />}
-                      key='authenticated'
-                    >
-                      <ThemedLayout
-                        Header={ThemedHeader}
-                        Title={({ collapsed }) => (
-                          <ThemedTitle
-                            collapsed={collapsed}
-                            image={CONFIG.logo}
-                            icon={<AndroidOutlined />}
-                            text={CONFIG.appName}
-                          />
-                        )}
-                      >
-                        <Outlet />
-                      </ThemedLayout>
-                    </Authenticated>
-                  }
-                >
-                  <Route index element={<OrdersPage />} />
-                  <Route path='/Calendario' element={<CalendarPage />} />
-                  <Route path='/Dashboard' element={<DashboardPage />} />
-                  <Route path='/Profilo' element={<ProfilePage />} />
-                  <Route path='/Riders' element={<UsersPage />} />
-                  <Route path='/Guides' element={<GuidesPage />} />
-                  <Route path='*' element={<ErrorComponent />} />
-                </Route>
-
-                {/* Public Routes */}
-                <Route path='/OrdineGuida' element={<CustomOutlet />}>
-                  <Route index element={<GuideOrderPage />} />
-                </Route>
-                <Route path='/join' element={<CustomOutlet />}>
-                  <Route index element={<JoinPage />} />
-                </Route>
-              </Routes>
-
-              <UnsavedChangesNotifier />
-              <DocumentTitleHandler />
-            </Refine>
-          </AntdApp>
-        ) : (
-          <Routes>
-            <Route path='/' element={<LandingPage />} />
-            <Route path='/privacy' element={<PrivacyPolicy />} />
-            <Route path='/terms' element={<TermsAndConditions />} />
-            <Route path='/cookies' element={<CookiePolicy />} />
-          </Routes>
-        )}
-      </ConfigProvider>
-    </BrowserRouter>
+    <Refine
+      authProvider={authProvider}
+      accessControlProvider={accessControlProvider}
+      routerProvider={routerProvider}
+      notificationProvider={notificationProvider}
+      resources={RESOURCES}
+      options={{
+        syncWithLocation: true,
+        warnWhenUnsavedChanges: false,
+        disableTelemetry: true,
+        reactQuery: {
+          clientConfig: {
+            defaultOptions: {
+              queries: { staleTime: 15_000, retry: 1, refetchOnWindowFocus: true },
+            },
+          },
+        },
+      }}
+    >
+      <AppRoutes />
+    </Refine>
   );
-};
-export default App;
+}
+
+/** Marketing site: served on the apex domain (the app lives on platform.*). */
+function MarketingRoutes() {
+  return (
+    <Suspense fallback={<FullPageSpinner />}>
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/terms" element={<TermsAndConditions />} />
+        <Route path="/cookies" element={<CookiePolicy />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Suspense>
+  );
+}
+
+function Themed({ children }: { children: ReactNode }) {
+  const { mode } = useThemeMode();
+  return (
+    <ConfigProvider theme={getTheme(mode)} locale={itIT}>
+      <AntdApp>{children}</AntdApp>
+    </ConfigProvider>
+  );
+}
+
+export default function App() {
+  return (
+    <ThemeModeProvider>
+      <Themed>
+        <BrowserRouter>
+          {!isSupabaseConfigured ? (
+            <ConfigurationError />
+          ) : env.appMode === "landing" ? (
+            <MarketingRoutes />
+          ) : (
+            <CurrentUserProvider>
+              <RefineApp />
+            </CurrentUserProvider>
+          )}
+        </BrowserRouter>
+      </Themed>
+    </ThemeModeProvider>
+  );
+}
