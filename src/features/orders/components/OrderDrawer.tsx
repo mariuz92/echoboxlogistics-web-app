@@ -268,9 +268,13 @@ function OrderFormBody({
       >
         <Input placeholder="guida@esempio.it" />
       </Form.Item>
-      <Form.Item name="guide_id" hidden>
-        <Input />
-      </Form.Item>
+      {/* In create mode the address-book Select above owns guide_id; registering a second
+          Form.Item for the same field produced two inputs with the same DOM id. */}
+      {mode === "edit" && (
+        <Form.Item name="guide_id" hidden>
+          <Input />
+        </Form.Item>
+      )}
 
       <Divider />
       <Typography.Title level={5} style={{ marginTop: 0 }}>

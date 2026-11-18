@@ -30,7 +30,7 @@ export function JoinPage() {
   const [state, setState] = useState<"checking" | "ready" | "invalid">("checking");
   const [saving, setSaving] = useState(false);
   const [companyName, setCompanyName] = useState<string>("");
-  const [form] = Form.useForm<JoinValues>();
+  const [initial, setInitial] = useState<Partial<JoinValues>>({});
 
   useEffect(() => {
     let active = true;
@@ -48,10 +48,7 @@ export function JoinPage() {
       if (!active) return;
       if (current.kind === "ready") {
         setCompanyName(current.tenant.name);
-        form.setFieldsValue({
-          name: current.profile.full_name,
-          phone: current.profile.phone ?? "",
-        });
+        setInitial({ name: current.profile.full_name, phone: current.profile.phone ?? "" });
         setState("ready");
       } else {
         setState("invalid");
@@ -70,7 +67,7 @@ export function JoinPage() {
       active = false;
       subscription.unsubscribe();
     };
-  }, [form]);
+  }, []);
 
   const onFinish = async (values: JoinValues) => {
     setSaving(true);
@@ -115,7 +112,7 @@ export function JoinPage() {
       )}
 
       {state === "ready" && (
-        <Form<JoinValues> form={form} layout="vertical" requiredMark={false} onFinish={onFinish}>
+        <Form<JoinValues> layout="vertical" requiredMark={false} initialValues={initial} onFinish={onFinish}>
           <Form.Item
             label="Nome e cognome"
             name="name"

@@ -86,7 +86,9 @@ export function OrdersPage() {
   const { date, period } = useMemo(() => parseParams(params), [params]);
   const range = useMemo(() => getPeriodRange(date, period, timezone), [date, period, timezone]);
 
-  const { data: orders = [], isFetching } = useOrders(range);
+  // Show the table spinner on first load and when switching period, but not on background
+  // (realtime) refreshes: those would flash a spinner and could close an open row menu.
+  const { data: orders = [], isLoading, isPlaceholderData } = useOrders(range);
   const { data: pending = [] } = usePendingPickups();
   useOrdersRealtime();
 
@@ -268,7 +270,7 @@ export function OrdersPage() {
 
         <OrdersTable
           orders={visible}
-          loading={isFetching}
+          loading={isLoading || isPlaceholderData}
           anchorDay={period === "day" ? date.format("YYYY-MM-DD") : undefined}
           onOpen={openOrder}
         />

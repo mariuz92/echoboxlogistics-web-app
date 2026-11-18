@@ -23,11 +23,14 @@ Local emails (invitations, password reset, signup confirmation) land in the mail
 | Regenerate DB types | `npm run db:types` |
 | Unit tests | `npm test` (or `npm run test:watch`) |
 | Database tests | `supabase test db` |
+| Browser tests | `npm run e2e` (`npm run e2e:ui` to watch / debug) |
+| Docker image check | `npm run docker:build && npm run docker:smoke` |
 | Type-check | `npm run typecheck` |
 | Production build | `npm run build` |
 | Dependency audit (shipped code) | `npm run audit:prod` |
 
-Before opening a PR: `npm run typecheck && npm test && npm run build && supabase test db`.
+Before opening a PR: `npm run typecheck && npm test && npm run build && supabase test db && npm run e2e`.
+The same checks run in CI (`.github/workflows/ci.yml`).
 
 ## Where things live
 
@@ -60,7 +63,46 @@ Before opening a PR: `npm run typecheck && npm test && npm run build && supabase
 - **Database tests** (`supabase/tests/*.test.sql`, pgTAP): tenant isolation, column privileges, the order
   state machine, channel uniqueness, onboarding (`bootstrap_profile`), member rules, public booking and throttling.
   Each file runs in a transaction that is rolled back.
-- Edge Function: exercised with `curl` against the local stack (see [API.md](API.md#edge-function-invite-member)).
+- Edge Function: exercised end to end by the browser tests (invitation emails) and with `curl` (see [API.md](API.md#edge-function-invite-member)).
+- **Browser tests** (`e2e/*.spec.ts`, Playwright): see below.
+
+### Browser tests (Playwright)
+
+They drive a real browser against the real stack (Vite dev server + local Supabase), so they cover the parts unit
+tests cannot: Auth, RLS in practice, Realtime, the Edge Function and the emails.
+
+```bash
+npm run db:start          # once; applies migrations + seed
+npm run e2e               # runs everything (about 3 minutes); starts the dev server itself
+npx playwright test e2e/orders.spec.ts            # one file
+npm run e2e:ui            # step through tests, time-travel debugging
+npm run e2e:report        # open the last HTML report
+```
+
+| Spec | Covers |
+|---|---|
+| `auth` | login errors, redirects, rider vs admin access, legacy URLs, 404 |
+| `orders` | create / validate / edit / assign / cancel / delete, radio-channel reservation, filters, periods, PDF, channel board |
+| `rider` | one order from creation to pickup across **two browsers** (admin + rider on a phone-sized screen), live updates, isolation between riders |
+| `booking` | the anonymous form: validation, success, time zone, honeypot, switching bookings off |
+| `team` | invitation by email → join → password change → deactivation; revoke; duplicate email; last-admin protection |
+| `register` | signup, email confirmation, isolated empty workspace, duplicate company name |
+| `pages` | guides CRUD, address-book prefill, calendar + CSV, dashboard, settings, profile, dark mode, phone navigation |
+
+Conventions:
+
+- Import `test` and `expect` from `./helpers`, **not** from `@playwright/test`. Our `test` adds a gate: any
+  browser console error or uncaught exception fails the test (this has already caught deprecated antd props, a duplicate
+  DOM id, a render loop and a race in first-login). `newUserContext()` gives a second browser covered by the same gate.
+- Test data is always named `E2E …` / `e2e-…@example.test`; `cleanupE2eData` (in `afterAll`) removes the orders and
+  contacts, and — using the local service-role key from `supabase status` — the users and companies they created.
+  A long-lived local database therefore stays clean; `npm run db:reset` always gives a pristine one.
+- Tests are independent and run serially (one worker): they share a database and the demo logins from the seed.
+- Emails are read from the local mail catcher (`waitForMail` / `authLink` in `helpers.ts`).
+- Prefer roles, labels and the stable form-field ids (`#guide_name`, `#delivery_at`, …) over CSS classes.
+- On failure Playwright keeps a screenshot and a trace in `test-results/`.
+
+`e2e/` has its own `tsconfig.json`; `npm run typecheck` checks it too.
 
 ## Dependency audit
 

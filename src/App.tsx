@@ -8,6 +8,8 @@ import itIT from "antd/locale/it_IT";
 import { env, isSupabaseConfigured } from "./config/env";
 import { getTheme } from "./config/theme";
 import { AppLayout } from "./layout/AppLayout";
+import { RequireUser } from "./layout/RequireUser";
+import { ErrorBoundary } from "./shared/components/ErrorBoundary";
 import { authProvider } from "./providers/auth-provider";
 import { accessControlProvider } from "./providers/access-control";
 import { CurrentUserProvider, useCurrentUser } from "./providers/current-user";
@@ -98,7 +100,9 @@ function AppRoutes() {
         <Route
           element={
             <Authenticated key="app" fallback={<Navigate to="/login" replace />} loading={<FullPageSpinner />}>
-              <AppLayout />
+              <RequireUser>
+                <AppLayout />
+              </RequireUser>
             </Authenticated>
           }
         >
@@ -236,6 +240,7 @@ export default function App() {
   return (
     <ThemeModeProvider>
       <Themed>
+        <ErrorBoundary>
         <BrowserRouter>
           {!isSupabaseConfigured ? (
             <ConfigurationError />
@@ -247,6 +252,7 @@ export default function App() {
             </CurrentUserProvider>
           )}
         </BrowserRouter>
+        </ErrorBoundary>
       </Themed>
     </ThemeModeProvider>
   );

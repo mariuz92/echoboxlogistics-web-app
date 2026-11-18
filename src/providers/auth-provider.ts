@@ -1,7 +1,12 @@
 import type { AuthProvider } from "@refinedev/core";
 import { supabase } from "../lib/supabase";
 import { getErrorMessage, isAuthError } from "../lib/errors";
-import { loadCurrentUser, resetCurrentUserCache, signOut } from "../features/auth/session";
+import {
+  loadCurrentUser,
+  resetCurrentUserCache,
+  setLoginNotice,
+  signOut,
+} from "../features/auth/session";
 
 const authError = (message: string, name = "Operazione non riuscita") => ({
   success: false as const,
@@ -138,9 +143,20 @@ export const authProvider: AuthProvider = {
     if (current.kind === "needs_company") {
       return { authenticated: false, redirectTo: "/onboarding" };
     }
+    if (current.kind === "blocked") {
+      // Refine performs its own logout redirect, which would drop a "?reason=" in the URL:
+      // keep the reason (e.g. "company_exists" after confirming an email) as a one-shot
+      // notice that the login page displays.
+      setLoginNotice(current.code ?? "error");
+      return {
+        authenticated: false,
+        logout: true,
+        redirectTo: "/login",
+        error: { name: "Accesso non riuscito", message: current.message },
+      };
+    }
     return {
       authenticated: false,
-      logout: current.kind === "blocked",
       redirectTo: "/login",
       error: { name: "Unauthenticated", message: "Accedi per continuare." },
     };

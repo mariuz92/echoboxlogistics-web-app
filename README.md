@@ -57,8 +57,10 @@ catcher at <http://127.0.0.1:55324>.
 | `npm run dev` | Vite dev server with hot reload |
 | `npm run build` | Type-check (`tsc`) and production build into `dist/` |
 | `npm run preview` | Serve the production build locally |
-| `npm run typecheck` | TypeScript only |
+| `npm run typecheck` | TypeScript for the app **and** the browser tests |
 | `npm test` | Unit tests (Vitest) |
+| `npm run e2e` | Browser tests (Playwright) against the local stack; see [Development](docs/DEVELOPMENT.md#browser-tests-playwright) |
+| `npm run docker:build` / `docker:smoke` | Build the image / check it the way CI does |
 | `npm run db:start` / `db:stop` | Start / stop the local Supabase stack |
 | `npm run db:reset` | Recreate the local database from migrations + seed |
 | `npm run db:types` | Regenerate `src/types/database.types.ts` from the local schema |
@@ -109,6 +111,19 @@ docker/            nginx config + runtime-config entrypoint
 docs/              architecture, database, API, deployment, migration notes
 ```
 
+## Continuous integration
+
+`.github/workflows/ci.yml` runs on every push to `main` and every pull request:
+
+| Job | Checks |
+|---|---|
+| **web** | type-check (app + tests), unit tests, production build, `npm audit` of runtime dependencies |
+| **database** | starts local Supabase, runs the pgTAP tests, verifies `src/types/database.types.ts` matches the migrations |
+| **e2e** | starts local Supabase and runs the 44 Playwright browser tests (admin, rider, public booking, invitations, registration) |
+| **docker** | builds the image and smoke-tests it (health, runtime config, caching and security headers, non-root, read-only) |
+
+Dependabot (`.github/dependabot.yml`) proposes weekly updates for npm, GitHub Actions and the Docker base images.
+
 ## Documentation
 
 - [Architecture](docs/ARCHITECTURE.md): how the pieces fit, order lifecycle, security model
@@ -117,6 +132,7 @@ docs/              architecture, database, API, deployment, migration notes
 - [Deployment](docs/DEPLOYMENT.md): Supabase project, Docker, hosting
 - [Development](docs/DEVELOPMENT.md): day-to-day workflow, testing, conventions
 - [Migration from Firebase](docs/MIGRATION_FROM_FIREBASE.md): what changed, field mapping, bugs fixed
+- [Moving the Flutter app](docs/MOBILE_MIGRATION.md): guide for porting the mobile app from Firebase to Supabase
 
 ## Renaming the repository
 

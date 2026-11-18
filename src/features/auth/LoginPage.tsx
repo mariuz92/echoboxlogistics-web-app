@@ -1,13 +1,24 @@
 import { useLogin } from "@refinedev/core";
-import { Button, Divider, Flex, Form, Input } from "antd";
+import { Alert, Button, Divider, Flex, Form, Input } from "antd";
 import { GoogleOutlined, LockOutlined, MailOutlined } from "@ant-design/icons";
-import { Link } from "react-router";
+import { useState } from "react";
+import { Link, useSearchParams } from "react-router";
 import { AuthShell } from "./AuthShell";
 import { env } from "../../config/env";
 import type { LoginParams } from "../../providers/auth-provider";
+import { getErrorMessage } from "../../lib/errors";
+import { takeLoginNotice } from "./session";
+
+const REASON_MESSAGES: Record<string, string> = {
+  disabled: "Il tuo account è stato disabilitato. Contatta un amministratore.",
+};
 
 export function LoginPage() {
   const { mutate: login, isPending } = useLogin<LoginParams>();
+  // Set when a signed-in session could not be used (e.g. company name already taken):
+  // either passed in the URL or left as a one-shot notice by the auth check.
+  const urlReason = useSearchParams()[0].get("reason");
+  const [reason] = useState(() => urlReason ?? takeLoginNotice());
 
   return (
     <AuthShell
@@ -19,6 +30,15 @@ export function LoginPage() {
         </>
       }
     >
+      {reason && (
+        <Alert
+          type="error"
+          showIcon
+          style={{ marginBottom: 16 }}
+          title={REASON_MESSAGES[reason] ?? getErrorMessage(reason)}
+        />
+      )}
+
       <Form<LoginParams>
         layout="vertical"
         requiredMark={false}

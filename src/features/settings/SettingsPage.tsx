@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { App, Alert, Button, Card, Col, Flex, Form, Input, Row, Select, Switch, Typography } from "antd";
+import { App, Alert, Button, Card, Col, Flex, Form, Input, Row, Select, Space, Switch, Typography } from "antd";
 import { AppstoreOutlined, CopyOutlined, LinkOutlined } from "@ant-design/icons";
 import { getErrorMessage } from "../../lib/errors";
 import { useReadyUser } from "../../providers/current-user";
@@ -124,12 +124,10 @@ export function SettingsPage() {
                 Condividi questo link con le guide: potranno richiedere un servizio senza registrarsi. Le richieste
                 arrivano negli ordini come &quot;Presa in carico&quot;.
               </Typography.Paragraph>
-              <Input
-                readOnly
-                value={bookingUrl}
-                prefix={<LinkOutlined />}
-                addonAfter={<Button type="text" size="small" icon={<CopyOutlined />} onClick={() => void copy()} aria-label="Copia link" />}
-              />
+              <Space.Compact style={{ width: "100%" }}>
+                <Input readOnly value={bookingUrl} prefix={<LinkOutlined />} aria-label="Link di prenotazione" />
+                <Button icon={<CopyOutlined />} onClick={() => void copy()} aria-label="Copia link" />
+              </Space.Compact>
               {!tenant.public_booking_enabled && (
                 <Alert style={{ marginTop: 12 }} type="warning" showIcon title="Le prenotazioni online sono disattivate: il link mostra un avviso." />
               )}

@@ -8,9 +8,16 @@ export type CurrentUserResult =
   | { kind: "ready"; session: Session; profile: Profile; tenant: Tenant }
   /** Signed in, but not attached to any company yet (e.g. first Google login). */
   | { kind: "needs_company"; session: Session }
-  | { kind: "blocked"; session: Session | null; reason: "disabled" | "error"; message: string };
+  | {
+      kind: "blocked";
+      session: Session | null;
+      reason: "disabled" | "error";
+      /** Machine code (e.g. "company_exists") the login page can translate. */
+      code?: string;
+      message: string;
+    };
 
-let cached: { userId: string; promise: Promise<CurrentUserResult> } | null = null;
+let cached: { userId: string; promise: Promise<CurrentUserResult>; settled: boolean } | null = null;
 
 export function resetCurrentUserCache() {
   cached = null;
@@ -41,6 +48,7 @@ async function fetchCurrentUser(session: Session): Promise<CurrentUserResult> {
         kind: "blocked",
         session,
         reason: "error",
+        code: bootstrapError.message,
         message: getErrorMessage(bootstrapError),
       };
     }
@@ -56,6 +64,7 @@ async function fetchCurrentUser(session: Session): Promise<CurrentUserResult> {
       kind: "blocked",
       session,
       reason: "disabled",
+      code: "disabled",
       message: "Il tuo account è stato disabilitato. Contatta un amministratore.",
     };
   }
@@ -88,17 +97,28 @@ export async function loadCurrentUser(force = false): Promise<CurrentUserResult>
     return { kind: "signed_out" };
   }
 
-  if (!force && cached && cached.userId === session.user.id) {
+  // A load that is already running is always shared (even when `force` is set): several
+  // parts of the app ask for the user at the same moment after a sign-in, and each fresh
+  // load would otherwise race the others (e.g. creating the profile twice).
+  if (cached && cached.userId === session.user.id && (!force || !cached.settled)) {
     return cached.promise;
   }
 
   const promise = fetchCurrentUser(session);
-  cached = { userId: session.user.id, promise };
+  const entry = { userId: session.user.id, promise, settled: false };
+  cached = entry;
 
-  // Do not keep failures around: the next call should retry.
-  promise.then((result) => {
-    if (result.kind === "blocked" && cached?.promise === promise) cached = null;
-  });
+  void promise.then(
+    (result) => {
+      entry.settled = true;
+      // Do not keep failures around: the next call should retry.
+      if (result.kind === "blocked" && cached === entry) cached = null;
+    },
+    () => {
+      entry.settled = true;
+      if (cached === entry) cached = null;
+    },
+  );
 
   return promise;
 }
@@ -106,4 +126,30 @@ export async function loadCurrentUser(force = false): Promise<CurrentUserResult>
 export async function signOut() {
   resetCurrentUserCache();
   await supabase.auth.signOut();
+}
+
+/* -------------------------------------------------------------------------- */
+/* One-shot notice for the login page                                         */
+/* -------------------------------------------------------------------------- */
+
+const NOTICE_KEY = "echobox.loginNotice";
+
+/** Remembers why the user was sent back to the login page (survives the redirect). */
+export function setLoginNotice(code: string) {
+  try {
+    sessionStorage.setItem(NOTICE_KEY, code);
+  } catch {
+    /* storage unavailable: the user just sees the plain login form */
+  }
+}
+
+/** Returns and clears the pending notice, if any. */
+export function takeLoginNotice(): string | null {
+  try {
+    const code = sessionStorage.getItem(NOTICE_KEY);
+    if (code) sessionStorage.removeItem(NOTICE_KEY);
+    return code;
+  } catch {
+    return null;
+  }
 }

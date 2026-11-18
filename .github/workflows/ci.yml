@@ -1,0 +1,153 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A new push to the same branch/PR cancels the run that is still in progress.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: "24"
+  # Keep in sync with the CLI that generated src/types/database.types.ts: a different
+  # version can format the generated file differently and fail the "types are up to date" check.
+  SUPABASE_CLI_VERSION: "2.117.0"
+  # Services the tests do not need (faster start, fewer images to pull).
+  SUPABASE_EXCLUDE: "studio,imgproxy,vector,logflare,supavisor"
+
+jobs:
+  # ---------------------------------------------------------------------------
+  web:
+    name: Type-check, unit tests, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci
+
+      - name: Type-check (app + browser tests)
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Production build
+        run: npm run build
+
+      - name: Audit runtime dependencies
+        run: npm run audit:prod
+
+  # ---------------------------------------------------------------------------
+  database:
+    name: Database tests and generated types
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: ${{ env.SUPABASE_CLI_VERSION }}
+
+      - name: Start local Supabase (applies migrations and seed)
+        run: supabase start -x "$SUPABASE_EXCLUDE"
+
+      - name: pgTAP tests (RLS, order state machine, onboarding, public booking)
+        run: supabase test db
+
+      - name: Generated TypeScript types are up to date
+        run: |
+          supabase gen types typescript --local --schema public > "$RUNNER_TEMP/database.types.ts"
+          diff -u src/types/database.types.ts "$RUNNER_TEMP/database.types.ts" || {
+            echo "::error file=src/types/database.types.ts::Out of date. Run 'npm run db:types' and commit the result."
+            exit 1
+          }
+
+      - name: Stop Supabase
+        if: always()
+        run: supabase stop --no-backup
+
+  # ---------------------------------------------------------------------------
+  e2e:
+    name: Browser tests (Playwright)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: ${{ env.SUPABASE_CLI_VERSION }}
+
+      - name: Start local Supabase (migrations, seed, Auth, Edge Functions, mail catcher)
+        run: supabase start -x "$SUPABASE_EXCLUDE"
+
+      - name: Point the app at the local stack
+        run: |
+          set -a
+          eval "$(supabase status -o env 2>/dev/null)"
+          set +a
+          cat > .env.local <<EOF
+          VITE_SUPABASE_URL=${API_URL}
+          VITE_SUPABASE_ANON_KEY=${ANON_KEY}
+          VITE_PUBLIC_BOOKING_SLUG=echobox-demo
+          EOF
+          # used by the tests to clean up the users and companies they create
+          echo "E2E_SERVICE_ROLE_KEY=${SERVICE_ROLE_KEY}" >> "$GITHUB_ENV"
+          echo "E2E_MAIL_URL=${INBUCKET_URL}" >> "$GITHUB_ENV"
+
+      - name: Install the browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Run the browser tests
+        run: npm run e2e
+        env:
+          CI: "true"
+
+      - name: Upload the Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Stop Supabase
+        if: always()
+        run: supabase stop --no-backup
+
+  # ---------------------------------------------------------------------------
+  docker:
+    name: Docker image
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build the image
+        run: docker build -t echoboxlogistics-web-app:ci .
+
+      - name: Smoke-test the container
+        run: bash scripts/docker-smoke-test.sh echoboxlogistics-web-app:ci

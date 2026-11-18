@@ -8,6 +8,7 @@ The schema lives in `supabase/migrations/` (apply order = file name order):
 | `…000100_functions_triggers.sql` | identity helpers, order guard trigger, audit trigger |
 | `…000200_rls.sql` | RLS policies, grants, realtime publication |
 | `…000300_rpcs.sql` | business RPCs, `rider_activity` view, dashboard stats, public booking |
+| `…000400_bootstrap_profile_lock.sql` | makes `bootstrap_profile()` safe under concurrent first-login calls (advisory lock) |
 
 Tests: `supabase/tests/database.test.sql` (pgTAP, run with `supabase test db`).
 
@@ -200,7 +201,7 @@ npm run db:types                      # regenerate src/types/database.types.ts
 supabase db push                      # apply to the linked remote project
 ```
 
-Never edit a migration that has been applied to a shared database; add a new one. (The initial four were
+Never edit a migration that has been applied to a shared database; add a new one (as `…000400` did). (The initial four were
 edited in place during development because nothing had been deployed.)
 
 > The generated types mark every column of a `returns table` function as non-null. Where that is wrong

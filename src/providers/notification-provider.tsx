@@ -15,7 +15,7 @@ export function useNotificationProvider(): NotificationProvider {
       open: ({ key, message, description, type }) => {
         notification.open({
           key,
-          message,
+          title: message, // antd 6 renamed `message` to `title`
           description,
           type: type === "progress" ? "info" : type,
           placement: "topRight",

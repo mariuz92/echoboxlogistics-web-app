@@ -13,7 +13,7 @@ dependency, adds a real back end (schema, security rules, business logic, tests)
 | `localStorage` as the source of identity, tenant and radio channels | Supabase session + server state (TanStack Query) |
 | Firestore `onSnapshot` listeners | Supabase Realtime on `orders` |
 | React 18, antd 5, Vite 6, `@refinedev/antd` | React 19, **antd 6**, Vite 8, TypeScript 7, headless Refine |
-| No tests, no docs, no container | 86 DB tests + 45 unit tests, docs, Docker image |
+| No tests, no docs, no container, no CI | 86 DB tests + 45 unit tests + 44 browser tests, docs, Docker image, GitHub Actions CI |
 
 ## Package upgrades
 
@@ -133,6 +133,19 @@ this app. Port it to `supabase_flutter`: [API.md](API.md) documents the RPCs it 
 | CSV export did not quote fields | Quoted, UTF-8 BOM for Excel |
 | Dead links (`/Collaboratori`, `/auth/request-invite`) | Redirected / removed |
 | Password messages inconsistent ("min 6" vs "almeno 12") | One policy, enforced by Supabase and the form |
+
+### Found later by the browser tests
+
+Problems in the *new* code that only a real browser against the real stack could reveal, all fixed:
+
+| Problem | Fix |
+|---|---|
+| After a first sign-in several parts of the app asked for the profile at once; the loser of the race got a duplicate-key error (an invitee saw "invitation invalid") | `bootstrap_profile` serialises per user with an advisory lock (migration `…000400`); the client shares one in-flight load |
+| Deactivating an account while its owner had the app open in another tab crashed the app to a blank screen ("useReadyUser used outside an authenticated route") | `RequireUser` guard + hard redirect to the login page with an explanation; an error boundary as a safety net |
+| Confirming an email whose company name was already taken dropped the user on an empty login page with no explanation | The reason is kept across the redirect and shown on the login page |
+| The row action menu opened submenus on **hover**, which does not exist on tablets and phones | Submenus open on tap/click |
+| Every background (realtime) refresh flashed a spinner over the orders table and could close an open menu | Spinner only on first load and when switching period |
+| Two form inputs shared the DOM id `guide_id`; deprecated antd 6 props (`Notification.message`, `Input.addonAfter`) | Fixed; the browser-error gate now fails any test that logs a console error |
 
 ## UI / UX changes
 

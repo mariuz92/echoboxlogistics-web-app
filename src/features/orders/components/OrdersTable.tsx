@@ -27,6 +27,9 @@ import { getStatusActions, isPickupOverdue, needsAssignment } from "../orderActi
 import { useMembers, useOrderMutations, useRiderActivity } from "../hooks";
 import type { DrawerMode } from "./OrderDrawer";
 
+/** Submenu titles bubble to the table row (which opens the details drawer): stop them. */
+const stopTitleClick = ({ domEvent }: { domEvent: React.SyntheticEvent }) => domEvent.stopPropagation();
+
 interface OrdersTableProps {
   orders: Order[];
   loading?: boolean;
@@ -175,6 +178,8 @@ export function OrdersTable({ orders, loading, anchorDay, onOpen }: OrdersTableP
             icon: <UserAddOutlined />,
             label: currentRider ? `Cambia rider (${legLabel})` : `Assegna ${legLabel}`,
             children: assignChildren,
+            // submenu titles bubble to the row too (opening the drawer): stop them
+            onTitleClick: stopTitleClick,
           }
         : {
             key: "assign",
@@ -186,7 +191,13 @@ export function OrdersTable({ orders, loading, anchorDay, onOpen }: OrdersTableP
       ...(statusItems && statusItems.length
         ? [
             { type: "divider" as const },
-            { key: "status", icon: <SwapOutlined />, label: "Cambia stato", children: statusItems },
+            {
+              key: "status",
+              icon: <SwapOutlined />,
+              label: "Cambia stato",
+              children: statusItems,
+              onTitleClick: stopTitleClick,
+            },
           ]
         : []),
       { type: "divider" },
@@ -352,6 +363,8 @@ export function OrdersTable({ orders, loading, anchorDay, onOpen }: OrdersTableP
             // The menu is portaled, but React still bubbles its clicks to the
             // table row (which would open the details drawer after every action).
             onClick: ({ domEvent }) => domEvent.stopPropagation(),
+            // Hover does not exist on touch screens: open submenus on tap/click instead.
+            triggerSubMenuAction: "click",
           }}
           trigger={["click"]}
           placement="bottomRight"
