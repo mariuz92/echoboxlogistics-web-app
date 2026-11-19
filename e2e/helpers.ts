@@ -32,20 +32,35 @@ export const e2eName = (label: string) => `E2E ${label} ${uid()}`;
 /** A phone number that is unique per call (the public form throttles per phone). */
 export const uniquePhone = () => `3${Math.floor(100000000 + Math.random() * 899999999)}`;
 
-/** dd/mm/yyyy hh:mm, `days` from now, as typed into the date pickers. */
-export function pickerDate(days: number, hour = 10, minute = 30): string {
-  const d = new Date();
-  d.setDate(d.getDate() + days);
-  const p = (n: number) => String(n).padStart(2, "0");
-  return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()} ${p(hour)}:${p(minute)}`;
+/**
+ * The app works in the company's time zone (the browser contexts run in Europe/Rome),
+ * so "today" in the tests must be Rome's today too. Using the runner's own date broke the
+ * tests between 23:00 and 24:00 UTC, when Rome is already on the next day.
+ */
+const TEST_TIMEZONE = "Europe/Rome";
+
+function dayInRome(days: number): { y: number; m: number; d: number } {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat("en-CA", { timeZone: TEST_TIMEZONE, year: "numeric", month: "2-digit", day: "2-digit" })
+      .formatToParts(new Date())
+      .map((part) => [part.type, part.value]),
+  );
+  const shifted = new Date(Date.UTC(Number(parts.year), Number(parts.month) - 1, Number(parts.day) + days));
+  return { y: shifted.getUTCFullYear(), m: shifted.getUTCMonth() + 1, d: shifted.getUTCDate() };
 }
 
-/** yyyy-mm-dd, `days` from now (the format of the ?date= URL parameter). */
-export function isoDay(days: number): string {
-  const d = new Date();
-  d.setDate(d.getDate() + days);
+/** dd/mm/yyyy hh:mm, `days` from now (Rome time), as typed into the date pickers. */
+export function pickerDate(days: number, hour = 10, minute = 30): string {
+  const { y, m, d } = dayInRome(days);
   const p = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+  return `${p(d)}/${p(m)}/${y} ${p(hour)}:${p(minute)}`;
+}
+
+/** yyyy-mm-dd, `days` from now (Rome time; the format of the ?date= URL parameter). */
+export function isoDay(days: number): string {
+  const { y, m, d } = dayInRome(days);
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${y}-${p(m)}-${p(d)}`;
 }
 
 export const PASSWORD = "E2eTest2026x";

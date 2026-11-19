@@ -150,7 +150,7 @@ test.describe("settings and profile", () => {
     }
 
     await page.getByRole("button", { name: "Gestisci canali" }).click();
-    await expect(page.getByRole("dialog").filter({ hasText: "Mappa canali" })).toBeVisible();
+    await expect(page.getByRole("dialog").filter({ hasText: "Canali disabilitati" })).toBeVisible();
     browserErrors.expectNone();
   });
 
