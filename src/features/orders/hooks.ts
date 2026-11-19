@@ -15,7 +15,6 @@ import {
   createOrder,
   deleteOrder,
   getChannelBoard,
-  getFreeChannels,
   listOrderEvents,
   listOrders,
   listPendingPickups,
@@ -23,7 +22,6 @@ import {
   riderAction,
   setOrderStatus,
   updateOrder,
-  type FreeChannelsQuery,
   type NewOrderInput,
   type OrderPatch,
   type RiderAction,
@@ -39,8 +37,6 @@ export const queryKeys = {
   events: (id: string) => ["orders", "events", id] as const,
   channels: ["channels"] as const,
   channelBoard: (from: string, to: string) => ["channels", "board", from, to] as const,
-  freeChannels: (q: FreeChannelsQuery) =>
-    ["channels", "free", q.deliveryAt, q.pickupAt ?? null, q.excludeOrderId ?? null, q.limit ?? 12] as const,
   riderActivity: ["rider-activity"] as const,
   members: ["members"] as const,
   guides: ["guides"] as const,
@@ -66,15 +62,6 @@ export const useChannelBoard = (range: { from: string; to: string } | null, enab
     queryKey: queryKeys.channelBoard(range?.from ?? "", range?.to ?? ""),
     queryFn: () => getChannelBoard(range!.from, range!.to),
     enabled: enabled && Boolean(range),
-    placeholderData: keepPreviousData,
-  });
-
-/** First free channels for an order's times. */
-export const useFreeChannels = (q: FreeChannelsQuery | null, enabled = true) =>
-  useQuery({
-    queryKey: queryKeys.freeChannels(q ?? { deliveryAt: "" }),
-    queryFn: () => getFreeChannels(q!),
-    enabled: enabled && Boolean(q?.deliveryAt),
     placeholderData: keepPreviousData,
   });
 

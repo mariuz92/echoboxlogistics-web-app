@@ -82,7 +82,7 @@ npm run e2e:report        # open the last HTML report
 | Spec | Covers |
 |---|---|
 | `auth` | login errors, redirects, rider vs admin access, legacy URLs, 404 |
-| `orders` | create / validate / edit / assign / cancel / delete, radio-channel suggestions and conflicts, filters, periods, PDF, channel board |
+| `orders` | create / validate / edit / assign / cancel / delete, radio-channel conflicts (free / occupied), filters, periods, PDF, channel settings |
 | `rider` | one order from creation to pickup across **two browsers** (admin + rider on a phone-sized screen), live updates, isolation between riders |
 | `booking` | the anonymous form: validation, success, time zone, honeypot, switching bookings off |
 | `team` | invitation by email → join → password change → deactivation; revoke; duplicate email; last-admin protection |

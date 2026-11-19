@@ -10,7 +10,7 @@ import "./landing.css";
 const SHOTS = {
   "web-orders": { w: 2880, h: 1800 },
   "crop-order-detail": { w: 1520, h: 1800 },
-  "crop-channel-board": { w: 1178, h: 2230 },
+  "crop-channel-check": { w: 1520, h: 1042 },
   "crop-pickups": { w: 2200, h: 774 },
   "crop-dashboard": { w: 2344, h: 1400 },
   "crop-rider": { w: 1170, h: 2280 },
@@ -28,7 +28,7 @@ type ShotId = keyof typeof SHOTS;
  */
 const SECTION_SHOTS: Record<SectionId, { shot: ShotId; kind: "tall" | "modal" | "phone" | "wide" | "bleed" }> = {
   orders: { shot: "crop-order-detail", kind: "tall" },
-  channels: { shot: "crop-channel-board", kind: "tall" },
+  channels: { shot: "crop-channel-check", kind: "modal" },
   riders: { shot: "crop-rider", kind: "phone" },
   pickups: { shot: "crop-pickups", kind: "wide" },
   booking: { shot: "crop-booking", kind: "phone" },

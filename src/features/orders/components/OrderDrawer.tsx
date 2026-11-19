@@ -386,7 +386,7 @@ function OrderFormBody({
       <Typography.Title level={5} style={{ marginTop: 0 }}>
         Canale radio
       </Typography.Title>
-      <ChannelPicker orderId={order?.id} autoFill={mode === "create"} />
+      <ChannelPicker orderId={order?.id} />
 
       <Form.Item label="Note" name="notes">
         <Input.TextArea rows={3} maxLength={1000} showCount />

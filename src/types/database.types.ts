@@ -552,15 +552,6 @@ export type Database = {
         }
         Returns: string
       }
-      free_channels: {
-        Args: {
-          p_delivery_at: string
-          p_exclude_order?: string
-          p_limit?: number
-          p_pickup_at?: string
-        }
-        Returns: number[]
-      }
       get_channel_board: {
         Args: { p_from: string; p_to: string }
         Returns: {

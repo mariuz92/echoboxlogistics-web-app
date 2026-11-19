@@ -5,7 +5,7 @@ import { getErrorMessage } from "../../lib/errors";
 import { useReadyUser } from "../../providers/current-user";
 import { PageHeader } from "../../shared/components/PageHeader";
 import { usePageTitle } from "../../shared/hooks/usePageTitle";
-import { ChannelBoard } from "../orders/components/ChannelBoard";
+import { ChannelSettings } from "../orders/components/ChannelBoard";
 import { updateTenant } from "./api";
 import { channelCount } from "../../types/domain";
 
@@ -148,7 +148,7 @@ export function SettingsPage() {
         </Col>
       </Row>
 
-      <ChannelBoard open={channelsOpen} onClose={() => setChannelsOpen(false)} />
+      <ChannelSettings open={channelsOpen} onClose={() => setChannelsOpen(false)} />
     </>
   );
 }

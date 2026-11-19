@@ -91,7 +91,6 @@ curl -s -X POST "$BASE/rest/v1/rpc/rider_order_action" ... \
 | `bootstrap_profile` | `{}` | the caller's `profiles` row |
 | `touch_login` | `{}` | – |
 | `update_member` | `{p_user_id, p_full_name?, p_phone?, p_roles?, p_disabled?}` (admin) | updated profile |
-| `free_channels` | `{p_delivery_at, p_pickup_at?, p_exclude_order?, p_limit?}` (admin) | `[3, 7, 8, …]` first channels free for those times |
 | `get_channel_board` | `{p_from, p_to}` (admin) | `[{channel, order_id, guide_name, status, delivery_at, pickup_at, busy_until}]` |
 | `get_dashboard_stats` | `{p_month: "2026-11-01"}` (admin) | JSON: `current`, `previous`, `status_distribution`, `daily`, `weekly`, `hourly`, `heatmap`, `top_guides`, `channels`, `top_locations` |
 

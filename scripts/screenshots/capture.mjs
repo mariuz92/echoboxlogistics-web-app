@@ -78,18 +78,29 @@ const shots = [
     target: dialog,
   },
   {
-    // The day map of the channel board (a tall viewport so the dialog fits).
-    name: "crop-channel-board",
-    ctx: { ...desktop, viewport: { width: 1440, height: 1500 } },
+    // The order form: the typed channel is already used by another group at those times.
+    name: "crop-channel-check",
+    ctx: { ...desktop, viewport: { width: 1440, height: 1400 } },
     as: ADMIN,
     path: "/",
     prepare: async (page) => {
-      await page.getByRole("button", { name: /Canali radio/ }).click();
-      await dialog(page).waitFor();
-      await page.getByText("In uso in questa giornata").waitFor();
-      await page.waitForTimeout(900);
+      await page.getByRole("button", { name: "Nuovo ordine" }).click();
+      const drawer = dialog(page);
+      await drawer.locator("#guide_name").fill("Marta Rinaldi");
+      await drawer.locator("#radios_count").fill("24");
+      await drawer.locator("#delivery_address").fill("Piazza Navona, Roma");
+      await drawer.locator("#radio_channel").fill("4");
+      await drawer.getByText("occupato da").waitFor();
+      await drawer.getByText("Consegna", { exact: true }).scrollIntoViewIfNeeded();
+      await page.waitForTimeout(500);
     },
-    target: (page) => page.locator(".ant-card").filter({ hasText: "Occupazione del" }).first(),
+    clipFn: async (page) => {
+      const drawer = dialog(page);
+      const top = await drawer.getByText("Consegna", { exact: true }).boundingBox();
+      const status = await drawer.getByText("occupato da").boundingBox();
+      const box = await drawer.boundingBox();
+      return { x: box.x, y: top.y - 24, width: box.width, height: status.y + status.height + 32 - (top.y - 24) };
+    },
   },
   {
     name: "crop-pickups",
@@ -203,7 +214,8 @@ async function main() {
       await page.waitForTimeout(600);
       const png = join(tmpDir, `${shot.name}.png`);
       const jpg = join(outDir, `${shot.name}.jpg`);
-      const opts = { animations: "disabled", ...(shot.clip ? { clip: shot.clip } : {}) };
+      const clip = shot.clipFn ? await shot.clipFn(page) : shot.clip;
+      const opts = { animations: "disabled", ...(clip ? { clip } : {}) };
       const take = (o) => (shot.target ? shot.target(page).screenshot({ ...opts, ...o }) : page.screenshot({ ...opts, ...o }));
       await take({ path: png });
       await take({ path: jpg, type: "jpeg", quality: 84 });

@@ -15,10 +15,10 @@
 --     open order.
 --   * channels_exclusive = false lets several groups share a channel (equipment
 --     where that is harmless); the office still sees who uses what.
---   * public.free_channels() suggests the first free channels for given times;
---     public bookings get one automatically.
---   * public.get_channel_board() returns only the channels in use in a period,
---     so the map scales to 10,000 channels (it replaces get_channel_status()).
+--   * The office types the channel on the order; the form says whether it is
+--     free at those times or which group occupies it.
+--   * public.get_channel_board() returns only the channels in use in a period
+--     (it replaces get_channel_status(), which listed every channel).
 -- =============================================================================
 
 -- -----------------------------------------------------------------------------
@@ -82,46 +82,7 @@ as $$
 $$;
 
 -- -----------------------------------------------------------------------------
--- 3. First free channels of a company for a time window
---    (enabled, inside the range, not used by another open order at that time).
--- -----------------------------------------------------------------------------
-create function private.free_channels(
-  p_tenant_id uuid,
-  p_window    tstzrange,
-  p_exclude   uuid,
-  p_limit     integer
-)
-returns integer[]
-language sql
-stable
-security definer
-set search_path = ''
-as $$
-  with t as (
-    select * from public.tenants where id = p_tenant_id
-  ),
-  busy as (
-    select distinct o.radio_channel as c
-    from public.orders o
-    join t on t.id = o.tenant_id
-    where o.radio_channel is not null
-      and o.status not in ('picked_up', 'cancelled')
-      and o.id is distinct from p_exclude
-      and private.channel_window(o.delivery_at, o.pickup_at, t.timezone) && p_window
-  )
-  select coalesce(array(
-    select s.c
-    from t
-    cross join lateral pg_catalog.generate_series(t.channel_min, t.channel_max) as s(c)
-    where s.c <> all (t.disabled_channels)
-      and not exists (select 1 from busy b where b.c = s.c)
-    order by s.c
-    limit greatest(coalesce(p_limit, 1), 1)
-  ), '{}');
-$$;
-
--- -----------------------------------------------------------------------------
--- 4. Order guard: range, disabled channels and time-based conflicts
+-- 3. Order guard: range, disabled channels and time-based conflicts
 -- -----------------------------------------------------------------------------
 
 create or replace function private.orders_guard()
@@ -244,146 +205,7 @@ end;
 $$;
 
 -- -----------------------------------------------------------------------------
--- 5. Public bookings get the first free channel
--- -----------------------------------------------------------------------------
-
-create or replace function public.create_public_order(
-  p_slug             text,
-  p_guide_name       text,
-  p_guide_phone      text,
-  p_guide_email      text,
-  p_radios_count     integer,
-  p_delivery_at      timestamptz,
-  p_delivery_address text,
-  p_pickup_at        timestamptz default null,
-  p_pickup_address   text default null,
-  p_notes            text default null
-)
-returns uuid
-language plpgsql
-security definer
-set search_path = ''
-as $$
-declare
-  v_tenant public.tenants;
-  v_digits text := private.digits(p_guide_phone);
-  v_email  text := nullif(btrim(p_guide_email), '');
-  v_guide  uuid;
-  v_order  uuid;
-  v_recent integer;
-  v_window tstzrange;
-  v_channel integer;
-  v_try    integer := 0;
-begin
-  select * into v_tenant
-  from public.tenants t
-  where t.slug = lower(btrim(coalesce(p_slug, ''))) and t.is_active and t.public_booking_enabled;
-  if not found then
-    raise exception 'booking_unavailable';
-  end if;
-
-  if char_length(btrim(coalesce(p_guide_name, ''))) not between 2 and 120 then
-    raise exception 'invalid_guide_name';
-  end if;
-  if char_length(v_digits) not between 6 and 15 then
-    raise exception 'invalid_phone';
-  end if;
-  if v_email is not null and (char_length(v_email) > 200 or v_email !~* '^[^@\s]+@[^@\s]+\.[^@\s]+$') then
-    raise exception 'invalid_email';
-  end if;
-  if p_radios_count is null or p_radios_count not between 1 and 500 then
-    raise exception 'invalid_radios_count';
-  end if;
-  if p_delivery_at is null
-     or p_delivery_at < now() - interval '1 hour'
-     or p_delivery_at > now() + interval '2 years' then
-    raise exception 'invalid_delivery_time';
-  end if;
-  if char_length(btrim(coalesce(p_delivery_address, ''))) not between 1 and 300 then
-    raise exception 'invalid_address';
-  end if;
-  if p_pickup_at is not null and p_pickup_at < p_delivery_at then
-    raise exception 'invalid_pickup_time';
-  end if;
-  if p_pickup_at is not null and char_length(btrim(coalesce(p_pickup_address, ''))) = 0 then
-    raise exception 'invalid_address';
-  end if;
-  if char_length(coalesce(p_notes, '')) > 1000 or char_length(coalesce(p_pickup_address, '')) > 300 then
-    raise exception 'invalid_address';
-  end if;
-
-  -- Basic abuse protection: per phone and per tenant.
-  select count(*) into v_recent
-  from public.orders o
-  where o.tenant_id = v_tenant.id and o.source = 'public_form'
-    and o.created_at > now() - interval '1 hour'
-    and private.digits(o.guide_phone) = v_digits;
-  if v_recent >= 5 then
-    raise exception 'too_many_requests';
-  end if;
-
-  select count(*) into v_recent
-  from public.orders o
-  where o.tenant_id = v_tenant.id and o.source = 'public_form'
-    and o.created_at > now() - interval '1 hour';
-  if v_recent >= 200 then
-    raise exception 'too_many_requests';
-  end if;
-
-  -- Reuse (or create) the guide contact, matched on phone number.
-  select g.id into v_guide from public.guides g
-  where g.tenant_id = v_tenant.id and g.phone_digits = v_digits;
-
-  if v_guide is null then
-    insert into public.guides (tenant_id, full_name, phone, email)
-    values (v_tenant.id, btrim(p_guide_name), btrim(p_guide_phone), v_email)
-    on conflict do nothing
-    returning id into v_guide;
-
-    if v_guide is null then
-      -- Phone or email collided with another contact: fall back to phone only.
-      select g.id into v_guide from public.guides g
-      where g.tenant_id = v_tenant.id and g.phone_digits = v_digits;
-      if v_guide is null then
-        insert into public.guides (tenant_id, full_name, phone)
-        values (v_tenant.id, btrim(p_guide_name), btrim(p_guide_phone))
-        on conflict do nothing
-        returning id into v_guide;
-      end if;
-    end if;
-  end if;
-
-  -- Give the booking the first channel that is free for its times (none if all
-  -- are taken: the office assigns one). If another booking grabs the same channel
-  -- in the meantime, try the next free one; after three attempts book without one.
-  v_window := private.channel_window(p_delivery_at, p_pickup_at, v_tenant.timezone);
-  loop
-    v_try := v_try + 1;
-    v_channel := case when v_try <= 3
-                      then (private.free_channels(v_tenant.id, v_window, null, 1))[1] end;
-    begin
-      insert into public.orders (
-        tenant_id, guide_id, guide_name, guide_phone, guide_email,
-        radios_count, delivery_at, delivery_address, pickup_at, pickup_address,
-        notes, source, radio_channel)
-      values (
-        v_tenant.id, v_guide, btrim(p_guide_name), btrim(p_guide_phone), v_email,
-        p_radios_count, p_delivery_at, btrim(p_delivery_address), p_pickup_at,
-        nullif(btrim(p_pickup_address), ''),
-        nullif(btrim(p_notes), ''), 'public_form', v_channel)
-      returning id into v_order;
-      exit;
-    exception when exclusion_violation then
-      null; -- channel taken a moment ago: pick again
-    end;
-  end loop;
-
-  return v_order;
-end;
-$$;
-
--- -----------------------------------------------------------------------------
--- 6. Dashboard: the 20 most used channels (a bar per channel does not scale)
+-- 4. Dashboard: the 20 most used channels (a bar per channel does not scale)
 -- -----------------------------------------------------------------------------
 
 create or replace function public.get_dashboard_stats(p_month date default current_date)
@@ -540,7 +362,7 @@ end;
 $$;
 
 -- -----------------------------------------------------------------------------
--- 7. Channel settings guard
+-- 5. Channel settings guard
 --    * the disabled list is kept sorted, unique and inside the range;
 --    * the range cannot drop, and a channel cannot be disabled, while an open
 --      order uses it;
@@ -602,42 +424,8 @@ create trigger tenants_channel_guard
   for each row execute function private.tenants_channel_guard();
 
 -- -----------------------------------------------------------------------------
--- 8. API for the office
+-- 6. API for the office
 -- -----------------------------------------------------------------------------
-
--- First free channels for an order's times (admins only). p_exclude_order is the
--- order being edited, so that its own channel counts as free.
-create function public.free_channels(
-  p_delivery_at   timestamptz,
-  p_pickup_at     timestamptz default null,
-  p_exclude_order uuid default null,
-  p_limit         integer default 12
-)
-returns integer[]
-language plpgsql
-stable
-security definer
-set search_path = ''
-as $$
-declare
-  v_tenant public.tenants;
-begin
-  if not (select private.is_admin()) then
-    raise exception 'forbidden' using errcode = '42501';
-  end if;
-  if p_delivery_at is null then
-    raise exception 'invalid_delivery_time';
-  end if;
-
-  select * into v_tenant from public.tenants t where t.id = (select private.current_tenant_id());
-
-  return private.free_channels(
-    v_tenant.id,
-    private.channel_window(p_delivery_at, p_pickup_at, v_tenant.timezone),
-    p_exclude_order,
-    least(coalesce(p_limit, 12), 200));
-end;
-$$;
 
 -- Channels in use during a period: one row per open order whose channel window
 -- overlaps [p_from, p_to). Free and disabled channels are not listed (the client
@@ -672,17 +460,14 @@ $$;
 drop function public.get_channel_status();
 
 -- -----------------------------------------------------------------------------
--- 9. Function privileges (new functions are executable by PUBLIC by default)
+-- 7. Function privileges (new functions are executable by PUBLIC by default)
 -- -----------------------------------------------------------------------------
 revoke execute on function
   private.channel_window(timestamptz, timestamptz, text),
-  private.free_channels(uuid, tstzrange, uuid, integer),
   private.tenants_channel_guard(),
-  public.free_channels(timestamptz, timestamptz, uuid, integer),
   public.get_channel_board(timestamptz, timestamptz)
 from public, anon, authenticated;
 
 grant execute on function
-  public.free_channels(timestamptz, timestamptz, uuid, integer),
   public.get_channel_board(timestamptz, timestamptz)
 to authenticated;

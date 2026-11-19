@@ -232,12 +232,10 @@ select throws_ok($$update public.tenants set channel_min = 1, channel_max = 1000
   '23514', null, 'at most 10,000 channels');
 
 select tests.login_as((select admin1 from ids));
-select ok(not (10 = any (public.free_channels(now() + interval '2 hours', now() + interval '3 hours', null, 200))),
-  'channel 10 is not suggested while o1 uses it');
-select ok(10 = any (public.free_channels(now() + interval '2 hours', now() + interval '3 hours', (select o1 from ids), 200)),
-  'the order being edited keeps its own channel among the suggestions');
-select ok(not (20 = any (public.free_channels(now() + interval '2 hours', now() + interval '3 hours', null, 200))),
-  'disabled channels are never suggested');
+select is((select guide_name from public.get_channel_board(now() + interval '2 hours', now() + interval '3 hours') where channel = 10),
+  'Test Guide', 'the board says who occupies channel 10 at those times');
+select is((select count(*)::int from public.get_channel_board(now() + interval '6 hours', now() + interval '7 hours') where channel = 10), 0,
+  'channel 10 is free again after o1''s pickup');
 select is((select count(*)::int from public.get_channel_board(now(), now() + interval '6 hours') where channel = 10), 1,
   'the channel board shows channel 10 in use now');
 select tests.logout();
@@ -320,7 +318,6 @@ select throws_ok($$select * from public.get_dashboard_stats(current_date)$$, '42
   'riders cannot read dashboard stats');
 select is((select count(*)::int from public.get_channel_board(now() - interval '1 year', now() + interval '1 year')), 0,
   'riders get no channel map');
-select throws_ok($$select public.free_channels(now())$$, '42501', null, 'riders cannot ask for free channels');
 select tests.logout();
 
 -- rider 1 runs the delivery

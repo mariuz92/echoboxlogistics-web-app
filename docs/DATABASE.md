@@ -10,7 +10,7 @@ The schema lives in `supabase/migrations/` (apply order = file name order):
 | `…000300_rpcs.sql` | business RPCs, `rider_activity` view, dashboard stats, public booking |
 | `…000400_bootstrap_profile_lock.sql` | makes `bootstrap_profile()` safe under concurrent first-login calls (advisory lock) |
 | `20261119000000_contact_messages.sql` | `contact_messages` for the landing-page contact form (service role only, written by the `contact` Edge Function) |
-| `20261120000000_channels_any_range.sql` | channel range 1–10,000 per company, time-based channel conflicts, `free_channels`, `get_channel_board`, channels for public bookings |
+| `20261120000000_channels_any_range.sql` | channel range 1–10,000 per company, time-based channel conflicts, `get_channel_board` |
 
 Tests: `supabase/tests/database.test.sql` (pgTAP, run with `supabase test db`).
 
@@ -186,7 +186,6 @@ authorisation failures use SQLSTATE `42501`. See [API.md](API.md) for request ex
 | `assign_order(order, leg, rider)` | admin | Assign / unassign a rider to the `delivery` or `pickup` leg |
 | `admin_set_status(order, status)` | admin | Cancel, re-open, or move an order forward manually |
 | `rider_order_action(order, action, lost)` | rider | `claim_pickup`, `start_delivery`, `complete_delivery`, `start_pickup`, `complete_pickup` |
-| `free_channels(delivery_at, pickup_at, exclude_order, limit)` | admin | First enabled channels free for those times |
 | `get_channel_board(from, to)` | admin | Open orders holding a channel during the period, with `busy_until` |
 | `get_dashboard_stats(month)` | admin | All dashboard figures for a month, in the tenant time zone |
 | `get_public_tenant(slug)` | anon | Company name, time zone and whether bookings are open |

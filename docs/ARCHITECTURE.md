@@ -130,10 +130,10 @@ and an afternoon group, and a one-channel company can run tours back to back.
   another open order on the same channel (`channel_busy`, SQLSTATE `23P01`), under a per-channel
   advisory lock so concurrent bookings cannot both pass.
 - `channels_exclusive = false`: groups may share channels; the UI shows the overlap as a warning.
-- `free_channels(delivery, pickup, exclude_order, limit)` suggests the first free channels for given
-  times; the order form pre-fills the first one and public bookings get one automatically.
-- `get_channel_board(from, to)` returns only the channels in use in a period, so the channel map scales
-  to 10,000 channels (browsed in pages of 100).
+- The office types the channel on each order; the form says at once whether it is free at the order's
+  times or which group occupies it. There is no map or list of every channel to pick from.
+- `get_channel_board(from, to)` returns only the channels in use in a period: it powers that check and
+  the "channels in use" list in the channel settings, and stays small with 10,000 channels.
 
 ## Realtime
 

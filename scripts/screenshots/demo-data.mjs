@@ -3,7 +3,7 @@
 // A fictional Rome tour-equipment company with riders, guides and ~2 months of
 // orders around a fixed "now". Rows follow the real table shapes
 // (src/types/database.types.ts) and the derived views/RPCs are computed the same
-// way the SQL does it (rider_activity, get_channel_board, free_channels, get_dashboard_stats).
+// way the SQL does it (rider_activity, get_channel_board, get_dashboard_stats).
 // Everything here is invented: names, phone numbers and e-mail addresses are fake.
 
 export const TZ = "Europe/Rome";
@@ -510,18 +510,6 @@ export function channelBoard(db, from, to) {
       busy_until: busyUntil(o).toISOString(),
     }))
     .sort((x, y) => x.channel - y.channel || x.delivery_at.localeCompare(y.delivery_at));
-}
-
-/** public.free_channels(delivery, pickup, exclude, limit) */
-export function freeChannels(db, deliveryAt, pickupAt, excludeOrderId, limit = 12) {
-  const from = deliveryAt;
-  const to = busyUntil({ delivery_at: deliveryAt, pickup_at: pickupAt ?? null }).toISOString();
-  const busy = new Set(channelBoard(db, from, to).filter((u) => u.order_id !== excludeOrderId).map((u) => u.channel));
-  const out = [];
-  for (let c = db.tenant.channel_min; c <= db.tenant.channel_max && out.length < limit; c++) {
-    if (!busy.has(c) && !db.tenant.disabled_channels.includes(c)) out.push(c);
-  }
-  return out;
 }
 
 export function dashboardStats(db, monthStr) {

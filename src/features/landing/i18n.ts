@@ -154,9 +154,9 @@ const it: Dict = {
         title: "Qualsiasi radioguida, da 1 a 10.000 canali",
         text: "Imposti i canali dei tuoi apparecchi, qualunque modello usi. Un canale è occupato solo mentre il gruppo ha le radio, dalla consegna al ritiro: lo stesso canale può servire un gruppo la mattina e un altro il pomeriggio.",
         points: [
-          "Per ogni ordine Rondo propone il primo canale libero in quegli orari",
+          "Scrivi il canale nell'ordine: Rondo ti dice subito se è libero o chi lo sta usando",
           "Due gruppi sullo stesso canale alla stessa ora vengono bloccati, se i tuoi apparecchi non possono condividerlo",
-          "Mappa della giornata: canali liberi, in uso e disabilitati",
+          "Canali guasti o riservati esclusi in un attimo",
         ],
       },
       riders: {
@@ -328,9 +328,9 @@ const en: Dict = {
         title: "Any radioguide system, from 1 to 10,000 channels",
         text: "Set up the channels of your equipment, whatever model you use. A channel is busy only while a group has the radios, from delivery to pickup: the same channel can serve one group in the morning and another in the afternoon.",
         points: [
-          "For every order, Rondo suggests the first channel free at those times",
+          "Type the channel on the order: Rondo tells you right away whether it is free or who is using it",
           "Two groups on the same channel at the same time are blocked, if your equipment cannot share channels",
-          "A map of the day: free, busy and disabled channels",
+          "Faulty or reserved channels excluded in a moment",
         ],
       },
       riders: {
@@ -502,9 +502,9 @@ const de: Dict = {
         title: "Jede Führungsanlage, von 1 bis 10.000 Kanälen",
         text: "Sie legen die Kanäle Ihrer Geräte fest, egal welches Modell. Ein Kanal ist nur belegt, solange eine Gruppe die Geräte hat, von der Lieferung bis zur Abholung: Derselbe Kanal kann morgens eine Gruppe und nachmittags eine andere bedienen.",
         points: [
-          "Für jeden Auftrag schlägt Rondo den ersten freien Kanal zu diesen Zeiten vor",
+          "Kanal im Auftrag eintragen: Rondo zeigt sofort, ob er frei ist oder wer ihn nutzt",
           "Zwei Gruppen zur selben Zeit auf demselben Kanal werden blockiert, wenn Ihre Geräte keine Kanäle teilen können",
-          "Tagesübersicht: freie, belegte und gesperrte Kanäle",
+          "Defekte oder reservierte Kanäle im Handumdrehen ausschließen",
         ],
       },
       riders: {
@@ -676,9 +676,9 @@ const fr: Dict = {
         title: "Tout système d'audioguide, de 1 à 10 000 canaux",
         text: "Vous configurez les canaux de vos appareils, quel que soit le modèle. Un canal n'est occupé que pendant que le groupe a les récepteurs, de la livraison au retrait : le même canal peut servir un groupe le matin et un autre l'après-midi.",
         points: [
-          "Pour chaque commande, Rondo propose le premier canal libre à ces horaires",
+          "Saisissez le canal dans la commande : Rondo indique aussitôt s'il est libre ou qui l'utilise",
           "Deux groupes sur le même canal au même moment sont bloqués, si vos appareils ne peuvent pas partager les canaux",
-          "Carte de la journée : canaux libres, occupés et désactivés",
+          "Canaux défectueux ou réservés exclus en un instant",
         ],
       },
       riders: {

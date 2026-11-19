@@ -154,23 +154,3 @@ export async function getChannelBoard(from: string, to: string): Promise<Channel
   if (error) throw error;
   return (data ?? []) as ChannelUse[];
 }
-
-export interface FreeChannelsQuery {
-  deliveryAt: string;
-  pickupAt?: string | null;
-  /** The order being edited: its own channel counts as free. */
-  excludeOrderId?: string | null;
-  limit?: number;
-}
-
-/** First channels that are enabled and free for the given times. */
-export async function getFreeChannels(q: FreeChannelsQuery): Promise<number[]> {
-  const { data, error } = await supabase.rpc("free_channels", {
-    p_delivery_at: q.deliveryAt,
-    p_pickup_at: (q.pickupAt ?? null) as string,
-    p_exclude_order: (q.excludeOrderId ?? null) as string,
-    p_limit: q.limit ?? 12,
-  });
-  if (error) throw error;
-  return data ?? [];
-}
