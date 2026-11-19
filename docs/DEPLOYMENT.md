@@ -35,7 +35,7 @@ Two things are deployed: the **Supabase project** (database, auth, functions) an
    ```bash
    supabase secrets set CONTACT_TO_EMAIL=you@your-domain \
                         RESEND_API_KEY=re_xxx \
-                        CONTACT_FROM_EMAIL="EchoBox Logistics <hello@your-domain>"
+                        CONTACT_FROM_EMAIL="Rondo <hello@your-domain>"
    ```
 
    Until your sending domain is verified in Resend, leave `CONTACT_FROM_EMAIL` unset: the default test sender

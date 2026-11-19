@@ -5,16 +5,16 @@
  */
 
 .lp {
-  --ink: #142231;
-  --ink-2: #1b2c3f;
-  --night: #0f1a26;
-  --paper: #f4f6f9;
+  --ink: #172423;
+  --ink-2: #213431;
+  --night: #0f1918;
+  --paper: #f6f5f0;
   --surface: #ffffff;
-  --tint: #e6ebf2;
-  --line: #dce3eb;
+  --tint: #e9e8e1;
+  --line: #dfddd5;
   --line-dark: rgba(255, 255, 255, 0.12);
-  --text: #2f3d4f;
-  --muted: #627084;
+  --text: #2c3836;
+  --muted: #5d6967;
   --brand: #1d5fa8;
   --brand-hover: #174e8b;
   --coral: #e5604f;
@@ -127,7 +127,7 @@
 }
 
 .lp-head.is-light .lp-label {
-  color: #9cc3ec;
+  color: #a9c9e8;
 }
 
 .lp-lead {
@@ -168,12 +168,12 @@
 }
 
 .lp-btn-primary {
-  background: var(--brand);
+  background: var(--ink);
   color: #fff;
 }
 
 .lp-btn-primary:hover {
-  background: var(--brand-hover);
+  background: var(--ink-2);
 }
 
 .lp-btn-primary:disabled {
@@ -216,7 +216,7 @@
 }
 
 .lp-nav.is-solid {
-  background: rgba(244, 246, 249, 0.9);
+  background: rgba(246, 245, 240, 0.9);
   backdrop-filter: saturate(150%) blur(12px);
   box-shadow: 0 1px 0 var(--line);
 }
@@ -240,9 +240,8 @@
 }
 
 .lp-logo img {
-  width: 30px;
-  height: 30px;
-  border-radius: 8px;
+  width: auto;
+  height: 26px;
 }
 
 .lp-nav-links {
@@ -346,20 +345,84 @@
   color: var(--muted);
 }
 
+.lp-kicker {
+  margin-bottom: 22px;
+  font-family: var(--mono);
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.lp-hero-visual {
+  position: relative;
+  margin-top: 64px;
+  padding-bottom: 8px;
+}
+
+.lp-hero-visual figure {
+  margin: 0;
+}
+
+.lp-hero-web {
+  width: 86%;
+}
+
 .lp-hero-shot {
   display: block;
   width: 100%;
-  margin-top: 64px;
   border-radius: 14px;
   overflow: hidden;
   background: var(--surface);
   border: 1px solid var(--line);
-  box-shadow: 0 50px 90px -50px rgba(15, 26, 38, 0.55), 0 2px 8px rgba(15, 26, 38, 0.06);
+  box-shadow: 0 50px 90px -50px rgba(15, 25, 24, 0.55), 0 2px 8px rgba(15, 25, 24, 0.06);
   cursor: zoom-in;
 }
 
 .lp-hero-shot img {
   width: 100%;
+}
+
+/* The rider's phone: a real screen with a thin dark edge, no fake hardware. */
+.lp-hero-phone {
+  position: absolute;
+  right: 0;
+  bottom: -56px;
+  width: 24%;
+  z-index: 2;
+}
+
+.lp-hero-screen {
+  display: block;
+  width: 100%;
+  aspect-ratio: 9 / 17;
+  overflow: hidden;
+  border-radius: 30px;
+  border: 7px solid var(--ink);
+  background: var(--surface);
+  box-shadow: 0 40px 70px -30px rgba(15, 25, 24, 0.6);
+  cursor: zoom-in;
+}
+
+.lp-hero-screen img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top;
+}
+
+.lp-cap {
+  margin-top: 14px;
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.lp-hero-phone .lp-cap {
+  text-align: center;
+  white-space: nowrap;
 }
 
 /* --- the problem day ------------------------------------------------------------- */
@@ -1072,7 +1135,7 @@
 
 @media (max-width: 900px) {
   .lp-hero {
-    --overlap: 120px;
+    --overlap: 140px;
   }
 
   .lp-day-grid,
@@ -1157,9 +1220,31 @@
     width: 100%;
   }
 
-  .lp-hero-shot {
+  .lp-hero-visual {
     margin-top: 44px;
+  }
+
+  .lp-hero-shot {
     border-radius: 10px;
+  }
+
+  .lp-hero-web {
+    width: 100%;
+  }
+
+  .lp-hero-phone {
+    width: 34%;
+    right: -4px;
+    bottom: -28px;
+  }
+
+  .lp-hero-screen {
+    border-width: 5px;
+    border-radius: 20px;
+  }
+
+  .lp-hero-web .lp-cap {
+    max-width: 60%;
   }
 
   .lp-timeline li {

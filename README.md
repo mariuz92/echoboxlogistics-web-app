@@ -1,4 +1,4 @@
-# EchoBox Logistics web app
+# Rondo web app
 
 Web app for companies that rent **radio guides** (audio-guide receivers) to tour
 guides: take orders, assign riders to deliveries and pickups, keep track of radio

@@ -10,7 +10,7 @@ import "./landing.css";
 const SHOTS = {
   "web-orders": { w: 2880, h: 1800 },
   "crop-order-detail": { w: 1520, h: 1800 },
-  "crop-channels": { w: 1720, h: 870 },
+  "crop-channel-board": { w: 1178, h: 2230 },
   "crop-pickups": { w: 2200, h: 774 },
   "crop-dashboard": { w: 2344, h: 1400 },
   "crop-rider": { w: 1170, h: 2280 },
@@ -28,7 +28,7 @@ type ShotId = keyof typeof SHOTS;
  */
 const SECTION_SHOTS: Record<SectionId, { shot: ShotId; kind: "tall" | "modal" | "phone" | "wide" | "bleed" }> = {
   orders: { shot: "crop-order-detail", kind: "tall" },
-  channels: { shot: "crop-channels", kind: "modal" },
+  channels: { shot: "crop-channel-board", kind: "tall" },
   riders: { shot: "crop-rider", kind: "phone" },
   pickups: { shot: "crop-pickups", kind: "wide" },
   booking: { shot: "crop-booking", kind: "phone" },
@@ -317,9 +317,8 @@ export default function LandingPage() {
     <div className="lp">
       <header className={`lp-nav${scrolled || menuOpen ? " is-solid" : ""}`}>
         <div className="lp-wrap lp-nav-inner">
-          <a href="#top" className="lp-logo">
-            <img src={CONFIG.logo} alt="" width={30} height={30} />
-            <span>{CONFIG.appName}</span>
+          <a href="#top" className="lp-logo" aria-label={CONFIG.appName}>
+            <img src={CONFIG.logoOnLight} alt={CONFIG.appName} width={92} height={26} />
           </a>
           <nav className={`lp-nav-links${menuOpen ? " is-open" : ""}`} aria-label={t.nav.menu}>
             {links.map((l) => (
@@ -356,6 +355,7 @@ export default function LandingPage() {
         {/* Hero: the promise, then the product itself */}
         <section className="lp-hero" id="top">
           <div className="lp-wrap">
+            <p className="lp-kicker">{t.hero.kicker}</p>
             <h1>{t.hero.title}</h1>
             <p className="lp-hero-sub">{t.hero.subtitle}</p>
             <div className="lp-hero-cta">
@@ -369,14 +369,30 @@ export default function LandingPage() {
             <p className="lp-hero-note">{t.hero.note}</p>
           </div>
           <div className="lp-wrap">
-            <button
-              type="button"
-              className="lp-hero-shot"
-              onClick={() => setZoom({ shot: "web-orders", alt: t.hero.imageAlt })}
-              aria-label={`${t.product.enlarge}: ${t.hero.imageAlt}`}
-            >
-              <Shot id="web-orders" alt={t.hero.imageAlt} eager />
-            </button>
+            <div className="lp-hero-visual">
+              <figure className="lp-hero-web">
+                <button
+                  type="button"
+                  className="lp-hero-shot"
+                  onClick={() => setZoom({ shot: "web-orders", alt: t.hero.imageAlt })}
+                  aria-label={`${t.product.enlarge}: ${t.hero.imageAlt}`}
+                >
+                  <Shot id="web-orders" alt={t.hero.imageAlt} eager />
+                </button>
+                <figcaption className="lp-cap">{t.hero.webLabel}</figcaption>
+              </figure>
+              <figure className="lp-hero-phone">
+                <button
+                  type="button"
+                  className="lp-hero-screen"
+                  onClick={() => setZoom({ shot: "crop-rider", alt: t.hero.phoneAlt })}
+                  aria-label={`${t.product.enlarge}: ${t.hero.phoneAlt}`}
+                >
+                  <Shot id="crop-rider" alt={t.hero.phoneAlt} eager />
+                </button>
+                <figcaption className="lp-cap">{t.hero.mobileLabel}</figcaption>
+              </figure>
+            </div>
           </div>
         </section>
 
@@ -503,8 +519,7 @@ export default function LandingPage() {
         <div className="lp-wrap lp-footer-grid">
           <div className="lp-footer-brand">
             <span className="lp-logo">
-              <img src={CONFIG.logo} alt="" width={30} height={30} />
-              <span>{CONFIG.appName}</span>
+              <img src={CONFIG.logoOnDark} alt={CONFIG.appName} width={92} height={26} />
             </span>
             <p>{t.footer.tagline}</p>
           </div>

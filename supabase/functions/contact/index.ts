@@ -18,7 +18,7 @@
 // Secrets (supabase secrets set …):
 //   CONTACT_TO_EMAIL    where notifications go (required for the e-mail)
 //   RESEND_API_KEY      Resend API key (required for the e-mail)
-//   CONTACT_FROM_EMAIL  sender, e.g. "EchoBox Logistics <hello@your-domain>"
+//   CONTACT_FROM_EMAIL  sender, e.g. "Rondo <hello@your-domain>"
 //                       (default: Resend's test sender, which only delivers to
 //                       the address of the Resend account owner)
 //   CONTACT_IP_SALT     optional salt for the IP hash
@@ -30,7 +30,7 @@ import { corsHeaders, json } from "../_shared/cors.ts";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const TO = Deno.env.get("CONTACT_TO_EMAIL") ?? "";
-const FROM = Deno.env.get("CONTACT_FROM_EMAIL") ?? "EchoBox Logistics <onboarding@resend.dev>";
+const FROM = Deno.env.get("CONTACT_FROM_EMAIL") ?? "Rondo <onboarding@resend.dev>";
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY") ?? "";
 const IP_SALT = Deno.env.get("CONTACT_IP_SALT") ?? "echobox-contact";
 

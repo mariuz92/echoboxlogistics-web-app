@@ -250,8 +250,8 @@ export function ChannelBoard({ open, onClose }: ChannelBoardProps) {
                 </Flex>
                 <Typography.Text type="secondary" style={{ display: "block", marginTop: 6 }}>
                   {exclusive
-                    ? "EchoBox non permette di dare lo stesso canale a due gruppi negli stessi orari."
-                    : "Più gruppi possono usare lo stesso canale insieme: EchoBox lo segnala ma non lo blocca."}
+                    ? "Rondo non permette di dare lo stesso canale a due gruppi negli stessi orari."
+                    : "Più gruppi possono usare lo stesso canale insieme: Rondo lo segnala ma non lo blocca."}
                 </Typography.Text>
               </div>
 

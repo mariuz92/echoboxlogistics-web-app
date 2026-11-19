@@ -37,7 +37,7 @@ export function RegisterPage() {
             { min: 2, message: "Almeno 2 caratteri" },
           ]}
         >
-          <Input size="large" placeholder="Es. EchoBox Roma" autoComplete="organization" />
+          <Input size="large" placeholder="Es. Audioguide Roma" autoComplete="organization" />
         </Form.Item>
 
         <Row gutter={16}>

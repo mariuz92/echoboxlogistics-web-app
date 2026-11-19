@@ -78,16 +78,18 @@ const shots = [
     target: dialog,
   },
   {
-    name: "crop-channels",
-    ctx: desktop,
+    // The day map of the channel board (a tall viewport so the dialog fits).
+    name: "crop-channel-board",
+    ctx: { ...desktop, viewport: { width: 1440, height: 1500 } },
     as: ADMIN,
     path: "/",
     prepare: async (page) => {
       await page.getByRole("button", { name: /Canali radio/ }).click();
       await dialog(page).waitFor();
-      await page.waitForTimeout(800);
+      await page.getByText("In uso in questa giornata").waitFor();
+      await page.waitForTimeout(900);
     },
-    target: (page) => page.locator(".ant-modal-container, .ant-modal-content").first(),
+    target: (page) => page.locator(".ant-card").filter({ hasText: "Occupazione del" }).first(),
   },
   {
     name: "crop-pickups",
