@@ -446,5 +446,31 @@ select is(jsonb_array_length(public.get_dashboard_stats(current_date) -> 'hourly
   'dashboard stats include 24 hourly buckets');
 select tests.logout();
 
+-- =============================================================================
+-- 8. Contact form messages (service role only)
+-- =============================================================================
+select tests.login_anon();
+select throws_ok($$select count(*) from public.contact_messages$$, '42501', null,
+  'anon cannot read contact messages');
+select throws_ok(
+  $$insert into public.contact_messages (name, email, message) values ('Spam Bot', 'bot@x.test', 'buy cheap things now')$$,
+  '42501', null, 'anon cannot write contact messages directly (only the Edge Function can)');
+select tests.logout();
+
+select tests.login_as((select admin1 from ids));
+select throws_ok($$select count(*) from public.contact_messages$$, '42501', null,
+  'tenant admins cannot read the platform contact messages');
+select tests.logout();
+
+select lives_ok(
+  $$insert into public.contact_messages (name, email, message, locale) values ('Anna Verdi', 'anna@x.test', 'Vorrei una demo per la mia agenzia.', 'it')$$,
+  'the service role can store a valid message');
+select throws_ok(
+  $$insert into public.contact_messages (name, email, message) values ('Anna Verdi', 'not-an-email', 'Vorrei una demo per la mia agenzia.')$$,
+  '23514', null, 'invalid e-mail addresses are rejected');
+select throws_ok(
+  $$insert into public.contact_messages (name, email, message) values ('Anna Verdi', 'anna@x.test', 'ciao')$$,
+  '23514', null, 'too short messages are rejected');
+
 select * from finish();
 rollback;

@@ -420,3 +420,9 @@ enabled = true
 [functions.invite-member]
 enabled = true
 verify_jwt = true
+
+# contact: the marketing site's contact form. Public (no login), so the gateway's
+# JWT check is off; the function validates and rate-limits by itself.
+[functions.contact]
+enabled = true
+verify_jwt = false

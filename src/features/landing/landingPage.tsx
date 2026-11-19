@@ -1,588 +1,678 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
+import {
+  AppstoreOutlined,
+  ArrowRightOutlined,
+  BarChartOutlined,
+  CheckOutlined,
+  ClockCircleOutlined,
+  CloseOutlined,
+  ExpandOutlined,
+  GlobalOutlined,
+  HistoryOutlined,
+  LinkOutlined,
+  MailOutlined,
+  MenuOutlined,
+  MobileOutlined,
+  TeamOutlined,
+  UnorderedListOutlined,
+} from "@ant-design/icons";
+import { FunctionsHttpError } from "@supabase/supabase-js";
+import { supabase } from "../../lib/supabase";
+import { CONFIG } from "../../config/configuration";
+import { DICTS, LANGS, LANG_NAMES, detectLang, rememberLang, type Dict, type Lang, type ScreenId } from "./i18n";
 import "./landing.css";
 
-const LandingPage: React.FC = () => {
-  const [scrolled, setScrolled] = useState(false);
+const WEB_SCREENS: ScreenId[] = ["web-orders", "web-order-detail", "web-channels", "web-dashboard", "web-calendar", "web-team"];
+const MOBILE_SCREENS: ScreenId[] = ["mobile-rider", "mobile-orders", "mobile-booking"];
+const FEATURE_ICONS = [
+  <UnorderedListOutlined key="o" />,
+  <AppstoreOutlined key="c" />,
+  <MobileOutlined key="m" />,
+  <ClockCircleOutlined key="p" />,
+  <LinkOutlined key="l" />,
+  <BarChartOutlined key="b" />,
+  <TeamOutlined key="t" />,
+  <HistoryOutlined key="h" />,
+];
+
+/** The app lives on platform.<domain>; the marketing site on the apex domain. */
+function appUrl(path: string): string {
+  const { protocol, hostname, port } = window.location;
+  if (hostname === "localhost" || hostname === "127.0.0.1" || hostname.startsWith("platform.")) {
+    return path;
+  }
+  const apex = hostname.replace(/^www\./, "");
+  return `${protocol}//platform.${apex}${port ? `:${port}` : ""}${path}`;
+}
+
+function Screen({ id, alt, eager = false }: { id: ScreenId; alt: string; eager?: boolean }) {
+  const mobile = id.startsWith("mobile-");
+  return (
+    <picture>
+      <source type="image/webp" srcSet={`/images/screens/${id}.webp`} />
+      <img
+        src={`/images/screens/${id}.jpg`}
+        alt={alt}
+        width={mobile ? 1170 : 2880}
+        height={mobile ? 1992 : 1800}
+        loading={eager ? "eager" : "lazy"}
+        decoding="async"
+      />
+    </picture>
+  );
+}
+
+function BrowserFrame({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="lp-browser">
+      <div className="lp-browser-bar" aria-hidden="true">
+        <span />
+        <span />
+        <span />
+        <div className="lp-browser-url">platform.echoboxlogistics.com</div>
+      </div>
+      <div className="lp-browser-body">{children}</div>
+    </div>
+  );
+}
+
+function PhoneFrame({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="lp-phone">
+      <div className="lp-phone-notch" aria-hidden="true" />
+      <div className="lp-phone-body">{children}</div>
+    </div>
+  );
+}
+
+function SectionHead({ label, title, subtitle }: { label: string; title: string; subtitle?: string }) {
+  return (
+    <div className="lp-head">
+      <span className="lp-label">{label}</span>
+      <h2>{title}</h2>
+      {subtitle && <p>{subtitle}</p>}
+    </div>
+  );
+}
+
+function LanguageSelect({ lang, onChange, label }: { lang: Lang; onChange: (l: Lang) => void; label: string }) {
+  return (
+    <label className="lp-lang">
+      <GlobalOutlined aria-hidden="true" />
+      <span className="lp-sr">{label}</span>
+      <select value={lang} onChange={(e) => onChange(e.target.value as Lang)}>
+        {LANGS.map((l) => (
+          <option key={l} value={l}>
+            {LANG_NAMES[l]}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+// --- screens gallery -------------------------------------------------------------
+
+function Gallery({ t }: { t: Dict }) {
+  const [tab, setTab] = useState<"web" | "mobile">("web");
+  const list = tab === "web" ? WEB_SCREENS : MOBILE_SCREENS;
+  const [active, setActive] = useState<ScreenId>("web-orders");
+  const [zoom, setZoom] = useState<ScreenId | null>(null);
+
+  const current = list.includes(active) ? active : list[0];
 
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 20);
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+    if (!zoom) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setZoom(null);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [zoom]);
 
   return (
-    <div className='landing-page'>
-      {/* Navigation */}
-      <nav className={`nav ${scrolled ? "scrolled" : ""}`}>
-        <div className='nav-container'>
-          <a href='/' className='logo'>
-            EchoBox Logistics
+    <>
+      <div className="lp-tabs" role="tablist">
+        {(["web", "mobile"] as const).map((k) => (
+          <button
+            key={k}
+            role="tab"
+            aria-selected={tab === k}
+            className={tab === k ? "is-active" : ""}
+            onClick={() => {
+              setTab(k);
+              setActive(k === "web" ? WEB_SCREENS[0] : MOBILE_SCREENS[0]);
+            }}
+          >
+            {k === "web" ? <AppstoreOutlined /> : <MobileOutlined />} {k === "web" ? t.screens.web : t.screens.mobile}
+          </button>
+        ))}
+      </div>
+
+      {tab === "web" ? (
+        <div className="lp-gallery">
+          <ul className="lp-gallery-list">
+            {list.map((id) => (
+              <li key={id}>
+                <button className={id === current ? "is-active" : ""} onClick={() => setActive(id)}>
+                  <strong>{t.screens.items[id].title}</strong>
+                  <span>{t.screens.items[id].text}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+          <div className="lp-gallery-stage">
+            <button className="lp-zoom" onClick={() => setZoom(current)} aria-label={t.screens.enlarge}>
+              <BrowserFrame>
+                <Screen id={current} alt={t.screens.items[current].title} />
+              </BrowserFrame>
+              <span className="lp-zoom-hint">
+                <ExpandOutlined /> {t.screens.enlarge}
+              </span>
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="lp-phones">
+          {list.map((id) => (
+            <figure key={id}>
+              <button className="lp-zoom" onClick={() => setZoom(id)} aria-label={`${t.screens.enlarge}: ${t.screens.items[id].title}`}>
+                <PhoneFrame>
+                  <Screen id={id} alt={t.screens.items[id].title} />
+                </PhoneFrame>
+              </button>
+              <figcaption>
+                <strong>{t.screens.items[id].title}</strong>
+                <span>{t.screens.items[id].text}</span>
+              </figcaption>
+            </figure>
+          ))}
+        </div>
+      )}
+      <p className="lp-note">{t.screens.note}</p>
+
+      {zoom && (
+        <div className="lp-lightbox" role="dialog" aria-modal="true" aria-label={t.screens.items[zoom].title} onClick={() => setZoom(null)}>
+          <button className="lp-lightbox-close" onClick={() => setZoom(null)} aria-label={t.screens.close}>
+            <CloseOutlined />
+          </button>
+          <div className={zoom.startsWith("mobile-") ? "lp-lightbox-img is-mobile" : "lp-lightbox-img"}>
+            <Screen id={zoom} alt={t.screens.items[zoom].title} eager />
+          </div>
+          <p>{t.screens.items[zoom].title}</p>
+        </div>
+      )}
+    </>
+  );
+}
+
+// --- contact form ----------------------------------------------------------------
+
+type FormState = { name: string; email: string; company: string; phone: string; message: string; consent: boolean; website: string };
+const EMPTY: FormState = { name: "", email: "", company: "", phone: "", message: "", consent: false, website: "" };
+type FieldError = Partial<Record<"name" | "email" | "message" | "consent", string>>;
+
+function ContactForm({ t, lang }: { t: Dict; lang: Lang }) {
+  const c = t.contact;
+  const [form, setForm] = useState<FormState>(EMPTY);
+  const [errors, setErrors] = useState<FieldError>({});
+  const [status, setStatus] = useState<"idle" | "sending" | "sent">("idle");
+  const [failure, setFailure] = useState<string | null>(null);
+
+  const set = <K extends keyof FormState>(key: K, value: FormState[K]) => {
+    setForm((f) => ({ ...f, [key]: value }));
+    setErrors((e) => ({ ...e, [key]: undefined }));
+  };
+
+  const validate = (): FieldError => {
+    const e: FieldError = {};
+    if (form.name.trim().length < 2) e.name = c.errors.name;
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(form.email.trim())) e.email = c.errors.email;
+    if (form.message.trim().length < 10) e.message = c.errors.message;
+    if (!form.consent) e.consent = c.errors.consent;
+    return e;
+  };
+
+  const submit = async (event: FormEvent) => {
+    event.preventDefault();
+    const found = validate();
+    setErrors(found);
+    setFailure(null);
+    if (Object.keys(found).length) return;
+
+    setStatus("sending");
+    const { error } = await supabase.functions.invoke("contact", {
+      body: {
+        name: form.name,
+        email: form.email,
+        company: form.company,
+        phone: form.phone,
+        message: form.message,
+        locale: lang,
+        website: form.website,
+      },
+    });
+    if (!error) {
+      setStatus("sent");
+      setForm(EMPTY);
+      return;
+    }
+    let code = "";
+    if (error instanceof FunctionsHttpError) {
+      try {
+        code = ((await error.context.json()) as { error?: string }).error ?? "";
+      } catch {
+        /* not json */
+      }
+    }
+    setStatus("idle");
+    setFailure(code === "too_many_requests" ? c.errors.rate : c.errors.generic);
+  };
+
+  if (status === "sent") {
+    return (
+      <div className="lp-form lp-form-done" role="status">
+        <div className="lp-done-icon">
+          <CheckOutlined />
+        </div>
+        <h3>{c.successTitle}</h3>
+        <p>{c.successText}</p>
+        <button className="lp-btn lp-btn-ghost" onClick={() => setStatus("idle")}>
+          {c.again}
+        </button>
+      </div>
+    );
+  }
+
+  const field = (key: "name" | "email" | "company" | "phone", label: string, type: string, auto: string, optional = false) => (
+    <div className={`lp-field${errors[key as keyof FieldError] ? " has-error" : ""}`}>
+      <label htmlFor={`lp-${key}`}>
+        {label}
+        {optional && <small> · {c.optional}</small>}
+      </label>
+      <input
+        id={`lp-${key}`}
+        type={type}
+        autoComplete={auto}
+        value={form[key]}
+        maxLength={key === "email" ? 200 : 120}
+        onChange={(e) => set(key, e.target.value)}
+        aria-invalid={Boolean(errors[key as keyof FieldError])}
+        aria-describedby={errors[key as keyof FieldError] ? `lp-${key}-err` : undefined}
+      />
+      {errors[key as keyof FieldError] && (
+        <span className="lp-err" id={`lp-${key}-err`}>
+          {errors[key as keyof FieldError]}
+        </span>
+      )}
+    </div>
+  );
+
+  return (
+    <form className="lp-form" onSubmit={submit} noValidate>
+      <div className="lp-form-row">
+        {field("name", c.name, "text", "name")}
+        {field("email", c.email, "email", "email")}
+      </div>
+      <div className="lp-form-row">
+        {field("company", c.company, "text", "organization", true)}
+        {field("phone", c.phone, "tel", "tel", true)}
+      </div>
+      <div className={`lp-field${errors.message ? " has-error" : ""}`}>
+        <label htmlFor="lp-message">{c.message}</label>
+        <textarea
+          id="lp-message"
+          rows={5}
+          maxLength={4000}
+          placeholder={c.messagePlaceholder}
+          value={form.message}
+          onChange={(e) => set("message", e.target.value)}
+          aria-invalid={Boolean(errors.message)}
+          aria-describedby={errors.message ? "lp-message-err" : undefined}
+        />
+        {errors.message && (
+          <span className="lp-err" id="lp-message-err">
+            {errors.message}
+          </span>
+        )}
+      </div>
+      {/* Honeypot: hidden from people, irresistible to bots. */}
+      <div className="lp-hp" aria-hidden="true">
+        <label>
+          Website
+          <input tabIndex={-1} autoComplete="off" value={form.website} onChange={(e) => set("website", e.target.value)} />
+        </label>
+      </div>
+      <div className={`lp-check${errors.consent ? " has-error" : ""}`}>
+        <input id="lp-consent" type="checkbox" checked={form.consent} onChange={(e) => set("consent", e.target.checked)} />
+        <label htmlFor="lp-consent">
+          {c.consentBefore}
+          <a href="/privacy" target="_blank" rel="noreferrer">
+            {c.consentLink}
           </a>
-          <div className='nav-links'>
-            <a href='#features'>Features</a>
-            <a href='#how-it-works'>How it works</a>
-            <a href='#problems'>Problems</a>
-            <a href='#contact' className='nav-cta'>
-              Get Started
+          {c.consentAfter}
+        </label>
+      </div>
+      {errors.consent && <span className="lp-err">{errors.consent}</span>}
+      {failure && (
+        <div className="lp-alert" role="alert">
+          {failure}{" "}
+          <a href={`mailto:${CONFIG.supportEmail}`}>{CONFIG.supportEmail}</a>
+        </div>
+      )}
+      <button className="lp-btn lp-btn-primary lp-btn-block" type="submit" disabled={status === "sending"}>
+        {status === "sending" ? c.sending : c.submit}
+        {status !== "sending" && <ArrowRightOutlined />}
+      </button>
+    </form>
+  );
+}
+
+// --- page ------------------------------------------------------------------------
+
+export default function LandingPage() {
+  const [lang, setLang] = useState<Lang>(() => detectLang());
+  const [scrolled, setScrolled] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const t = DICTS[lang];
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 12);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.lang = lang;
+    document.title = t.meta.title;
+    let meta = document.querySelector<HTMLMetaElement>('meta[name="description"]');
+    if (!meta) {
+      meta = document.createElement("meta");
+      meta.name = "description";
+      document.head.appendChild(meta);
+    }
+    meta.content = t.meta.description;
+  }, [lang, t]);
+
+  const changeLang = (next: Lang) => {
+    setLang(next);
+    rememberLang(next);
+    const url = new URL(window.location.href);
+    url.searchParams.set("lang", next);
+    window.history.replaceState(null, "", url);
+  };
+
+  const links = useMemo(
+    () => [
+      { href: "#features", label: t.nav.features },
+      { href: "#screens", label: t.nav.screens },
+      { href: "#how", label: t.nav.how },
+      { href: "#faq", label: t.nav.faq },
+      { href: "#contact", label: t.nav.contact },
+    ],
+    [t],
+  );
+
+  const year = new Date().getFullYear();
+
+  return (
+    <div className="lp">
+      {/* Navigation */}
+      <header className={`lp-nav${scrolled || menuOpen ? " is-solid" : ""}`}>
+        <div className="lp-container lp-nav-inner">
+          <a href="#top" className="lp-logo" aria-label={CONFIG.appName}>
+            <img src={CONFIG.logo} alt="" width={34} height={34} />
+            <span>{CONFIG.appName}</span>
+          </a>
+          <nav className={`lp-nav-links${menuOpen ? " is-open" : ""}`} aria-label={t.nav.menu}>
+            {links.map((l) => (
+              <a key={l.href} href={l.href} onClick={() => setMenuOpen(false)}>
+                {l.label}
+              </a>
+            ))}
+            <a className="lp-nav-login-mobile" href={appUrl("/login")}>
+              {t.nav.login}
             </a>
-          </div>
-        </div>
-      </nav>
-
-      {/* Hero */}
-      <section className='hero'>
-        <div className='hero-container'>
-          <div className='hero-badge'>
-            <span className='status-dot'></span>
-            Live Tracking Active
-          </div>
-          <h1>
-            Complete Control Over Your{" "}
-            <span className='gradient-text'>Audio Equipment</span> Operations
-          </h1>
-          <p className='hero-description'>
-            EchoBox Logistics gives tour companies complete visibility over
-            their audio equipment deliveries and pickups. Prevent channel
-            conflicts, track in real-time, and ensure nothing gets forgotten.
-            Built for tour operations where timing and coordination are
-            critical.
-          </p>
-          <div className='hero-buttons'>
-            <a href='#contact' className='btn-primary'>
-              Start Free Trial
+          </nav>
+          <div className="lp-nav-actions">
+            <LanguageSelect lang={lang} onChange={changeLang} label={t.footer.language} />
+            <a className="lp-nav-login" href={appUrl("/login")}>
+              {t.nav.login}
             </a>
-            <a href='#how-it-works' className='btn-secondary'>
-              See How It Works
+            <a className="lp-btn lp-btn-primary lp-btn-sm" href="#contact">
+              {t.nav.demo}
             </a>
-          </div>
-
-          {/* Stats Preview */}
-          <div className='app-preview'>
-            <div className='preview-card'>
-              <div className='preview-icon'>🚚</div>
-              <div className='preview-value'>42</div>
-              <div className='preview-label'>Active Orders</div>
-            </div>
-            <div className='preview-card'>
-              <div className='preview-icon'>⏱️</div>
-              <div className='preview-value'>12</div>
-              <div className='preview-label'>Out for Delivery</div>
-            </div>
-            <div className='preview-card'>
-              <div className='preview-icon'>📦</div>
-              <div className='preview-value'>8</div>
-              <div className='preview-label'>Awaiting Pickup</div>
-            </div>
+            <button className="lp-burger" aria-label={t.nav.menu} aria-expanded={menuOpen} onClick={() => setMenuOpen((o) => !o)}>
+              {menuOpen ? <CloseOutlined /> : <MenuOutlined />}
+            </button>
           </div>
         </div>
-      </section>
+      </header>
 
-      {/* Social Proof Stats */}
-      <section className='stats-bar'>
-        <div className='stats-container'>
-          <div className='stat-item'>
-            <div className='preview-icon'>📦</div>
-            <div className='stat-value'>10k+</div>
-            <div className='stat-label'>Orders Managed</div>
-          </div>
-          <div className='stat-item'>
-            <div className='preview-icon'>✅</div>
-            <div className='stat-value'>99.9%</div>
-            <div className='stat-label'>Uptime Guarantee</div>
-          </div>
-          <div className='stat-item'>
-            <div className='preview-icon'>🕐</div>
-            <div className='stat-value'>24/7</div>
-            <div className='stat-label'>Support Available</div>
-          </div>
-          <div className='stat-item'>
-            <div className='preview-icon'>🎯</div>
-            <div className='stat-value'>0</div>
-            <div className='stat-label'>Forgotten Pickups</div>
-          </div>
-        </div>
-      </section>
-
-      {/* Solution Overview */}
-      <section className='solution-overview'>
-        <div className='container'>
-          <div className='section-header'>
-            <div className='section-label'>The Solution</div>
-            <h2 className='section-title'>
-              Everything You Need, Nothing You Don't
-            </h2>
-            <p className='section-subtitle'>
-              Powerful features designed specifically for tour equipment
-              management
-            </p>
-          </div>
-
-          <div className='solution-cards'>
-            <div className='solution-card'>
-              <h3>Never Conflict Channels Again</h3>
-              <p>
-                The system automatically tracks which radio channels are in use
-                and prevents double-booking. When an order completes, the
-                channel is released. No manual tracking, no spreadsheets, no
-                mistakes. You get real-time channel availability, automatic
-                conflict prevention, and smart channel recommendations based on
-                current usage.
-              </p>
-            </div>
-
-            <div className='solution-card'>
-              <h3>Pickups Stay Visible Until Done</h3>
-              <p>
-                Orders awaiting pickup don't disappear from your dashboard. They
-                remain prominently displayed every day until someone marks them
-                complete. You'll never forget equipment again. The system
-                includes persistent pickup reminders, aging indicators for
-                overdue items, and one-tap completion marking.
-              </p>
-            </div>
-
-            <div className='solution-card'>
-              <h3>Know Where Everyone Is</h3>
-              <p>
-                See exactly where your riders are, what they're working on, and
-                where they're heading next. No more phone calls asking for
-                updates. Everyone stays in sync automatically. Track live rider
-                locations, view current assignment status, and see estimated
-                arrival times—all in real-time.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Problems Section */}
-      <section id='problems' className='problems-section'>
-        <div className='container'>
-          <div className='section-header'>
-            <div className='section-label'>The Problem</div>
-            <h2 className='section-title'>The Chaos You Deal With Every Day</h2>
-            <p className='section-subtitle'>
-              Tour equipment management shouldn't be this complicated
-            </p>
-          </div>
-
-          <div className='problem-grid'>
-            <div className='problem-card'>
-              <div className='problem-header'>
-                <h3>Channel Conflicts</h3>
-                <span className='badge warning'>Critical Issue</span>
+      <main id="main">
+        {/* Hero */}
+        <section className="lp-hero" id="top">
+          <div className="lp-hero-glow" aria-hidden="true" />
+          <div className="lp-container lp-hero-grid">
+            <div className="lp-hero-copy">
+              <span className="lp-eyebrow">
+                <span className="lp-dot" aria-hidden="true" />
+                {t.hero.eyebrow}
+              </span>
+              <h1>
+                {t.hero.title} <span className="lp-accent">{t.hero.accent}</span>
+              </h1>
+              <p className="lp-hero-sub">{t.hero.subtitle}</p>
+              <div className="lp-hero-cta">
+                <a className="lp-btn lp-btn-primary" href="#contact">
+                  {t.hero.primary} <ArrowRightOutlined />
+                </a>
+                <a className="lp-btn lp-btn-light" href="#screens">
+                  {t.hero.secondary}
+                </a>
               </div>
-              <p>
-                Two guides on the same radio channel. Tours talking over each
-                other. Complete confusion for everyone involved. Without
-                automated tracking, channel conflicts are inevitable—and they
-                ruin the experience.
-              </p>
+              <ul className="lp-hero-points">
+                {t.hero.points.map((p) => (
+                  <li key={p}>
+                    <CheckOutlined /> {p}
+                  </li>
+                ))}
+              </ul>
             </div>
-
-            <div className='problem-card'>
-              <div className='problem-header'>
-                <h3>Forgotten Pickups</h3>
-                <span className='badge pickup'>Operational Risk</span>
+            <div className="lp-hero-visual">
+              <BrowserFrame>
+                <Screen id="web-orders" alt={t.screens.items["web-orders"].title} eager />
+              </BrowserFrame>
+              <div className="lp-hero-phone">
+                <PhoneFrame>
+                  <Screen id="mobile-rider" alt={t.screens.items["mobile-rider"].title} eager />
+                </PhoneFrame>
               </div>
-              <p>
-                Equipment that should have been picked up days ago, still
-                sitting there. No persistent reminders means things slip through
-                the cracks. You only notice when it's too late.
-              </p>
-            </div>
-
-            <div className='problem-card'>
-              <div className='problem-header'>
-                <h3>Communication Chaos</h3>
-                <span className='badge delivery'>Daily Frustration</span>
+              <div className="lp-live-chip">
+                <span className="lp-dot" aria-hidden="true" /> {t.hero.liveBadge}
               </div>
-              <p>
-                "Where's the rider?" "Who has that equipment?" Endless texts and
-                calls. No centralized system means constant interruptions and
-                information scattered across dozens of chat threads.
-              </p>
-            </div>
-
-            <div className='problem-card'>
-              <div className='problem-header'>
-                <h3>Zero Visibility</h3>
-                <span className='badge available'>Blind Operations</span>
-              </div>
-              <p>
-                You don't know where riders are, what they're working on, or
-                when they'll finish. Manual processes and scattered information
-                make it impossible to get a real-time view of operations.
-              </p>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Live Status Section */}
-      <section className='status-section'>
-        <div className='container'>
-          <div className='section-header'>
-            <div className='section-label'>Live Dashboard</div>
-            <h2 className='section-title'>Real-Time Operations at a Glance</h2>
-            <p className='section-subtitle'>
-              See exactly what's happening with your equipment right now
-            </p>
+        {/* Audience */}
+        <section className="lp-audience">
+          <div className="lp-container lp-audience-inner">
+            <span>{t.audience.label}</span>
+            <ul>
+              {t.audience.items.map((a) => (
+                <li key={a}>{a}</li>
+              ))}
+            </ul>
           </div>
+        </section>
 
-          <div className='order-grid'>
-            <div className='order-card'>
-              <div className='order-header'>
-                <h3>Order #1847</h3>
-                <span className='badge delivery'>In Consegna</span>
-              </div>
-              <div className='order-info'>
-                <div className='info-row'>
-                  <div className='info-icon'>🚴</div>
-                  <div className='info-text'>
-                    <h4>Rider</h4>
-                    <p>Dan Joe</p>
+        {/* Problems -> solutions */}
+        <section className="lp-section">
+          <div className="lp-container">
+            <SectionHead label={t.problems.label} title={t.problems.title} subtitle={t.problems.subtitle} />
+            <div className="lp-compare">
+              {t.problems.items.map((item, i) => (
+                <article key={i} className="lp-compare-card">
+                  <div className="lp-before">
+                    <span className="lp-tag lp-tag-bad">{t.problems.before}</span>
+                    <p>{item.problem}</p>
                   </div>
-                </div>
-                <div className='info-row'>
-                  <div className='info-icon'>⏰</div>
-                  <div className='info-text'>
-                    <h4>Delivery Time</h4>
-                    <p>10:40 - Colosseo</p>
+                  <div className="lp-after">
+                    <span className="lp-tag lp-tag-good">{t.problems.after}</span>
+                    <p>{item.solution}</p>
                   </div>
-                </div>
-                <div className='info-row'>
-                  <div className='info-icon'>📍</div>
-                  <div className='info-text'>
-                    <h4>ETA</h4>
-                    <p>15 minutes</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className='order-card'>
-              <div className='order-header'>
-                <h3>Order #1843</h3>
-                <span className='badge pickup'>Attesa Ritiro</span>
-              </div>
-              <div className='order-info'>
-                <div className='info-row'>
-                  <div className='info-icon'>🚴</div>
-                  <div className='info-text'>
-                    <h4>Assigned Rider</h4>
-                    <p>Dan Joe</p>
-                  </div>
-                </div>
-                <div className='info-row'>
-                  <div className='info-icon'>⏰</div>
-                  <div className='info-text'>
-                    <h4>Pickup Time</h4>
-                    <p>22:40 - Verona</p>
-                  </div>
-                </div>
-                <div className='info-row'>
-                  <div className='info-icon'>📅</div>
-                  <div className='info-text'>
-                    <h4>Status</h4>
-                    <p>Due Today</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className='order-card'>
-              <div className='order-header'>
-                <h3>Dan Joe</h3>
-                <span className='badge available'>Libero</span>
-              </div>
-              <div className='order-info'>
-                <div className='info-row'>
-                  <div className='info-icon'>📊</div>
-                  <div className='info-text'>
-                    <h4>Status</h4>
-                    <p>Ritirato</p>
-                  </div>
-                </div>
-                <div className='info-row'>
-                  <div className='info-icon'>🕐</div>
-                  <div className='info-text'>
-                    <h4>Last Update</h4>
-                    <p>22:42 - 29/10/2025</p>
-                  </div>
-                </div>
-                <div className='info-row'>
-                  <div className='info-icon'>📍</div>
-                  <div className='info-text'>
-                    <h4>Location</h4>
-                    <p>Verona, VR, Italia</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className='order-card'>
-              <div className='order-header'>
-                <h3>Order #1852</h3>
-                <span className='badge warning'>Scheduled</span>
-              </div>
-              <div className='order-info'>
-                <div className='info-row'>
-                  <div className='info-icon'>📅</div>
-                  <div className='info-text'>
-                    <h4>Delivery</h4>
-                    <p>Tomorrow 10:00</p>
-                  </div>
-                </div>
-                <div className='info-row'>
-                  <div className='info-icon'>🚴</div>
-                  <div className='info-text'>
-                    <h4>Rider</h4>
-                    <p>To be assigned</p>
-                  </div>
-                </div>
-                <div className='info-row'>
-                  <div className='info-icon'>📦</div>
-                  <div className='info-text'>
-                    <h4>Status</h4>
-                    <p>Awaiting delivery</p>
-                  </div>
-                </div>
-              </div>
+                </article>
+              ))}
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Features Section */}
-      <section id='features' className='features-section'>
-        <div className='container'>
-          <div className='section-header'>
-            <div className='section-label'>Features</div>
-            <h2 className='section-title'>
-              Everything You Need to Manage Equipment
-            </h2>
-          </div>
-
-          <div className='features-grid'>
-            <div className='feature-card'>
-              <div className='feature-icon'>📻</div>
-              <h3>Automatic Channel Management</h3>
-              <p>
-                The system automatically tracks which radio channels are in use
-                and prevents double-booking. When an order completes, the
-                channel is released. No manual tracking, no spreadsheets, no
-                mistakes.
-              </p>
-            </div>
-
-            <div className='feature-card'>
-              <div className='feature-icon'>📍</div>
-              <h3>Real-Time Visibility</h3>
-              <p>
-                See exactly where your riders are, what they're working on, and
-                where they're heading next. No more phone calls asking for
-                updates. Everyone stays in sync automatically.
-              </p>
-            </div>
-
-            <div className='feature-card'>
-              <div className='feature-icon'>📌</div>
-              <h3>Persistent Pickup Tracking</h3>
-              <p>
-                Orders awaiting pickup don't disappear from your dashboard. They
-                remain prominently displayed every day until someone marks them
-                complete. You'll never forget equipment again.
-              </p>
-            </div>
-
-            <div className='feature-card'>
-              <div className='feature-icon'>⏱️</div>
-              <h3>Aging Indicators</h3>
-              <p>
-                Visual alerts show which pickups are overdue and by how long.
-                See at a glance what needs immediate attention versus what's on
-                schedule.
-              </p>
-            </div>
-
-            <div className='feature-card'>
-              <div className='feature-icon'>🎯</div>
-              <h3>Smart Channel Recommendations</h3>
-              <p>
-                Based on current availability and usage patterns, the system
-                suggests the best channels for new orders, optimizing your radio
-                spectrum usage.
-              </p>
-            </div>
-
-            <div className='feature-card'>
-              <div className='feature-icon'>✅</div>
-              <h3>One-Tap Completion</h3>
-              <p>
-                Riders can mark deliveries and pickups complete with a single
-                tap. Status updates propagate instantly to all team members.
-              </p>
-            </div>
-
-            <div className='feature-card'>
-              <div className='feature-icon'>🔔</div>
-              <h3>Instant Notifications</h3>
-              <p>
-                Get automatic notifications when statuses change. Everyone stays
-                synchronized without phone calls or texts cluttering your day.
-              </p>
-            </div>
-
-            <div className='feature-card'>
-              <div className='feature-icon'>📊</div>
-              <h3>Estimated Arrival Times</h3>
-              <p>
-                Track real-time ETA for all active deliveries. Guides know
-                exactly when to expect equipment, improving tour start
-                reliability.
-              </p>
+        {/* Features */}
+        <section className="lp-section lp-section-alt" id="features">
+          <div className="lp-container">
+            <SectionHead label={t.features.label} title={t.features.title} subtitle={t.features.subtitle} />
+            <div className="lp-features">
+              {t.features.items.map((f, i) => (
+                <article key={f.title} className="lp-feature">
+                  <div className="lp-feature-icon">{FEATURE_ICONS[i]}</div>
+                  <h3>{f.title}</h3>
+                  <p>{f.text}</p>
+                </article>
+              ))}
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* How It Works */}
-      <section id='how-it-works' className='how-it-works'>
-        <div className='container'>
-          <div className='section-header'>
-            <div className='section-label'>Process</div>
-            <h2 className='section-title'>How It Works</h2>
-            <p className='section-subtitle'>
-              Get started in minutes, not hours
-            </p>
+        {/* Screens */}
+        <section className="lp-section" id="screens">
+          <div className="lp-container">
+            <SectionHead label={t.screens.label} title={t.screens.title} subtitle={t.screens.subtitle} />
+            <Gallery t={t} />
           </div>
+        </section>
 
-          <div className='timeline'>
-            <div className='timeline-item'>
-              <div className='timeline-number'>1</div>
-              <div className='timeline-content'>
-                <h3>Create Your Order</h3>
-                <p>
-                  Add delivery time, pickup time, location, guide details, and
-                  select an available radio channel. The system shows you which
-                  channels are free and recommends optimal choices. Takes less
-                  than a minute to complete, with all critical information
-                  structured and clear.
-                </p>
-              </div>
-            </div>
+        {/* How it works */}
+        <section className="lp-section lp-section-dark" id="how">
+          <div className="lp-container">
+            <SectionHead label={t.how.label} title={t.how.title} />
+            <ol className="lp-steps">
+              {t.how.steps.map((s, i) => (
+                <li key={s.title}>
+                  <span className="lp-step-n">{i + 1}</span>
+                  <h3>{s.title}</h3>
+                  <p>{s.text}</p>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </section>
 
-            <div className='timeline-item'>
-              <div className='timeline-number'>2</div>
-              <div className='timeline-content'>
-                <h3>Assign Your Riders</h3>
-                <p>
-                  Choose a rider for delivery and optionally assign a different
-                  one for pickup. They receive instant push notifications on
-                  their mobile devices with all order details. The system tracks
-                  rider availability and shows you who's currently free versus
-                  occupied.
-                </p>
-              </div>
-            </div>
-
-            <div className='timeline-item'>
-              <div className='timeline-number'>3</div>
-              <div className='timeline-content'>
-                <h3>Track in Real-Time</h3>
-                <p>
-                  Watch orders progress through each stage: created, en route to
-                  delivery, delivered, awaiting pickup, en route to pickup,
-                  completed. Riders update statuses with a single tap as they
-                  work. See live location tracking and estimated arrival times
-                  for all active deliveries.
-                </p>
-              </div>
-            </div>
-
-            <div className='timeline-item'>
-              <div className='timeline-number'>4</div>
-              <div className='timeline-content'>
-                <h3>Stay Informed</h3>
-                <p>
-                  Receive automatic notifications when statuses change, when
-                  pickups become overdue, or when riders complete their
-                  assignments. Everyone on your team stays synchronized without
-                  constant phone calls or text message chains. Channels are
-                  automatically released when orders complete.
-                </p>
-              </div>
+        {/* Roles */}
+        <section className="lp-section">
+          <div className="lp-container">
+            <SectionHead label={t.roles.label} title={t.roles.title} />
+            <div className="lp-roles">
+              {t.roles.items.map((r) => (
+                <article key={r.role} className="lp-role">
+                  <span className="lp-role-name">{r.role}</span>
+                  <h3>{r.title}</h3>
+                  <ul>
+                    {r.points.map((p) => (
+                      <li key={p}>
+                        <CheckOutlined /> {p}
+                      </li>
+                    ))}
+                  </ul>
+                </article>
+              ))}
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* CTA Section */}
-      <section id='contact' className='cta-section'>
-        <div className='cta-container'>
-          <h2>Ready to Stop Wondering?</h2>
-          <p>
-            Join tour companies worldwide who have eliminated equipment tracking
-            chaos. No more channel conflicts, no more forgotten pickups, no more
-            communication breakdowns. Get complete visibility over your audio
-            equipment operations.
-          </p>
-          <div className='hero-buttons'>
-            <a
-              href='mailto:support@echoboxlogistics.com'
-              className='btn-primary'
-            >
-              Contact Us
-            </a>
+        {/* FAQ */}
+        <section className="lp-section lp-section-alt" id="faq">
+          <div className="lp-container lp-narrow">
+            <SectionHead label={t.faq.label} title={t.faq.title} />
+            <div className="lp-faq">
+              {t.faq.items.map((f) => (
+                <details key={f.q}>
+                  <summary>{f.q}</summary>
+                  <p>{f.a}</p>
+                </details>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+
+        {/* Contact */}
+        <section className="lp-section" id="contact">
+          <div className="lp-container lp-contact">
+            <div className="lp-contact-copy">
+              <span className="lp-label">{t.contact.label}</span>
+              <h2>{t.contact.title}</h2>
+              <p>{t.contact.subtitle}</p>
+              <ul>
+                {t.contact.perks.map((p) => (
+                  <li key={p}>
+                    <CheckOutlined /> {p}
+                  </li>
+                ))}
+              </ul>
+              <p className="lp-direct">
+                {t.contact.direct}{" "}
+                <a href={`mailto:${CONFIG.supportEmail}`}>
+                  <MailOutlined /> {CONFIG.supportEmail}
+                </a>
+              </p>
+            </div>
+            <ContactForm t={t} lang={lang} />
+          </div>
+        </section>
+      </main>
 
       {/* Footer */}
-      <footer className='footer'>
-        <div className='footer-content'>
-          <div className='footer-brand'>
-            <h3>EchoBox Logistics</h3>
-            <p>
-              Equipment tracking for modern tour companies. Real-time
-              visibility, automated management, zero forgotten pickups.
-            </p>
-          </div>
-          <div className='footer-links'>
-            <div className='footer-col'>
-              <h4>Product</h4>
-              <ul>
-                <li>
-                  <a href='#features'>Features</a>
-                </li>
-                <li>
-                  <a href='#how-it-works'>How It Works</a>
-                </li>
-                <li>
-                  <a href='#problems'>Problems</a>
-                </li>
-              </ul>
+      <footer className="lp-footer">
+        <div className="lp-container lp-footer-grid">
+          <div>
+            <div className="lp-logo">
+              <img src={CONFIG.logo} alt="" width={34} height={34} />
+              <span>{CONFIG.appName}</span>
             </div>
-            <div className='footer-col'>
-              <h4>Legal</h4>
-              <ul>
-                <li>
-                  <a href='/privacy'>Privacy Policy</a>
-                </li>
-                <li>
-                  <a href='/terms'>Terms of Service</a>
-                </li>
-              </ul>
+            <p>{t.footer.tagline}</p>
+          </div>
+          <div>
+            <h4>{t.footer.product}</h4>
+            {links.slice(0, 4).map((l) => (
+              <a key={l.href} href={l.href}>
+                {l.label}
+              </a>
+            ))}
+            <a href={appUrl("/login")}>{t.footer.login}</a>
+          </div>
+          <div>
+            <h4>{t.footer.legal}</h4>
+            <a href="/privacy">{t.footer.privacy}</a>
+            <a href="/terms">{t.footer.terms}</a>
+            <a href="/cookies">{t.footer.cookies}</a>
+            <a href={`mailto:${CONFIG.supportEmail}`}>{CONFIG.supportEmail}</a>
+          </div>
+          <div>
+            <h4>{t.footer.language}</h4>
+            <div className="lp-footer-langs">
+              {LANGS.map((l) => (
+                <button key={l} className={l === lang ? "is-active" : ""} onClick={() => changeLang(l)} lang={l}>
+                  {LANG_NAMES[l]}
+                </button>
+              ))}
             </div>
           </div>
         </div>
-        <div className='footer-bottom'>
-          <p>&copy; 2025 EchoBox Logistics. All rights reserved.</p>
+        <div className="lp-container">
+          <div className="lp-footer-bottom">
+            © {year} {CONFIG.appName}. {t.footer.rights}
+          </div>
         </div>
       </footer>
     </div>
   );
-};
-
-export default LandingPage;
+}

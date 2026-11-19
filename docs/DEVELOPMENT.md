@@ -104,6 +104,30 @@ Conventions:
 
 `e2e/` has its own `tsconfig.json`; `npm run typecheck` checks it too.
 
+## Landing page
+
+The marketing site (`src/features/landing/`) is shown when `VITE_APP_MODE=landing` (or `auto` on a host that is not
+`platform.*`). Its texts live in `src/features/landing/i18n.ts` in Italian, English, German and French; Italian is the
+reference and TypeScript makes the other languages keep the same shape. The language comes from `?lang=`, then the
+visitor's last choice, then the browser.
+
+The contact form posts to the `contact` Edge Function, which stores messages in `public.contact_messages` and e-mails
+them (see [DEPLOYMENT.md](DEPLOYMENT.md)).
+
+### Product screenshots
+
+`public/images/screens/` holds screenshots of the real app with invented demo data (a Rome tour company, its riders,
+guides and ~3 months of orders). To regenerate them after a UI change:
+
+```bash
+node scripts/screenshots/capture.mjs            # all of them
+node scripts/screenshots/capture.mjs dashboard  # only names containing "dashboard"
+```
+
+The script starts Vite and answers the app's Supabase calls from `scripts/screenshots/demo-data.mjs` inside the
+browser, so no database is needed and no real data can end up in a picture. The clock is frozen at 10:25 Rome time
+of the current day (`DEMO_NOW=2026-05-14T08:25:00Z` to pick another moment). WebP copies need ImageMagick (`convert`).
+
 ## Dependency audit
 
 `npm run audit:prod` (runtime dependencies) reports **0 vulnerabilities**. A plain `npm audit` currently also

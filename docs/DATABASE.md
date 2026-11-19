@@ -9,6 +9,7 @@ The schema lives in `supabase/migrations/` (apply order = file name order):
 | `…000200_rls.sql` | RLS policies, grants, realtime publication |
 | `…000300_rpcs.sql` | business RPCs, `rider_activity` view, dashboard stats, public booking |
 | `…000400_bootstrap_profile_lock.sql` | makes `bootstrap_profile()` safe under concurrent first-login calls (advisory lock) |
+| `20261119000000_contact_messages.sql` | `contact_messages` for the landing-page contact form (service role only, written by the `contact` Edge Function) |
 
 Tests: `supabase/tests/database.test.sql` (pgTAP, run with `supabase test db`).
 
