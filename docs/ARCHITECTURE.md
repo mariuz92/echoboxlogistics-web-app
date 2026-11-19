@@ -118,7 +118,7 @@ Any open order can be cancelled by an admin. Rules worth knowing:
 
 ### Radio channels
 
-Rondo is model agnostic: whatever radioguide system a company uses, it describes its channels as a
+EchoBox is model agnostic: whatever radioguide system a company uses, it describes its channels as a
 range `tenants.channel_min … channel_max` (1 to 10,000 channels) plus `disabled_channels`.
 
 A channel is **busy only while a group has the radios**: from the order's delivery to its planned

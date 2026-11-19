@@ -11,7 +11,7 @@ interface ChannelPickerProps {
 }
 
 /**
- * Radio channel of an order. The office types the number; underneath, Rondo says
+ * Radio channel of an order. The office types the number; underneath, EchoBox says
  * whether that channel is free at the order's times or which group occupies it.
  * The database enforces the same rules, so this is guidance, not the source of truth.
  */

@@ -318,7 +318,7 @@ export default function LandingPage() {
       <header className={`lp-nav${scrolled || menuOpen ? " is-solid" : ""}`}>
         <div className="lp-wrap lp-nav-inner">
           <a href="#top" className="lp-logo" aria-label={CONFIG.appName}>
-            <img src={CONFIG.logoOnLight} alt={CONFIG.appName} width={92} height={26} />
+            <img src={CONFIG.logoOnLight} alt={CONFIG.appName} width={146} height={40} />
           </a>
           <nav className={`lp-nav-links${menuOpen ? " is-open" : ""}`} aria-label={t.nav.menu}>
             {links.map((l) => (
@@ -519,7 +519,7 @@ export default function LandingPage() {
         <div className="lp-wrap lp-footer-grid">
           <div className="lp-footer-brand">
             <span className="lp-logo">
-              <img src={CONFIG.logoOnDark} alt={CONFIG.appName} width={92} height={26} />
+              <img src={CONFIG.logoOnDark} alt={CONFIG.appName} width={146} height={40} />
             </span>
             <p>{t.footer.tagline}</p>
           </div>

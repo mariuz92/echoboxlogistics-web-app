@@ -86,7 +86,7 @@ export interface Dict {
 
 const it: Dict = {
   meta: {
-    title: "Rondo · Gestionale per il noleggio di radioguide",
+    title: "EchoBox Logistics · Gestionale per il noleggio di radioguide",
     description:
       "Ordini, canali radio, rider e ritiri delle radioguide in un unico posto. Per chi noleggia radioguide a guide e gruppi turistici.",
   },
@@ -104,18 +104,18 @@ const it: Dict = {
     kicker: "Web + mobile · per chi noleggia radioguide",
     title: "Consegne e ritiri di radioguide, gestiti da un'unica schermata.",
     subtitle:
-      "Rondo è il gestionale web e mobile per chi noleggia radioguide a guide e gruppi. Ordini, canali radio, rider e ritiri stanno nello stesso posto: l'ufficio vede ogni consegna mentre succede, i rider hanno tutto sul telefono e nessun gruppo finisce sul canale di un altro.",
+      "EchoBox è il gestionale web e mobile per chi noleggia radioguide a guide e gruppi. Ordini, canali radio, rider e ritiri stanno nello stesso posto: l'ufficio vede ogni consegna mentre succede, i rider hanno tutto sul telefono e nessun gruppo finisce sul canale di un altro.",
     primary: "Prenota una demo",
     secondary: "Guarda il prodotto",
     note: "L'ufficio lavora dal computer, i rider dal telefono. Tutto nel browser: non c'è niente da installare.",
-    imageAlt: "La schermata Ordini di Rondo con le consegne e i ritiri della giornata",
+    imageAlt: "La schermata Ordini di EchoBox con le consegne e i ritiri della giornata",
     phoneAlt: "L'app del rider sul telefono, con le consegne assegnate",
     webLabel: "Web · ufficio",
     mobileLabel: "Mobile · rider",
   },
   day: {
     label: "Il problema",
-    title: "Una giornata normale, prima di Rondo",
+    title: "Una giornata normale, prima di EchoBox",
     intro: "Le chat di gruppo e i fogli Excel reggono finché la giornata è tranquilla. In alta stagione succede questo:",
     items: [
       {
@@ -131,7 +131,7 @@ const it: Dict = {
         text: "In magazzino mancano 26 radio. Erano di un tour di martedì e nessuno è passato a ritirarle.",
       },
     ],
-    outro: "Rondo mette ordini, canali e ritiri nello stesso posto, visibile a tutto il team. Queste telefonate non servono più.",
+    outro: "EchoBox mette ordini, canali e ritiri nello stesso posto, visibile a tutto il team. Queste telefonate non servono più.",
   },
   product: {
     label: "Il prodotto",
@@ -154,7 +154,7 @@ const it: Dict = {
         title: "Qualsiasi radioguida, da 1 a 10.000 canali",
         text: "Imposti i canali dei tuoi apparecchi, qualunque modello usi. Un canale è occupato solo mentre il gruppo ha le radio, dalla consegna al ritiro: lo stesso canale può servire un gruppo la mattina e un altro il pomeriggio.",
         points: [
-          "Scrivi il canale nell'ordine: Rondo ti dice subito se è libero o chi lo sta usando",
+          "Scrivi il canale nell'ordine: EchoBox ti dice subito se è libero o chi lo sta usando",
           "Due gruppi sullo stesso canale alla stessa ora vengono bloccati, se i tuoi apparecchi non possono condividerlo",
           "Canali guasti o riservati esclusi in un attimo",
         ],
@@ -208,7 +208,7 @@ const it: Dict = {
     label: "Domande",
     title: "Domande frequenti",
     items: [
-      { q: "Bisogna installare qualcosa?", a: "No. Rondo si apre dal browser su computer, tablet e telefono. I rider lo usano dal telefono come un normale sito." },
+      { q: "Bisogna installare qualcosa?", a: "No. EchoBox si apre dal browser su computer, tablet e telefono. I rider lo usano dal telefono come un normale sito." },
       { q: "Funziona con le mie radioguide?", a: "Sì, con qualsiasi modello: imposti la numerazione dei tuoi canali, da 1 a 10.000, e disabiliti quelli guasti o riservati. Scegli tu se un canale serve un solo gruppo alla volta o se più gruppi possono condividerlo." },
       { q: "Le guide devono registrarsi?", a: "No. Usano il link di prenotazione della tua azienda e compilano un modulo che richiede un minuto. L'ordine arriva subito a te." },
       { q: "I nostri dati sono separati da quelli di altre aziende?", a: "Sì. Ogni azienda vede solo i propri ordini, rider e guide, e la separazione è applicata direttamente nel database." },
@@ -218,7 +218,7 @@ const it: Dict = {
   },
   contact: {
     label: "Contatti",
-    title: "Vediamo Rondo su una giornata come la tua",
+    title: "Vediamo EchoBox su una giornata come la tua",
     subtitle:
       "Scrivici quante radioguide gestisci, quanti rider avete e come vi organizzate oggi. Ti ricontattiamo per fissare una demo.",
     direct: "Oppure scrivi a",
@@ -260,7 +260,7 @@ const it: Dict = {
 
 const en: Dict = {
   meta: {
-    title: "Rondo · Software for audio-guide rentals",
+    title: "EchoBox Logistics · Software for audio-guide rentals",
     description:
       "Orders, radio channels, riders and pickups of tour radio sets in one place. For companies that rent audio guides to tour guides and groups.",
   },
@@ -278,18 +278,18 @@ const en: Dict = {
     kicker: "Web + mobile · for audio-guide rental companies",
     title: "Run audio-guide deliveries and pickups from one screen.",
     subtitle:
-      "Rondo is the web and mobile operations app for companies that rent radio sets to tour guides and groups. Orders, radio channels, riders and pickups live in one place: the office sees every delivery as it happens, riders have everything on their phone, and no group ends up on another group's channel.",
+      "EchoBox is the web and mobile operations app for companies that rent radio sets to tour guides and groups. Orders, radio channels, riders and pickups live in one place: the office sees every delivery as it happens, riders have everything on their phone, and no group ends up on another group's channel.",
     primary: "Book a demo",
     secondary: "See the product",
     note: "The office works on a computer, riders on their phone. All in the browser: nothing to install.",
-    imageAlt: "The Rondo Orders screen with the day's deliveries and pickups",
+    imageAlt: "The EchoBox Orders screen with the day's deliveries and pickups",
     phoneAlt: "The rider app on a phone, with the assigned deliveries",
     webLabel: "Web · office",
     mobileLabel: "Mobile · riders",
   },
   day: {
     label: "The problem",
-    title: "An ordinary day, before Rondo",
+    title: "An ordinary day, before EchoBox",
     intro: "Group chats and spreadsheets hold up while the day is quiet. In high season, this happens:",
     items: [
       {
@@ -305,7 +305,7 @@ const en: Dict = {
         text: "26 radio sets are missing from the stockroom. They belonged to Tuesday's tour, and nobody went to collect them.",
       },
     ],
-    outro: "Rondo puts orders, channels and pickups in one place the whole team can see. Those phone calls stop.",
+    outro: "EchoBox puts orders, channels and pickups in one place the whole team can see. Those phone calls stop.",
   },
   product: {
     label: "Product",
@@ -328,7 +328,7 @@ const en: Dict = {
         title: "Any radioguide system, from 1 to 10,000 channels",
         text: "Set up the channels of your equipment, whatever model you use. A channel is busy only while a group has the radios, from delivery to pickup: the same channel can serve one group in the morning and another in the afternoon.",
         points: [
-          "Type the channel on the order: Rondo tells you right away whether it is free or who is using it",
+          "Type the channel on the order: EchoBox tells you right away whether it is free or who is using it",
           "Two groups on the same channel at the same time are blocked, if your equipment cannot share channels",
           "Faulty or reserved channels excluded in a moment",
         ],
@@ -382,7 +382,7 @@ const en: Dict = {
     label: "Questions",
     title: "Frequently asked questions",
     items: [
-      { q: "Do we need to install anything?", a: "No. Rondo opens in the browser on computers, tablets and phones. Riders use it on their phone like any website." },
+      { q: "Do we need to install anything?", a: "No. EchoBox opens in the browser on computers, tablets and phones. Riders use it on their phone like any website." },
       { q: "Does it work with our radioguides?", a: "Yes, with any model: set how your channels are numbered, from 1 to 10,000, and disable faulty or reserved ones. You choose whether a channel serves one group at a time or can be shared." },
       { q: "Do guides need to sign up?", a: "No. They use your company's booking link and fill in a form that takes a minute. The order reaches you straight away." },
       { q: "Is our data kept apart from other companies?", a: "Yes. Each company only sees its own orders, riders and guides, and the separation is enforced in the database itself." },
@@ -392,7 +392,7 @@ const en: Dict = {
   },
   contact: {
     label: "Contact",
-    title: "Let's look at Rondo on a day like yours",
+    title: "Let's look at EchoBox on a day like yours",
     subtitle:
       "Tell us how many radio sets you manage, how many riders you have and how you organise things today. We'll get back to you to set up a demo.",
     direct: "Or email",
@@ -434,7 +434,7 @@ const en: Dict = {
 
 const de: Dict = {
   meta: {
-    title: "Rondo · Software für den Verleih von Führungsanlagen",
+    title: "EchoBox Logistics · Software für den Verleih von Führungsanlagen",
     description:
       "Aufträge, Funkkanäle, Fahrer und Abholungen von Führungsanlagen an einem Ort. Für Unternehmen, die Audioguides an Gästeführer und Reisegruppen vermieten.",
   },
@@ -452,18 +452,18 @@ const de: Dict = {
     kicker: "Web + Mobil · für Verleiher von Führungsanlagen",
     title: "Lieferung und Abholung Ihrer Führungsanlagen, auf einem Bildschirm.",
     subtitle:
-      "Rondo ist die Web- und Mobil-Software für Unternehmen, die Führungsanlagen an Gästeführer und Gruppen vermieten. Aufträge, Funkkanäle, Fahrer und Abholungen an einem Ort: Das Büro sieht jede Lieferung, während sie passiert, die Fahrer haben alles auf dem Handy, und keine Gruppe landet auf dem Kanal einer anderen.",
+      "EchoBox ist die Web- und Mobil-Software für Unternehmen, die Führungsanlagen an Gästeführer und Gruppen vermieten. Aufträge, Funkkanäle, Fahrer und Abholungen an einem Ort: Das Büro sieht jede Lieferung, während sie passiert, die Fahrer haben alles auf dem Handy, und keine Gruppe landet auf dem Kanal einer anderen.",
     primary: "Demo vereinbaren",
     secondary: "Produkt ansehen",
     note: "Das Büro arbeitet am Computer, die Fahrer am Handy. Alles im Browser: nichts zu installieren.",
-    imageAlt: "Die Auftragsansicht von Rondo mit den Lieferungen und Abholungen des Tages",
+    imageAlt: "Die Auftragsansicht von EchoBox mit den Lieferungen und Abholungen des Tages",
     phoneAlt: "Die Fahrer-App auf dem Handy mit den zugewiesenen Lieferungen",
     webLabel: "Web · Büro",
     mobileLabel: "Mobil · Fahrer",
   },
   day: {
     label: "Das Problem",
-    title: "Ein ganz normaler Tag, vor Rondo",
+    title: "Ein ganz normaler Tag, vor EchoBox",
     intro: "Gruppenchats und Tabellen halten, solange der Tag ruhig ist. In der Hochsaison passiert das:",
     items: [
       {
@@ -479,7 +479,7 @@ const de: Dict = {
         text: "Im Lager fehlen 26 Empfänger. Sie gehörten zur Tour vom Dienstag, und niemand hat sie abgeholt.",
       },
     ],
-    outro: "Rondo bringt Aufträge, Kanäle und Abholungen an einen Ort, den das ganze Team sieht. Diese Anrufe braucht es nicht mehr.",
+    outro: "EchoBox bringt Aufträge, Kanäle und Abholungen an einen Ort, den das ganze Team sieht. Diese Anrufe braucht es nicht mehr.",
   },
   product: {
     label: "Produkt",
@@ -502,7 +502,7 @@ const de: Dict = {
         title: "Jede Führungsanlage, von 1 bis 10.000 Kanälen",
         text: "Sie legen die Kanäle Ihrer Geräte fest, egal welches Modell. Ein Kanal ist nur belegt, solange eine Gruppe die Geräte hat, von der Lieferung bis zur Abholung: Derselbe Kanal kann morgens eine Gruppe und nachmittags eine andere bedienen.",
         points: [
-          "Kanal im Auftrag eintragen: Rondo zeigt sofort, ob er frei ist oder wer ihn nutzt",
+          "Kanal im Auftrag eintragen: EchoBox zeigt sofort, ob er frei ist oder wer ihn nutzt",
           "Zwei Gruppen zur selben Zeit auf demselben Kanal werden blockiert, wenn Ihre Geräte keine Kanäle teilen können",
           "Defekte oder reservierte Kanäle im Handumdrehen ausschließen",
         ],
@@ -556,7 +556,7 @@ const de: Dict = {
     label: "Fragen",
     title: "Häufige Fragen",
     items: [
-      { q: "Müssen wir etwas installieren?", a: "Nein. Rondo öffnet sich im Browser auf Computer, Tablet und Handy. Fahrer nutzen es auf dem Handy wie eine normale Website." },
+      { q: "Müssen wir etwas installieren?", a: "Nein. EchoBox öffnet sich im Browser auf Computer, Tablet und Handy. Fahrer nutzen es auf dem Handy wie eine normale Website." },
       { q: "Funktioniert es mit unseren Geräten?", a: "Ja, mit jedem Modell: Sie legen die Nummerierung Ihrer Kanäle fest, von 1 bis 10.000, und sperren defekte oder reservierte. Sie entscheiden, ob ein Kanal nur einer Gruppe gleichzeitig dient oder geteilt werden kann." },
       { q: "Müssen sich Gästeführer registrieren?", a: "Nein. Sie nutzen den Buchungslink Ihrer Firma und füllen ein Formular aus, das eine Minute dauert. Der Auftrag ist sofort bei Ihnen." },
       { q: "Sind unsere Daten von anderen Firmen getrennt?", a: "Ja. Jede Firma sieht nur ihre eigenen Aufträge, Fahrer und Gästeführer, und die Trennung wird direkt in der Datenbank durchgesetzt." },
@@ -566,7 +566,7 @@ const de: Dict = {
   },
   contact: {
     label: "Kontakt",
-    title: "Schauen wir uns Rondo an einem Tag wie Ihrem an",
+    title: "Schauen wir uns EchoBox an einem Tag wie Ihrem an",
     subtitle:
       "Schreiben Sie uns, wie viele Geräte Sie verwalten, wie viele Fahrer Sie haben und wie Sie heute organisiert sind. Wir melden uns, um eine Demo zu vereinbaren.",
     direct: "Oder per E-Mail an",
@@ -608,7 +608,7 @@ const de: Dict = {
 
 const fr: Dict = {
   meta: {
-    title: "Rondo · Logiciel pour la location d'audioguides",
+    title: "EchoBox Logistics · Logiciel pour la location d'audioguides",
     description:
       "Commandes, canaux radio, livreurs et retraits des récepteurs au même endroit. Pour les entreprises qui louent des audioguides aux guides et aux groupes.",
   },
@@ -626,18 +626,18 @@ const fr: Dict = {
     kicker: "Web + mobile · pour les loueurs d'audioguides",
     title: "Livraisons et retraits d'audioguides, gérés depuis un seul écran.",
     subtitle:
-      "Rondo est le logiciel web et mobile des entreprises qui louent des récepteurs aux guides et aux groupes. Commandes, canaux radio, livreurs et retraits au même endroit : le bureau voit chaque livraison au moment où elle a lieu, les livreurs ont tout sur leur téléphone, et aucun groupe ne se retrouve sur le canal d'un autre.",
+      "EchoBox est le logiciel web et mobile des entreprises qui louent des récepteurs aux guides et aux groupes. Commandes, canaux radio, livreurs et retraits au même endroit : le bureau voit chaque livraison au moment où elle a lieu, les livreurs ont tout sur leur téléphone, et aucun groupe ne se retrouve sur le canal d'un autre.",
     primary: "Réserver une démo",
     secondary: "Voir le produit",
     note: "Le bureau travaille sur ordinateur, les livreurs sur leur téléphone. Tout dans le navigateur : rien à installer.",
-    imageAlt: "L'écran Commandes de Rondo avec les livraisons et retraits de la journée",
+    imageAlt: "L'écran Commandes d'EchoBox avec les livraisons et retraits de la journée",
     phoneAlt: "L'application du livreur sur téléphone, avec les livraisons attribuées",
     webLabel: "Web · bureau",
     mobileLabel: "Mobile · livreurs",
   },
   day: {
     label: "Le problème",
-    title: "Une journée ordinaire, avant Rondo",
+    title: "Une journée ordinaire, avant EchoBox",
     intro: "Les groupes de messagerie et les tableurs tiennent tant que la journée est calme. En haute saison, voilà ce qui arrive :",
     items: [
       {
@@ -653,7 +653,7 @@ const fr: Dict = {
         text: "Il manque 26 récepteurs au dépôt. Ils étaient au tour de mardi, et personne n'est passé les récupérer.",
       },
     ],
-    outro: "Rondo réunit commandes, canaux et retraits au même endroit, visible par toute l'équipe. Ces appels deviennent inutiles.",
+    outro: "EchoBox réunit commandes, canaux et retraits au même endroit, visible par toute l'équipe. Ces appels deviennent inutiles.",
   },
   product: {
     label: "Le produit",
@@ -676,7 +676,7 @@ const fr: Dict = {
         title: "Tout système d'audioguide, de 1 à 10 000 canaux",
         text: "Vous configurez les canaux de vos appareils, quel que soit le modèle. Un canal n'est occupé que pendant que le groupe a les récepteurs, de la livraison au retrait : le même canal peut servir un groupe le matin et un autre l'après-midi.",
         points: [
-          "Saisissez le canal dans la commande : Rondo indique aussitôt s'il est libre ou qui l'utilise",
+          "Saisissez le canal dans la commande : EchoBox indique aussitôt s'il est libre ou qui l'utilise",
           "Deux groupes sur le même canal au même moment sont bloqués, si vos appareils ne peuvent pas partager les canaux",
           "Canaux défectueux ou réservés exclus en un instant",
         ],
@@ -730,7 +730,7 @@ const fr: Dict = {
     label: "Questions",
     title: "Questions fréquentes",
     items: [
-      { q: "Faut-il installer quelque chose ?", a: "Non. Rondo s'ouvre dans le navigateur, sur ordinateur, tablette et téléphone. Les livreurs l'utilisent sur leur téléphone comme n'importe quel site." },
+      { q: "Faut-il installer quelque chose ?", a: "Non. EchoBox s'ouvre dans le navigateur, sur ordinateur, tablette et téléphone. Les livreurs l'utilisent sur leur téléphone comme n'importe quel site." },
       { q: "Est-ce compatible avec nos audioguides ?", a: "Oui, avec tous les modèles : indiquez la numérotation de vos canaux, de 1 à 10 000, et désactivez ceux qui sont défectueux ou réservés. Vous choisissez si un canal sert un seul groupe à la fois ou peut être partagé." },
       { q: "Les guides doivent-ils s'inscrire ?", a: "Non. Ils utilisent le lien de réservation de votre entreprise et remplissent un formulaire d'une minute. La commande vous parvient aussitôt." },
       { q: "Nos données sont-elles séparées de celles des autres entreprises ?", a: "Oui. Chaque entreprise ne voit que ses commandes, livreurs et guides, et la séparation est appliquée dans la base de données elle-même." },
@@ -740,7 +740,7 @@ const fr: Dict = {
   },
   contact: {
     label: "Contact",
-    title: "Regardons Rondo sur une journée comme la vôtre",
+    title: "Regardons EchoBox sur une journée comme la vôtre",
     subtitle:
       "Dites-nous combien de récepteurs vous gérez, combien de livreurs vous avez et comment vous vous organisez aujourd'hui. Nous revenons vers vous pour fixer une démo.",
     direct: "Ou écrivez à",

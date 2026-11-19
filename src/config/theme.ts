@@ -1,7 +1,7 @@
 import { theme as antdTheme, type ThemeConfig } from "antd";
 
 /**
- * Brand palette. `navy` is the ink of the Rondo logo (a very dark green-blue),
+ * Brand palette. `navy` is the ink of the EchoBox logo (a very dark green-blue),
  * used for the sidebar and dark headers; blue for actions; coral and pale blue
  * for charts.
  */

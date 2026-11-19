@@ -1,10 +1,10 @@
 {
-  "short_name": "Rondo",
-  "name": "Rondo",
+  "short_name": "EchoBox",
+  "name": "EchoBox Logistics",
   "description": "Gestione di ordini, rider e canali radio per il noleggio di radioguide.",
   "icons": [
     {
-      "src": "/brand/rondo-mark.svg",
+      "src": "/brand/echobox-mark.svg",
       "sizes": "any",
       "type": "image/svg+xml"
     },
