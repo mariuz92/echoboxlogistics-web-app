@@ -1,13 +1,16 @@
 import { describe, expect, it } from "vitest";
 import {
+  channelConflicts,
+  channelCount,
+  channelWindowEnd,
+  formatChannelList,
   getAssignBlocker,
   getAssignableLeg,
   hasRole,
   isOpenStatus,
   ORDER_STATUSES,
   ORDER_STATUS_META,
-  selectableChannels,
-  type ChannelStatus,
+  parseChannelList,
   type OrderStatus,
 } from "./domain";
 
@@ -66,27 +69,63 @@ describe("getAssignBlocker", () => {
   });
 });
 
-describe("selectableChannels", () => {
-  const channels: Pick<ChannelStatus, "channel" | "state" | "order_id">[] = [
-    { channel: 0, state: "free", order_id: null },
-    { channel: 1, state: "busy", order_id: "order-a" },
-    { channel: 2, state: "busy", order_id: "order-b" },
-    { channel: 3, state: "disabled", order_id: null },
-    { channel: 4, state: "free", order_id: null },
+describe("channelWindowEnd", () => {
+  const tz = "Europe/Rome";
+
+  it("ends at the planned pickup", () => {
+    expect(channelWindowEnd("2026-07-10T08:00:00.000Z", "2026-07-10T12:00:00.000Z", tz)).toBe("2026-07-10T12:00:00.000Z");
+  });
+
+  it("ends at midnight of the delivery day (company time zone) without a pickup", () => {
+    // 10:00 in Rome on 10 July (UTC+2) -> midnight in Rome = 22:00 UTC
+    expect(channelWindowEnd("2026-07-10T08:00:00.000Z", null, tz)).toBe("2026-07-10T22:00:00.000Z");
+  });
+
+  it("never lasts less than a minute", () => {
+    expect(channelWindowEnd("2026-07-10T08:00:00.000Z", "2026-07-10T08:00:00.000Z", tz)).toBe("2026-07-10T08:01:00.000Z");
+  });
+});
+
+describe("channelConflicts", () => {
+  const uses = [
+    { channel: 5, order_id: "a", delivery_at: "2026-07-10T08:00:00Z", busy_until: "2026-07-10T12:00:00Z" },
+    { channel: 5, order_id: "b", delivery_at: "2026-07-10T13:00:00Z", busy_until: "2026-07-10T16:00:00Z" },
+    { channel: 6, order_id: "c", delivery_at: "2026-07-10T08:00:00Z", busy_until: "2026-07-10T20:00:00Z" },
   ];
 
-  it("offers only free channels for a new order", () => {
-    expect(selectableChannels(channels)).toEqual([0, 4]);
+  it("finds orders on the same channel whose times overlap", () => {
+    expect(channelConflicts(uses, 5, "2026-07-10T11:00:00Z", "2026-07-10T14:00:00Z").map((u) => u.order_id)).toEqual(["a", "b"]);
   });
 
-  it("keeps the channel an order already holds selectable (regression: it used to vanish when editing)", () => {
-    expect(selectableChannels(channels, "order-a")).toEqual([0, 1, 4]);
+  it("lets the same channel serve back-to-back groups", () => {
+    expect(channelConflicts(uses, 5, "2026-07-10T12:00:00Z", "2026-07-10T13:00:00Z")).toEqual([]);
   });
 
-  it("never offers channels held by other orders or disabled ones", () => {
-    const result = selectableChannels(channels, "order-a");
-    expect(result).not.toContain(2);
-    expect(result).not.toContain(3);
+  it("ignores the order being edited", () => {
+    expect(channelConflicts(uses, 5, "2026-07-10T09:00:00Z", "2026-07-10T10:00:00Z", "a")).toEqual([]);
+  });
+});
+
+describe("channel lists", () => {
+  it("parses numbers and ranges in any order", () => {
+    expect(parseChannelList("13, 20-22 3;3")).toEqual([3, 13, 20, 21, 22]);
+    expect(parseChannelList("")).toEqual([]);
+  });
+
+  it("rejects text that is not a channel list", () => {
+    expect(parseChannelList("13, abc")).toBeNull();
+    expect(parseChannelList("9-2")).toBeNull();
+    expect(parseChannelList("1-20000")).toBeNull();
+  });
+
+  it("formats runs as ranges", () => {
+    expect(formatChannelList([12, 3, 7, 8, 9])).toBe("3, 7–9, 12");
+    expect(formatChannelList([])).toBe("");
+  });
+
+  it("counts channels in a range", () => {
+    expect(channelCount({ channel_min: 1, channel_max: 1 })).toBe(1);
+    expect(channelCount({ channel_min: 1, channel_max: 10000 })).toBe(10000);
   });
 });
 

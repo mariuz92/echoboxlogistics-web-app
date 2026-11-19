@@ -16,15 +16,32 @@ Two things are deployed: the **Supabase project** (database, auth, functions) an
 
    **Do not** run `supabase/seed.sql` against a real project: it creates demo users with a known password.
 
-3. Deploy the Edge Function and set its secrets:
+3. Deploy the Edge Functions and set their secrets:
 
    ```bash
    supabase functions deploy invite-member
+   supabase functions deploy contact --no-verify-jwt
    supabase secrets set SITE_URL=https://platform.example.com \
-                        ALLOWED_ORIGINS=https://platform.example.com
+                        ALLOWED_ORIGINS=https://platform.example.com,https://example.com,https://www.example.com
    ```
 
-   `SITE_URL` is where invitation links point (`/join`); `ALLOWED_ORIGINS` is a comma separated CORS allow-list.
+   `SITE_URL` is where invitation links point (`/join`); `ALLOWED_ORIGINS` is a comma separated CORS allow-list
+   (include the marketing site's domain, which hosts the contact form).
+
+   **Contact form e-mails.** Every message sent from the landing page is saved in `public.contact_messages`
+   (dashboard → *Table editor*; tick `handled` once answered). To also receive it by e-mail, create a
+   [Resend](https://resend.com) account and set:
+
+   ```bash
+   supabase secrets set CONTACT_TO_EMAIL=you@your-domain \
+                        RESEND_API_KEY=re_xxx \
+                        CONTACT_FROM_EMAIL="EchoBox Logistics <hello@your-domain>"
+   ```
+
+   Until your sending domain is verified in Resend, leave `CONTACT_FROM_EMAIL` unset: the default test sender
+   (`onboarding@resend.dev`) can only deliver to the e-mail address of the Resend account itself, which is fine
+   when that is the address in `CONTACT_TO_EMAIL`. Replies go straight to the visitor (`Reply-To`). If the e-mail
+   fails, the message is still saved and the reason is stored in `email_error`.
 
 4. Configure **Authentication** (dashboard → *Authentication*). `supabase/config.toml` only configures the
    local stack; mirror these on the hosted project:
@@ -105,7 +122,8 @@ inlined by Vite), or edit `dist/env-config.js` as part of your pipeline.
 ## 4. Go-live checklist
 
 - [ ] `supabase db push` ran; `supabase test db` passes locally against the same migrations
-- [ ] Edge Function deployed; `SITE_URL` and `ALLOWED_ORIGINS` secrets set
+- [ ] Edge Functions deployed (`invite-member`, `contact`); `SITE_URL` and `ALLOWED_ORIGINS` secrets set
+- [ ] Contact form: `CONTACT_TO_EMAIL` + `RESEND_API_KEY` set, test message received
 - [ ] Auth: site URL, redirect URLs, **email confirmation ON**, custom SMTP, password policy
 - [ ] Web app reachable over HTTPS; `VITE_SUPABASE_*` point at the production project
 - [ ] First admin registered through `/register` (company is created on first confirmed sign-in)

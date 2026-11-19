@@ -1,83 +1,78 @@
 import { useEffect, useMemo, useState } from "react";
-import { App, Alert, Button, Card, Col, Flex, InputNumber, Modal, Row, Tag, Tooltip, Typography } from "antd";
+import { App, Button, DatePicker, Flex, Input, InputNumber, Modal, Switch, Table, Typography } from "antd";
 import { SaveOutlined } from "@ant-design/icons";
 import { useQueryClient } from "@tanstack/react-query";
 import { useReadyUser } from "../../../providers/current-user";
 import { getErrorMessage } from "../../../lib/errors";
-import { fmtDateTime } from "../../../lib/dates";
+import { dayjs, fmtDateTime, fmtTime, isoToWallClock, type Dayjs } from "../../../lib/dates";
+import { StatusTag } from "../../../shared/components/StatusTag";
+import { MAX_CHANNELS, channelCount, formatChannelList, parseChannelList, type ChannelUse } from "../../../types/domain";
 import { updateTenant } from "../../settings/api";
-import { queryKeys, useChannelStatus } from "../hooks";
+import { queryKeys, useChannelBoard } from "../hooks";
 
 interface ChannelBoardProps {
   open: boolean;
   onClose: () => void;
 }
 
-const COLORS = {
-  free: { bg: "#dcfce7", border: "#86efac", fg: "#166534", label: "Libero" },
-  busy: { bg: "#fef3c7", border: "#fcd34d", fg: "#92400e", label: "In uso" },
-  disabled: { bg: "#fee2e2", border: "#fca5a5", fg: "#991b1b", label: "Disabilitato" },
-} as const;
+const dayBounds = (day: Dayjs, tz: string) => {
+  const from = dayjs.tz(day.format("YYYY-MM-DD"), tz);
+  return { from: from.toISOString(), to: from.add(1, "day").toISOString() };
+};
 
 /**
- * Radio channel map.
- *
- * "In use" is derived from open orders by the database and cannot be edited
- * here (the old UI let admins toggle it by hand, which drifted out of sync
- * with real orders). The only manual setting is which channels are disabled
- * (e.g. broken or reserved frequencies) and how many channels exist.
+ * Radio channel settings, for any equipment (1 to 10,000 channels). Channels are
+ * typed on each order (the order form says whether a channel is free); there is
+ * deliberately no map of every channel. Occupied channels: <OccupiedChannels />.
  */
-export function ChannelBoard({ open, onClose }: ChannelBoardProps) {
+export function ChannelSettings({ open, onClose }: ChannelBoardProps) {
   const { message } = App.useApp();
   const queryClient = useQueryClient();
-  const { tenant, timezone, refresh } = useReadyUser();
-  const { data: channels = [], isFetching } = useChannelStatus(open);
+  const { tenant, refresh } = useReadyUser();
 
-  const [total, setTotal] = useState(tenant.radio_channels_total);
-  const [disabled, setDisabled] = useState<Set<number>>(new Set(tenant.disabled_channels));
+  const [min, setMin] = useState(tenant.channel_min);
+  const [max, setMax] = useState(tenant.channel_max);
+  const [exclusive, setExclusive] = useState(tenant.channels_exclusive);
+  const [disabledText, setDisabledText] = useState(formatChannelList(tenant.disabled_channels));
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (open) {
-      setTotal(tenant.radio_channels_total);
-      setDisabled(new Set(tenant.disabled_channels));
-    }
+    if (!open) return;
+    setMin(tenant.channel_min);
+    setMax(tenant.channel_max);
+    setExclusive(tenant.channels_exclusive);
+    setDisabledText(formatChannelList(tenant.disabled_channels));
   }, [open, tenant]);
 
-  const busy = useMemo(() => new Map(channels.filter((c) => c.state === "busy").map((c) => [c.channel, c])), [channels]);
-  const highestBusy = useMemo(() => Math.max(-1, ...busy.keys()), [busy]);
-  const list = useMemo(() => Array.from({ length: total + 1 }, (_, i) => i), [total]);
+  const count = max >= min ? channelCount({ channel_min: min, channel_max: max }) : 0;
+  const rangeError =
+    max < min
+      ? "L'ultimo canale deve essere uguale o successivo al primo."
+      : count > MAX_CHANNELS
+        ? `Al massimo ${MAX_CHANNELS.toLocaleString("it-IT")} canali.`
+        : null;
+
+  const parsedDisabled = useMemo(() => parseChannelList(disabledText), [disabledText]);
+  const disabled = useMemo(
+    () => (parsedDisabled ?? []).filter((c) => c >= min && c <= max),
+    [parsedDisabled, min, max],
+  );
 
   const dirty =
-    total !== tenant.radio_channels_total ||
-    [...disabled].sort().join() !== [...tenant.disabled_channels].sort().join();
-
-  const counts = {
-    free: list.filter((c) => !busy.has(c) && !disabled.has(c)).length,
-    busy: list.filter((c) => busy.has(c)).length,
-    disabled: list.filter((c) => disabled.has(c) && !busy.has(c)).length,
-  };
-
-  const toggle = (channel: number) => {
-    if (busy.has(channel)) return;
-    setDisabled((prev) => {
-      const next = new Set(prev);
-      if (next.has(channel)) next.delete(channel);
-      else next.add(channel);
-      return next;
-    });
-  };
+    min !== tenant.channel_min ||
+    max !== tenant.channel_max ||
+    exclusive !== tenant.channels_exclusive ||
+    formatChannelList(disabled) !== formatChannelList(tenant.disabled_channels);
 
   const save = async () => {
-    if (total < highestBusy) {
-      void message.error(`Il canale ${highestBusy} è in uso: il totale non può essere inferiore.`);
-      return;
-    }
+    if (rangeError || parsedDisabled === null) return;
     setSaving(true);
     try {
       await updateTenant(tenant.id, {
-        radio_channels_total: total,
-        disabled_channels: [...disabled].filter((c) => c <= total).sort((a, b) => a - b),
+        channel_min: min,
+        channel_max: max,
+        channels_exclusive: exclusive,
+        disabled_channels: disabled,
       });
       await refresh();
       void queryClient.invalidateQueries({ queryKey: queryKeys.channels });
@@ -95,85 +90,169 @@ export function ChannelBoard({ open, onClose }: ChannelBoardProps) {
       title="Canali radio"
       open={open}
       onCancel={onClose}
-      width={860}
+      width={460}
       destroyOnHidden
       footer={
         <Flex justify="flex-end" gap={8}>
           <Button onClick={onClose}>Chiudi</Button>
-          <Button type="primary" icon={<SaveOutlined />} onClick={save} loading={saving} disabled={!dirty}>
+          <Button
+            type="primary"
+            icon={<SaveOutlined />}
+            onClick={save}
+            loading={saving}
+            disabled={!dirty || Boolean(rangeError) || parsedDisabled === null}
+          >
             Salva
           </Button>
         </Flex>
       }
     >
-      <Row gutter={[16, 16]}>
-        <Col xs={24} md={8}>
-          <Card size="small" title="Impostazioni">
-            <Typography.Text type="secondary">Numero totale di canali (da 0 a N)</Typography.Text>
-            <InputNumber
-              min={0}
-              max={999}
-              precision={0}
-              value={total}
-              onChange={(value) => setTotal(value ?? 0)}
-              style={{ width: "100%", marginTop: 6, marginBottom: 16 }}
-            />
-            <Flex vertical gap={8}>
-              <Tag color="green" variant="filled">Liberi: {counts.free}</Tag>
-              <Tag color="gold" variant="filled">In uso: {counts.busy}</Tag>
-              <Tag color="red" variant="filled">Disabilitati: {counts.disabled}</Tag>
-            </Flex>
-          </Card>
-        </Col>
+            <Flex vertical gap={20}>
+              <div>
+                <Typography.Text strong>Numerazione</Typography.Text>
+                <Flex align="center" gap={8} style={{ marginTop: 6 }}>
+                  <span>dal</span>
+                  <InputNumber
+                    id="channel_min"
+                    aria-label="Primo canale"
+                    min={0}
+                    max={99999}
+                    precision={0}
+                    value={min}
+                    onChange={(v) => setMin(v ?? 0)}
+                    style={{ width: 96 }}
+                  />
+                  <span>al</span>
+                  <InputNumber
+                    id="channel_max"
+                    aria-label="Ultimo canale"
+                    min={0}
+                    max={99999}
+                    precision={0}
+                    value={max}
+                    onChange={(v) => setMax(v ?? 0)}
+                    style={{ width: 96 }}
+                  />
+                </Flex>
+                <Typography.Text type={rangeError ? "danger" : "secondary"} style={{ display: "block", marginTop: 6 }}>
+                  {rangeError ??
+                    `${count.toLocaleString("it-IT")} ${count === 1 ? "canale" : "canali"}. Qualsiasi radioguida: da 1 a 10.000 canali.`}
+                </Typography.Text>
+              </div>
 
-        <Col xs={24} md={16}>
-          <Card size="small" title="Mappa canali" loading={isFetching && channels.length === 0}>
-            <Alert
-              type="info"
-              showIcon
-              style={{ marginBottom: 12 }}
-              title="I canali in uso dipendono dagli ordini aperti. Clicca un canale libero per disabilitarlo (o riabilitarlo)."
-            />
-            <Flex wrap gap={8}>
-              {list.map((channel) => {
-                const info = busy.get(channel);
-                const state = info ? "busy" : disabled.has(channel) ? "disabled" : "free";
-                const c = COLORS[state];
-                return (
-                  <Tooltip
-                    key={channel}
-                    title={
-                      info
-                        ? `Canale ${channel} · ${info.guide_name} · ${fmtDateTime(info.delivery_at, timezone)}`
-                        : `Canale ${channel} · ${c.label}`
-                    }
-                  >
-                    <button
-                      type="button"
-                      onClick={() => toggle(channel)}
-                      aria-label={`Canale ${channel}: ${c.label}`}
-                      aria-pressed={state === "disabled"}
-                      disabled={state === "busy"}
-                      style={{
-                        width: 44,
-                        height: 38,
-                        borderRadius: 8,
-                        border: `1px solid ${c.border}`,
-                        background: c.bg,
-                        color: c.fg,
-                        fontWeight: 600,
-                        cursor: state === "busy" ? "not-allowed" : "pointer",
-                      }}
-                    >
-                      {channel}
-                    </button>
-                  </Tooltip>
-                );
-              })}
+              <div>
+                <Flex align="center" justify="space-between" gap={12}>
+                  <Typography.Text strong>Un gruppo per canale</Typography.Text>
+                  <Switch id="channels_exclusive" checked={exclusive} onChange={setExclusive} aria-label="Un gruppo per canale" />
+                </Flex>
+                <Typography.Text type="secondary" style={{ display: "block", marginTop: 6 }}>
+                  {exclusive
+                    ? "Un canale occupato da un gruppo non può essere dato a un altro gruppo negli stessi orari."
+                    : "Più gruppi possono usare lo stesso canale insieme: l'ordine lo segnala ma non lo blocca."}
+                </Typography.Text>
+              </div>
+
+              <div>
+                <Typography.Text strong>Canali disabilitati</Typography.Text>
+                <Input
+                  id="disabled_channels"
+                  aria-label="Canali disabilitati"
+                  placeholder="Es. 13, 20-22"
+                  value={disabledText}
+                  onChange={(e) => setDisabledText(e.target.value)}
+                  status={parsedDisabled === null ? "error" : undefined}
+                  style={{ marginTop: 6 }}
+                />
+                <Typography.Text type={parsedDisabled === null ? "danger" : "secondary"} style={{ display: "block", marginTop: 6 }}>
+                  {parsedDisabled === null
+                    ? "Scrivi numeri o intervalli separati da virgole, per esempio 13, 20-22."
+                    : "Canali guasti o riservati: non possono essere usati negli ordini."}
+                </Typography.Text>
+              </div>
             </Flex>
-          </Card>
-        </Col>
-      </Row>
+    </Modal>
+  );
+}
+
+/**
+ * Occupied radio channels on a day: who has which channel and when. A channel is
+ * occupied from delivery to pickup (or to the end of the day without a pickup).
+ */
+export function OccupiedChannels({ open, onClose }: ChannelBoardProps) {
+  const { timezone } = useReadyUser();
+  const [day, setDay] = useState<Dayjs>(() => isoToWallClock(new Date().toISOString(), timezone));
+  const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    if (open) setSearch("");
+  }, [open]);
+
+  const range = useMemo(() => dayBounds(day, timezone), [day, timezone]);
+  const { data: uses = [], isFetching } = useChannelBoard(range, open);
+
+  const q = search.trim().toLowerCase();
+  const rows = q
+    ? uses.filter((u) => String(u.channel) === q || u.guide_name.toLowerCase().includes(q))
+    : uses;
+  const channels = new Set(uses.map((u) => u.channel)).size;
+
+  return (
+    <Modal
+      title="Canali occupati"
+      open={open}
+      onCancel={onClose}
+      width={760}
+      destroyOnHidden
+      footer={<Button onClick={onClose}>Chiudi</Button>}
+    >
+      <Flex vertical gap={12}>
+        <Flex align="center" gap={8} wrap>
+          <DatePicker
+            aria-label="Giorno"
+            value={day}
+            onChange={(d) => d && setDay(d)}
+            format="DD/MM/YYYY"
+            allowClear={false}
+          />
+          <Input.Search
+            aria-label="Cerca canale o guida"
+            placeholder="Canale o guida"
+            allowClear
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{ maxWidth: 240 }}
+          />
+          <Typography.Text type="secondary">
+            {channels} {channels === 1 ? "canale occupato" : "canali occupati"} in questa giornata
+          </Typography.Text>
+        </Flex>
+        <Typography.Text type="secondary">
+          Un canale è occupato dalla consegna al ritiro, o fino a fine giornata se il ritiro non è pianificato.
+        </Typography.Text>
+        <Table<ChannelUse>
+          size="small"
+          rowKey={(u) => `${u.channel}-${u.order_id}`}
+          dataSource={rows}
+          loading={isFetching && uses.length === 0}
+          pagination={rows.length > 10 ? { pageSize: 10, size: "small", showSizeChanger: false } : false}
+          locale={{ emptyText: q ? "Nessun canale occupato corrisponde alla ricerca" : "Nessun canale occupato in questa giornata" }}
+          columns={[
+            { title: "Canale", dataIndex: "channel", width: 80 },
+            { title: "Guida", dataIndex: "guide_name", ellipsis: true },
+            {
+              title: "Occupato",
+              key: "when",
+              render: (_, u) =>
+                `${fmtDateTime(u.delivery_at, timezone)} – ${
+                  dayjs(u.busy_until).tz(timezone).isSame(dayjs(u.delivery_at).tz(timezone), "day")
+                    ? fmtTime(u.busy_until, timezone)
+                    : fmtDateTime(u.busy_until, timezone)
+                }`,
+            },
+            { title: "Stato", dataIndex: "status", render: (s) => <StatusTag status={s} /> },
+          ]}
+        />
+      </Flex>
     </Modal>
   );
 }

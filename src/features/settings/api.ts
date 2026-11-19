@@ -5,7 +5,9 @@ export interface TenantPatch {
   name?: string;
   description?: string | null;
   timezone?: string;
-  radio_channels_total?: number;
+  channel_min?: number;
+  channel_max?: number;
+  channels_exclusive?: boolean;
   disabled_channels?: number[];
   public_booking_enabled?: boolean;
 }

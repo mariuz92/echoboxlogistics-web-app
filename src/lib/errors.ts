@@ -6,6 +6,14 @@
  */
 
 const MESSAGES: Record<string, string> = {
+  // Radio channels (raised by private.orders_guard / private.tenants_channel_guard)
+  channel_busy: "Questo canale è già usato da un altro gruppo negli stessi orari. Scegline un altro.",
+  channel_out_of_range: "Questo canale non esiste: è fuori dall'intervallo configurato.",
+  channel_disabled: "Questo canale è disabilitato.",
+  channel_used_by_open_order:
+    "Un ordine aperto usa uno dei canali che vuoi togliere o disabilitare. Cambia prima il canale di quell'ordine.",
+  channel_conflicts_exist:
+    "Alcuni ordini aperti condividono lo stesso canale negli stessi orari: separali prima di rendere i canali esclusivi.",
   // Onboarding / auth
   company_exists:
     "Esiste già un'azienda con questo nome. Chiedi a un amministratore di invitarti.",
@@ -110,12 +118,9 @@ export function getErrorMessage(
   // 2) Supabase Auth
   if (e.code && AUTH_MESSAGES[e.code]) return AUTH_MESSAGES[e.code];
 
-  // 3) Unique violation on the open-channel index gets a precise message
-  if (e.code === "23505" && /orders_open_channel/.test(`${e.message} ${e.details}`)) {
-    return "Questo canale radio è già assegnato a un altro ordine aperto.";
-  }
-  if (e.code === "23514" && /channel/i.test(message)) {
-    return message;
+  // 3) Constraint violations with a precise message
+  if (e.code === "23514" && /tenants_channel_range/.test(message)) {
+    return "Intervallo di canali non valido: al massimo 10.000 canali, numerati da 0 in su.";
   }
   if (e.code === "23514" && /orders_pickup_after_delivery/.test(message)) {
     return "Il ritiro non può essere prima della consegna.";

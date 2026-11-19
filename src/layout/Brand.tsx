@@ -1,45 +1,32 @@
-import { Flex, Typography } from "antd";
 import { Link } from "react-router";
 import { CONFIG } from "../config/configuration";
 
 interface BrandProps {
-  /** Logo only (collapsed sidebar). */
+  /** Square mark only (collapsed sidebar). */
   compact?: boolean;
-  /** Light text for dark backgrounds. */
+  /** White logo for dark backgrounds. */
   onDark?: boolean;
   /** Where the logo links to; `false` renders it without a link. */
   to?: string | false;
 }
 
+/** The EchoBox logo (wordmark with "logistics"), or the square "e" mark when space is tight. */
 export function Brand({ compact = false, onDark = false, to = "/" }: BrandProps) {
-  const content = (
-    <Flex align="center" gap={10}>
-      <img
-        src={CONFIG.logo}
-        alt=""
-        width={34}
-        height={34}
-        style={{ borderRadius: 9, display: "block" }}
-      />
-      {!compact && (
-        <Typography.Text
-          strong
-          style={{
-            fontSize: 16,
-            letterSpacing: "-0.01em",
-            color: onDark ? "#fff" : undefined,
-            whiteSpace: "nowrap",
-          }}
-        >
-          {CONFIG.appName}
-        </Typography.Text>
-      )}
-    </Flex>
+  const content = compact ? (
+    <img src={CONFIG.mark} alt={CONFIG.appName} width={34} height={34} style={{ display: "block", borderRadius: 9 }} />
+  ) : (
+    <img
+      src={onDark ? CONFIG.logoOnDark : CONFIG.logoOnLight}
+      alt={CONFIG.appName}
+      width={146}
+      height={40}
+      style={{ display: "block", height: 40, width: "auto" }}
+    />
   );
 
   if (to === false) return content;
   return (
-    <Link to={to} aria-label={CONFIG.appName} style={{ textDecoration: "none" }}>
+    <Link to={to} aria-label={CONFIG.appName} style={{ display: "inline-flex", textDecoration: "none" }}>
       {content}
     </Link>
   );

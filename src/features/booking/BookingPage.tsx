@@ -23,6 +23,7 @@ import { env } from "../../config/env";
 import { brand } from "../../config/theme";
 import { dayjs, wallClockToIso, type Dayjs } from "../../lib/dates";
 import { getErrorMessage } from "../../lib/errors";
+import { CONFIG } from "../../config/configuration";
 import { Brand } from "../../layout/Brand";
 import { AddressInput } from "../../shared/components/AddressInput";
 import { usePageTitle } from "../../shared/hooks/usePageTitle";
@@ -88,7 +89,7 @@ export function BookingPage({ legacy = false }: { legacy?: boolean }) {
       <Brand to={false} onDark />
       <div style={{ width: "100%", maxWidth: 760 }}>{children}</div>
       <Typography.Text type="secondary" style={{ fontSize: 13 }}>
-        © {new Date().getFullYear()} {tenant?.name ?? "EchoBox Logistics"} ·{" "}
+        © {new Date().getFullYear()} {tenant?.name ?? CONFIG.appName} ·{" "}
         <a href={env.marketingUrl}>Torna al sito</a>
       </Typography.Text>
     </Flex>

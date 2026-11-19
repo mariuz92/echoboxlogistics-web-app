@@ -33,7 +33,7 @@ import { needsAssignment } from "./orderActions";
 import { useOrders, useOrdersRealtime, usePendingPickups } from "./hooks";
 import { OrdersTable } from "./components/OrdersTable";
 import { OrderDrawer, type DrawerMode } from "./components/OrderDrawer";
-import { ChannelBoard } from "./components/ChannelBoard";
+import { OccupiedChannels } from "./components/ChannelBoard";
 import { exportOrdersPdf } from "./exportPdf";
 
 const PERIODS: { label: string; value: Period }[] = [
@@ -162,7 +162,7 @@ export function OrdersPage() {
         actions={
           <>
             <Button icon={<AppstoreOutlined />} onClick={() => setChannelsOpen(true)}>
-              Canali radio
+              Canali occupati
             </Button>
             <Button icon={<FilePdfOutlined />} onClick={onExport} disabled={visible.length === 0}>
               Esporta PDF
@@ -285,7 +285,7 @@ export function OrdersPage() {
         onModeChange={(mode) => setDrawer((d) => ({ ...d, mode }))}
       />
 
-      <ChannelBoard open={channelsOpen} onClose={() => setChannelsOpen(false)} />
+      <OccupiedChannels open={channelsOpen} onClose={() => setChannelsOpen(false)} />
 
       <Modal
         title="Ritiri da pianificare o in ritardo"

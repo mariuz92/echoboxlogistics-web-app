@@ -9,6 +9,54 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      contact_messages: {
+        Row: {
+          company: string | null
+          created_at: string
+          email: string
+          email_error: string | null
+          emailed_at: string | null
+          handled: boolean
+          id: string
+          ip_hash: string | null
+          locale: string | null
+          message: string
+          name: string
+          phone: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          company?: string | null
+          created_at?: string
+          email: string
+          email_error?: string | null
+          emailed_at?: string | null
+          handled?: boolean
+          id?: string
+          ip_hash?: string | null
+          locale?: string | null
+          message: string
+          name: string
+          phone?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          company?: string | null
+          created_at?: string
+          email?: string
+          email_error?: string | null
+          emailed_at?: string | null
+          handled?: boolean
+          id?: string
+          ip_hash?: string | null
+          locale?: string | null
+          message?: string
+          name?: string
+          phone?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       guides: {
         Row: {
           created_at: string
@@ -357,6 +405,9 @@ export type Database = {
       }
       tenants: {
         Row: {
+          channel_max: number
+          channel_min: number
+          channels_exclusive: boolean
           created_at: string
           description: string | null
           disabled_channels: number[]
@@ -366,12 +417,14 @@ export type Database = {
           name: string
           name_key: string | null
           public_booking_enabled: boolean
-          radio_channels_total: number
           slug: string
           timezone: string
           updated_at: string
         }
         Insert: {
+          channel_max?: number
+          channel_min?: number
+          channels_exclusive?: boolean
           created_at?: string
           description?: string | null
           disabled_channels?: number[]
@@ -381,12 +434,14 @@ export type Database = {
           name: string
           name_key?: string | null
           public_booking_enabled?: boolean
-          radio_channels_total?: number
           slug: string
           timezone?: string
           updated_at?: string
         }
         Update: {
+          channel_max?: number
+          channel_min?: number
+          channels_exclusive?: boolean
           created_at?: string
           description?: string | null
           disabled_channels?: number[]
@@ -396,7 +451,6 @@ export type Database = {
           name?: string
           name_key?: string | null
           public_booking_enabled?: boolean
-          radio_channels_total?: number
           slug?: string
           timezone?: string
           updated_at?: string
@@ -546,14 +600,15 @@ export type Database = {
         }
         Returns: string
       }
-      get_channel_status: {
-        Args: never
+      get_channel_board: {
+        Args: { p_from: string; p_to: string }
         Returns: {
+          busy_until: string
           channel: number
           delivery_at: string
           guide_name: string
           order_id: string
-          state: string
+          pickup_at: string
           status: Database["public"]["Enums"]["order_status"]
         }[]
       }

@@ -8,12 +8,13 @@ describe("getErrorMessage", () => {
     expect(getErrorMessage({ message: "last_admin" })).toMatch(/amministratore/i);
   });
 
-  it("explains a double-booked radio channel", () => {
-    const message = getErrorMessage({
-      code: "23505",
-      message: 'duplicate key value violates unique constraint "orders_open_channel_uidx"',
-    });
-    expect(message).toMatch(/canale radio/i);
+  it("explains radio channel conflicts and settings errors", () => {
+    expect(getErrorMessage({ code: "23P01", message: "channel_busy" })).toMatch(/stessi orari/i);
+    expect(getErrorMessage({ code: "23514", message: "channel_disabled" })).toMatch(/disabilitato/i);
+    expect(getErrorMessage({ code: "23514", message: "channel_used_by_open_order" })).toMatch(/ordine aperto/i);
+    expect(
+      getErrorMessage({ code: "23514", message: 'new row for relation "tenants" violates check constraint "tenants_channel_range"' }),
+    ).toMatch(/10\.000 canali/);
   });
 
   it("maps Supabase Auth error codes", () => {

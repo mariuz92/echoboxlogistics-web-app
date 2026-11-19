@@ -5,8 +5,9 @@ import { getErrorMessage } from "../../lib/errors";
 import { useReadyUser } from "../../providers/current-user";
 import { PageHeader } from "../../shared/components/PageHeader";
 import { usePageTitle } from "../../shared/hooks/usePageTitle";
-import { ChannelBoard } from "../orders/components/ChannelBoard";
+import { ChannelSettings } from "../orders/components/ChannelBoard";
 import { updateTenant } from "./api";
+import { channelCount } from "../../types/domain";
 
 interface CompanyForm {
   name: string;
@@ -135,7 +136,9 @@ export function SettingsPage() {
 
             <Card title="Canali radio">
               <Typography.Paragraph type="secondary">
-                {tenant.radio_channels_total + 1} canali (0–{tenant.radio_channels_total}), {tenant.disabled_channels.length} disabilitati.
+                {channelCount(tenant).toLocaleString("it-IT")} {channelCount(tenant) === 1 ? "canale" : "canali"} (
+                {tenant.channel_min}–{tenant.channel_max}), {tenant.disabled_channels.length} disabilitati.{" "}
+                {tenant.channels_exclusive ? "Un gruppo per canale." : "Canali condivisibili tra gruppi."}
               </Typography.Paragraph>
               <Button icon={<AppstoreOutlined />} onClick={() => setChannelsOpen(true)}>
                 Gestisci canali
@@ -145,7 +148,7 @@ export function SettingsPage() {
         </Col>
       </Row>
 
-      <ChannelBoard open={channelsOpen} onClose={() => setChannelsOpen(false)} />
+      <ChannelSettings open={channelsOpen} onClose={() => setChannelsOpen(false)} />
     </>
   );
 }

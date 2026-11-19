@@ -1,12 +1,13 @@
 import { theme as antdTheme, type ThemeConfig } from "antd";
 
 /**
- * Brand palette, taken from the EchoBox logo:
- * deep navy background, coral location pin, pale-blue wave.
+ * Brand palette. `navy` is the ink of the EchoBox logo (a very dark green-blue),
+ * used for the sidebar and dark headers; blue for actions; coral and pale blue
+ * for charts.
  */
 export const brand = {
-  navy: "#14212f",
-  navyLight: "#1d3047",
+  navy: "#172423",
+  navyLight: "#223532",
   primary: "#1d5fa8",
   primaryDark: "#4c93dd", // primary tuned for dark surfaces
   coral: "#ef6f61",

@@ -2,7 +2,7 @@ import { supabase } from "../../lib/supabase";
 import type { DateRange } from "../../lib/dates";
 import type { TablesInsert, TablesUpdate } from "../../types/database.types";
 import type {
-  ChannelStatus,
+  ChannelUse,
   Order,
   OrderEvent,
   OrderLeg,
@@ -148,8 +148,9 @@ export async function listOrderEvents(orderId: string): Promise<OrderEvent[]> {
   return data ?? [];
 }
 
-export async function getChannelStatus(): Promise<ChannelStatus[]> {
-  const { data, error } = await supabase.rpc("get_channel_status");
+/** Open orders holding a channel during [from, to) (admins only; riders get nothing). */
+export async function getChannelBoard(from: string, to: string): Promise<ChannelUse[]> {
+  const { data, error } = await supabase.rpc("get_channel_board", { p_from: from, p_to: to });
   if (error) throw error;
-  return (data ?? []) as ChannelStatus[];
+  return (data ?? []) as ChannelUse[];
 }
