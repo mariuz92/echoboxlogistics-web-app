@@ -2,7 +2,7 @@ import { supabase } from "../../lib/supabase";
 import type { DateRange } from "../../lib/dates";
 import type { TablesInsert, TablesUpdate } from "../../types/database.types";
 import type {
-  ChannelStatus,
+  ChannelUse,
   Order,
   OrderEvent,
   OrderLeg,
@@ -148,8 +148,29 @@ export async function listOrderEvents(orderId: string): Promise<OrderEvent[]> {
   return data ?? [];
 }
 
-export async function getChannelStatus(): Promise<ChannelStatus[]> {
-  const { data, error } = await supabase.rpc("get_channel_status");
+/** Open orders holding a channel during [from, to) (admins only; riders get nothing). */
+export async function getChannelBoard(from: string, to: string): Promise<ChannelUse[]> {
+  const { data, error } = await supabase.rpc("get_channel_board", { p_from: from, p_to: to });
   if (error) throw error;
-  return (data ?? []) as ChannelStatus[];
+  return (data ?? []) as ChannelUse[];
+}
+
+export interface FreeChannelsQuery {
+  deliveryAt: string;
+  pickupAt?: string | null;
+  /** The order being edited: its own channel counts as free. */
+  excludeOrderId?: string | null;
+  limit?: number;
+}
+
+/** First channels that are enabled and free for the given times. */
+export async function getFreeChannels(q: FreeChannelsQuery): Promise<number[]> {
+  const { data, error } = await supabase.rpc("free_channels", {
+    p_delivery_at: q.deliveryAt,
+    p_pickup_at: (q.pickupAt ?? null) as string,
+    p_exclude_order: (q.excludeOrderId ?? null) as string,
+    p_limit: q.limit ?? 12,
+  });
+  if (error) throw error;
+  return data ?? [];
 }

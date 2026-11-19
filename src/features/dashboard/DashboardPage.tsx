@@ -278,7 +278,7 @@ export function DashboardPage() {
               </ChartCard>
             </Col>
             <Col xs={24} lg={10}>
-              <ChartCard title="Utilizzo canali radio" empty={data.channels.length === 0}>
+              <ChartCard title="Canali più usati" empty={data.channels.length === 0}>
                 <ResponsiveContainer>
                   <BarChart data={data.channels.map((c) => ({ ...c, label: String(c.channel) }))}>
                     <CartesianGrid stroke={grid} vertical={false} />

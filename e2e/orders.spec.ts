@@ -1,32 +1,53 @@
-import { expect, test, type Locator, type Page } from "./helpers";
-import { cleanupE2eData, e2eName, failOnBrowserErrors, loginAsAdmin, pickerDate } from "./helpers";
+import { expect, test, type Page } from "./helpers";
+import { cleanupE2eData, e2eName, failOnBrowserErrors, isoDay, loginAsAdmin, pickerDate } from "./helpers";
 
 const drawerOf = (page: Page) => page.getByRole("dialog");
 const rowOf = (page: Page, text: string) => page.getByRole("row").filter({ hasText: text });
 
-/** Opens the channel dropdown of the order form and returns its currently offered options. */
-async function openChannelOptions(page: Page): Promise<Locator> {
-  await drawerOf(page).locator("#radio_channel").click();
-  return page.locator(".ant-select-dropdown:visible .ant-select-item-option");
+/** The order form's channel input and its live status line. */
+const channelInput = (page: Page) => drawerOf(page).locator("#radio_channel");
+const channelSuggestion = (page: Page, channel: string) =>
+  drawerOf(page).getByRole("button", { name: `Usa il canale ${channel}`, exact: true });
+
+/** Waits for the form to pre-fill the first channel free for the order's times and returns it. */
+async function autoFilledChannel(page: Page): Promise<string> {
+  await expect(channelInput(page)).not.toHaveValue("");
+  return channelInput(page).inputValue();
 }
 
-/** Creates an order through the UI, reserving the first free radio channel. */
-async function createOrder(page: Page, guide: string, opts: { radios?: number; address?: string } = {}) {
+/**
+ * Creates an order through the UI (default delivery: 09:00 of the day shown, no
+ * pickup, so it holds its channel until the end of that day). New orders get the
+ * first free channel automatically.
+ */
+async function createOrder(
+  page: Page,
+  guide: string,
+  opts: { radios?: number; address?: string; pickup?: string } = {},
+) {
   await page.getByRole("button", { name: "Nuovo ordine" }).click();
   const drawer = drawerOf(page);
   await drawer.locator("#guide_name").fill(guide);
   await drawer.locator("#radios_count").fill(String(opts.radios ?? 12));
   await drawer.locator("#delivery_address").fill(opts.address ?? "Via del Corso 10, Roma");
+  if (opts.pickup) {
+    await drawer.locator("#pickup_at").fill(opts.pickup);
+    await drawer.locator("#pickup_at").press("Enter");
+    await drawer.locator("#pickup_address").fill(opts.address ?? "Via del Corso 10, Roma");
+  }
 
-  const options = await openChannelOptions(page);
-  const channelLabel = (await options.first().innerText()).trim(); // e.g. "Canale 7"
-  await options.first().click();
+  const channel = await autoFilledChannel(page);
 
   await drawer.getByRole("button", { name: "Crea ordine" }).click();
   await expect(page.getByText("Ordine creato")).toBeVisible();
   await expect(drawer).toBeHidden();
   await expect(rowOf(page, guide)).toBeVisible();
-  return { channelLabel };
+  return { channel, channelLabel: `Canale ${channel}` };
+}
+
+async function closeDrawer(page: Page) {
+  await drawerOf(page).getByRole("button", { name: "Annulla", exact: true }).click();
+  await expect(drawerOf(page)).toBeHidden();
 }
 
 async function openRowMenu(page: Page, guide: string) {
@@ -81,19 +102,19 @@ test.describe("orders (admin)", () => {
     await expect(drawer.getByText("Il ritiro non può precedere la consegna")).toBeVisible();
   });
 
-  test("an order reserves its radio channel until it is cancelled", async ({ page }) => {
+  test("an order holds its radio channel during its times until it is cancelled", async ({ page }) => {
     const guide = e2eName("Canale");
-    const { channelLabel } = await createOrder(page, guide);
+    const { channel, channelLabel } = await createOrder(page, guide);
     await expect(rowOf(page, guide).getByText("Presa in carico")).toBeVisible();
     await expect(rowOf(page, guide).getByText(channelLabel)).toBeVisible();
 
-    // a second order can no longer pick that channel
+    // another order at the same time gets a different channel, and the busy one is explained
     await page.getByRole("button", { name: "Nuovo ordine" }).click();
-    const options = await openChannelOptions(page);
-    await expect(options.first()).toBeVisible();
-    await expect(options.filter({ hasText: new RegExp(`^${channelLabel}$`) })).toHaveCount(0);
-    await page.keyboard.press("Escape");
-    await drawerOf(page).getByRole("button", { name: "Chiudi", exact: true }).click();
+    expect(await autoFilledChannel(page)).not.toBe(channel);
+    await expect(channelSuggestion(page, channel)).toHaveCount(0);
+    await channelInput(page).fill(channel);
+    await expect(drawerOf(page).getByText(`Canale ${channel} già usato in questi orari`)).toBeVisible();
+    await closeDrawer(page);
 
     // cancelling the order frees the channel again
     await openRowMenu(page, guide);
@@ -103,8 +124,30 @@ test.describe("orders (admin)", () => {
     await expect(rowOf(page, guide).getByText("Annullato")).toBeVisible();
 
     await page.getByRole("button", { name: "Nuovo ordine" }).click();
-    const afterCancel = await openChannelOptions(page);
-    await expect(afterCancel.filter({ hasText: new RegExp(`^${channelLabel}$`) })).toHaveCount(1);
+    await expect(channelSuggestion(page, channel)).toBeVisible();
+    await closeDrawer(page);
+  });
+
+  test("the same channel serves another group once the first one has returned the radios", async ({ page }) => {
+    // morning group: 09:00-12:00, three days from now
+    await page.goto(`/?date=${isoDay(3)}&period=day`);
+    const morning = e2eName("Mattina");
+    const { channel } = await createOrder(page, morning, { pickup: pickerDate(3, 12, 0) });
+
+    // an afternoon order the same day is offered that channel again
+    await page.getByRole("button", { name: "Nuovo ordine" }).click();
+    const drawer = drawerOf(page);
+    await drawer.locator("#delivery_at").fill(pickerDate(3, 14, 0));
+    await drawer.locator("#delivery_at").press("Enter");
+    await expect(channelSuggestion(page, channel)).toBeVisible();
+    await channelInput(page).fill(channel);
+    await expect(drawer.getByText(`Canale ${channel} libero in questi orari`)).toBeVisible();
+
+    // ...but not if its times overlap the morning group
+    await drawer.locator("#delivery_at").fill(pickerDate(3, 11, 0));
+    await drawer.locator("#delivery_at").press("Enter");
+    await expect(drawer.getByText(`Canale ${channel} già usato in questi orari`)).toBeVisible();
+    await closeDrawer(page);
   });
 
   test("editing an order keeps its own channel selectable and is recorded in the timeline", async ({ page }) => {
@@ -117,7 +160,8 @@ test.describe("orders (admin)", () => {
     await drawer.getByRole("button", { name: "Modifica" }).click();
 
     // regression: the order's own channel used to disappear from its edit form
-    await expect(drawer.locator(`[title="${channelLabel}"]`)).toBeVisible();
+    await expect(channelInput(page)).toHaveValue(channelLabel.replace("Canale ", ""));
+    await expect(drawer.getByText(`${channelLabel} libero in questi orari`)).toBeVisible();
 
     await drawer.locator("#radios_count").fill("21");
     await drawer.locator("#notes").fill("Note aggiornate dal test");
@@ -219,33 +263,32 @@ test.describe("orders (admin)", () => {
     const { channelLabel } = await createOrder(page, guide);
 
     await page.getByRole("button", { name: "Canali radio" }).click();
-    const modal = page.getByRole("dialog").filter({ hasText: "Mappa canali" });
+    const modal = page.getByRole("dialog").filter({ hasText: "Occupazione del" });
     await expect(modal).toBeVisible();
 
-    // the channel of the order we just created is in use and cannot be toggled
+    // the channel of the order we just created is in use today and cannot be toggled
     const busyChannel = modal.getByRole("button", { name: new RegExp(`^${channelLabel}: In uso$`) });
     await expect(busyChannel).toBeDisabled();
+    await expect(modal.getByRole("row").filter({ hasText: guide })).toBeVisible();
 
     // disable the highest free channel and save
     const free = modal.getByRole("button", { name: /^Canale \d+: Libero$/ }).last();
     const freeName = (await free.getAttribute("aria-label"))!.replace(": Libero", "");
     await free.click();
+    await expect(modal.getByLabel("Canali disabilitati")).toHaveValue(new RegExp(freeName.replace("Canale ", "")));
     await modal.getByRole("button", { name: "Salva" }).click();
     await expect(page.getByText("Canali aggiornati")).toBeVisible();
 
     try {
-      // it is now disabled for new orders too
+      // it is now refused by the order form too
       await page.getByRole("button", { name: "Nuovo ordine" }).click();
-      await drawerOf(page).locator("#radio_channel").click();
-      const options = page.locator(".ant-select-dropdown:visible .ant-select-item-option");
-      await options.last().scrollIntoViewIfNeeded();
-      await expect(options.filter({ hasText: new RegExp(`^${freeName}$`) })).toHaveCount(0);
-      await page.keyboard.press("Escape");
-      await drawerOf(page).getByRole("button", { name: "Chiudi", exact: true }).click();
+      await channelInput(page).fill(freeName.replace("Canale ", ""));
+      await expect(drawerOf(page).getByText(`Il ${freeName.toLowerCase()} è disabilitato.`)).toBeVisible();
+      await closeDrawer(page);
     } finally {
       // restore the demo configuration
       await page.getByRole("button", { name: "Canali radio" }).click();
-      const again = page.getByRole("dialog").filter({ hasText: "Mappa canali" });
+      const again = page.getByRole("dialog").filter({ hasText: "Occupazione del" });
       await again.getByRole("button", { name: new RegExp(`^${freeName}: Disabilitato$`) }).click();
       await again.getByRole("button", { name: "Salva" }).click();
       await expect(page.getByText("Canali aggiornati").last()).toBeVisible();

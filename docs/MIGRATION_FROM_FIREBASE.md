@@ -30,12 +30,12 @@ Removed: `firebase`, `@refinedev/antd` (supports antd 5 only, and pulled in a vu
 
 | Firestore | Postgres |
 |---|---|
-| `tenants/{id}` | `tenants` (`name` + unique `name_key`, `slug`, `timezone`, `radio_channels_total`, `disabled_channels`) |
+| `tenants/{id}` | `tenants` (`name` + unique `name_key`, `slug`, `timezone`, `channel_min`, `channel_max`, `disabled_channels`, `channels_exclusive`) |
 | `users/{uid}` with `role: ["admin","rider","guide"]` | `profiles` for **admin / rider** (1:1 with `auth.users`). Guides become rows in **`guides`** (contacts without a login) |
 | `invitations/{token}` | `invitations` (matched by verified email; the custom token + OTP are gone) |
 | `orders/{id}` (no `tenantId`!) | `orders` (with `tenant_id`) |
 | `rider_status/{uid}` | **view** `rider_activity`, derived from open orders |
-| tenant `iddleChannels` / localStorage `Iddlechannels` | derived from open orders (`get_channel_status`) |
+| tenant `iddleChannels` / localStorage `Iddlechannels` | derived from open orders and their times (`get_channel_board`) |
 
 ### `orders` fields
 
@@ -89,7 +89,7 @@ which removes the guesswork the old code did in `handleShare` and `updateRiderSt
    directly (the guard trigger otherwise rejects them).
 4. **Clean up before inserting.** The database enforces rules the old data may violate:
    - `pickup_at >= delivery_at`
-   - at most **one open order per radio channel** per company
+   - no two open orders on the same radio channel with overlapping times (delivery to pickup) per company
    - a `*_assigned` / `out_for_*` status needs the matching rider id
    Decide how to resolve violations (null the pickup, close old orders, drop a duplicate channel).
 5. `rider_status` and the tenant channel arrays are **not migrated**: they are derived.

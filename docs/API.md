@@ -91,7 +91,8 @@ curl -s -X POST "$BASE/rest/v1/rpc/rider_order_action" ... \
 | `bootstrap_profile` | `{}` | the caller's `profiles` row |
 | `touch_login` | `{}` | – |
 | `update_member` | `{p_user_id, p_full_name?, p_phone?, p_roles?, p_disabled?}` (admin) | updated profile |
-| `get_channel_status` | `{}` (admin) | `[{channel, state, order_id, guide_name, delivery_at, status}]` |
+| `free_channels` | `{p_delivery_at, p_pickup_at?, p_exclude_order?, p_limit?}` (admin) | `[3, 7, 8, …]` first channels free for those times |
+| `get_channel_board` | `{p_from, p_to}` (admin) | `[{channel, order_id, guide_name, status, delivery_at, pickup_at, busy_until}]` |
 | `get_dashboard_stats` | `{p_month: "2026-11-01"}` (admin) | JSON: `current`, `previous`, `status_distribution`, `daily`, `weekly`, `hourly`, `heatmap`, `top_guides`, `channels`, `top_locations` |
 
 ### Public booking (no login)
@@ -117,8 +118,8 @@ Limits: 5 requests per phone per hour, 200 per company per hour (`too_many_reque
 
 PostgREST returns `{ "code": "...", "message": "..." }`. For RPCs, `message` is one of the short codes
 listed in [DATABASE.md](DATABASE.md#error-codes); `code` is `P0001` for business rules, `42501` for
-permission problems, `P0002` for "not found", `23505` / `23514` for constraint violations
-(e.g. the radio channel is already used by another open order).
+permission problems, `P0002` for "not found", `23505` / `23514` for constraint violations and `23P01`
+when the radio channel is already used by another group at the same time (`channel_busy`).
 
 ## Edge Function: `invite-member`
 

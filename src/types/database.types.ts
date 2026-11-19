@@ -357,6 +357,9 @@ export type Database = {
       }
       tenants: {
         Row: {
+          channel_max: number
+          channel_min: number
+          channels_exclusive: boolean
           created_at: string
           description: string | null
           disabled_channels: number[]
@@ -366,12 +369,14 @@ export type Database = {
           name: string
           name_key: string | null
           public_booking_enabled: boolean
-          radio_channels_total: number
           slug: string
           timezone: string
           updated_at: string
         }
         Insert: {
+          channel_max?: number
+          channel_min?: number
+          channels_exclusive?: boolean
           created_at?: string
           description?: string | null
           disabled_channels?: number[]
@@ -381,12 +386,14 @@ export type Database = {
           name: string
           name_key?: string | null
           public_booking_enabled?: boolean
-          radio_channels_total?: number
           slug: string
           timezone?: string
           updated_at?: string
         }
         Update: {
+          channel_max?: number
+          channel_min?: number
+          channels_exclusive?: boolean
           created_at?: string
           description?: string | null
           disabled_channels?: number[]
@@ -396,7 +403,6 @@ export type Database = {
           name?: string
           name_key?: string | null
           public_booking_enabled?: boolean
-          radio_channels_total?: number
           slug?: string
           timezone?: string
           updated_at?: string
@@ -546,14 +552,24 @@ export type Database = {
         }
         Returns: string
       }
-      get_channel_status: {
-        Args: never
+      free_channels: {
+        Args: {
+          p_delivery_at: string
+          p_exclude_order?: string
+          p_limit?: number
+          p_pickup_at?: string
+        }
+        Returns: number[]
+      }
+      get_channel_board: {
+        Args: { p_from: string; p_to: string }
         Returns: {
+          busy_until: string
           channel: number
           delivery_at: string
           guide_name: string
           order_id: string
-          state: string
+          pickup_at: string
           status: Database["public"]["Enums"]["order_status"]
         }[]
       }

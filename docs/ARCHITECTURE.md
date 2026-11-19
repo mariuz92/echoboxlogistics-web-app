@@ -118,10 +118,22 @@ Any open order can be cancelled by an admin. Rules worth knowing:
 
 ### Radio channels
 
-Channels are numbered `0 … tenants.radio_channels_total`. A channel is **busy** while an order that
-holds it is open (any status except `picked_up` / `cancelled`). A partial unique index makes
-double-booking impossible, and `get_channel_status()` returns the live state of every channel.
-The only manual setting is `tenants.disabled_channels`.
+EchoBox is model agnostic: whatever radioguide system a company uses, it describes its channels as a
+range `tenants.channel_min … channel_max` (1 to 10,000 channels) plus `disabled_channels`.
+
+A channel is **busy only while a group has the radios**: from the order's delivery to its planned
+pickup, or to the end of the delivery day when no pickup is planned (`private.channel_window`); closed
+orders (`picked_up` / `cancelled`) hold nothing. The same channel can therefore serve a morning group
+and an afternoon group, and a one-channel company can run tours back to back.
+
+- `channels_exclusive = true` (default): `orders_guard` rejects an order whose channel window overlaps
+  another open order on the same channel (`channel_busy`, SQLSTATE `23P01`), under a per-channel
+  advisory lock so concurrent bookings cannot both pass.
+- `channels_exclusive = false`: groups may share channels; the UI shows the overlap as a warning.
+- `free_channels(delivery, pickup, exclude_order, limit)` suggests the first free channels for given
+  times; the order form pre-fills the first one and public bookings get one automatically.
+- `get_channel_board(from, to)` returns only the channels in use in a period, so the channel map scales
+  to 10,000 channels (browsed in pages of 100).
 
 ## Realtime
 
@@ -141,7 +153,7 @@ dashboard statistics are computed in the **company's time zone** (`tenants.timez
   used (it only supports Ant Design 5); the layout, notifications and 404 page are local code.
 - **Server state** is TanStack Query (`features/*/hooks.ts`); each feature has a small typed API
   module (`features/*/api.ts`) over supabase-js. No component talks to Supabase directly except auth.
-- **Domain rules shared with the database** (assignable leg, selectable channels, status actions) are
+- **Domain rules shared with the database** (assignable leg, channel windows and conflicts, status actions) are
   plain functions with unit tests (`src/types/domain.ts`, `features/orders/orderActions.ts`).
 - Heavy screens (dashboard, calendar, team, …) are lazy-loaded; jsPDF is only loaded when exporting.
 

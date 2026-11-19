@@ -3,7 +3,7 @@
 // A fictional Rome tour-equipment company with riders, guides and ~2 months of
 // orders around a fixed "now". Rows follow the real table shapes
 // (src/types/database.types.ts) and the derived views/RPCs are computed the same
-// way the SQL does it (rider_activity, get_channel_status, get_dashboard_stats).
+// way the SQL does it (rider_activity, get_channel_board, free_channels, get_dashboard_stats).
 // Everything here is invented: names, phone numbers and e-mail addresses are fake.
 
 export const TZ = "Europe/Rome";
@@ -95,8 +95,10 @@ export function buildDemo(now) {
     description: "Noleggio radioguide per gruppi turistici a Roma e dintorni",
     domain: null,
     timezone: TZ,
-    radio_channels_total: 30,
-    disabled_channels: [13],
+    channel_min: 1,
+    channel_max: 200,
+    channels_exclusive: true,
+    disabled_channels: [13, 77],
     public_booking_enabled: true,
     is_active: true,
     created_at: iso(created),
@@ -266,7 +268,10 @@ export function buildDemo(now) {
         delivery,
         where: pick(usedPlaces),
         status: cancelled ? "cancelled" : "picked_up",
-        channel: between(0, 30) === 13 ? 12 : between(0, 30),
+        channel: (() => {
+          const c = between(1, 60);
+          return c === 13 ? 12 : c;
+        })(),
         deliveryRider: cancelled ? null : rider,
         pickupRider: cancelled ? null : rnd() < 0.6 ? rider : pick(riders),
         lost: !cancelled && rnd() < 0.05 ? 1 : 0,
@@ -328,7 +333,7 @@ export function buildDemo(now) {
   add({ delivery: T(13, 30), guide: G("Valentina"), radios: 40, where: "Piazza del Colosseo, 1, Roma",
     pickup: T(17, 0), status: "received", channel: 18, notes: "Scuola: 2 classi, servono auricolari monouso", source: "dashboard" });
   add({ delivery: T(14, 0), guide: G("Federica"), radios: 20, where: "Piazza del Campidoglio, 1, Roma",
-    pickup: T(17, 30), status: "received", channel: 20, source: "public_form", notes: null });
+    pickup: T(17, 30), status: "received", channel: 4, source: "public_form", notes: null });
   add({ delivery: T(15, 0), guide: G("Simone"), radios: 12, where: "Piazza di Santa Maria in Trastevere, Roma",
     pickup: T(18, 30), status: "received", channel: 21, source: "public_form", notes: null });
   add({ delivery: T(16, 30), guide: G("Martina"), radios: 30, where: "Stazione Termini, Piazza dei Cinquecento, Roma",
@@ -367,8 +372,8 @@ export function buildDemo(now) {
   const tomorrow = romeDay(dayAt(1, 12, 0));
   for (const o of orders) {
     if (romeDay(new Date(o.delivery_at)) !== tomorrow || o.status === "cancelled") continue;
-    for (let c = 0; c <= tenant.radio_channels_total; c++) {
-      if (c === 0 || busy.has(c) || tenant.disabled_channels.includes(c)) continue;
+    for (let c = tenant.channel_min; c <= tenant.channel_max; c++) {
+      if (busy.has(c) || tenant.disabled_channels.includes(c)) continue;
       o.radio_channel = c;
       busy.add(c);
       break;
@@ -473,20 +478,50 @@ export function riderActivity(db) {
     });
 }
 
-export function channelStatus(db) {
-  const rows = [];
-  for (let c = 0; c <= db.tenant.radio_channels_total; c++) {
-    const o = db.orders.find((x) => x.radio_channel === c && !["picked_up", "cancelled"].includes(x.status));
-    rows.push({
-      channel: c,
-      state: db.tenant.disabled_channels.includes(c) ? "disabled" : o ? "busy" : "free",
-      order_id: o?.id ?? null,
-      guide_name: o?.guide_name ?? null,
-      delivery_at: o?.delivery_at ?? null,
-      status: o?.status ?? null,
-    });
+/** End of the period in which an order occupies its channel (mirrors private.channel_window). */
+export function busyUntil(o) {
+  const delivery = new Date(o.delivery_at);
+  let end;
+  if (o.pickup_at) end = new Date(o.pickup_at);
+  else {
+    const p = romeParts(delivery);
+    end = rome(p.y, p.m, p.d + 1, 0, 0);
   }
-  return rows;
+  const min = new Date(delivery.getTime() + 60e3);
+  return end < min ? min : end;
+}
+
+const isOpen = (o) => !["picked_up", "cancelled"].includes(o.status);
+
+/** public.get_channel_board(from, to) */
+export function channelBoard(db, from, to) {
+  const a = new Date(from).getTime();
+  const b = new Date(to).getTime();
+  return db.orders
+    .filter((o) => o.radio_channel !== null && isOpen(o))
+    .filter((o) => new Date(o.delivery_at).getTime() < b && busyUntil(o).getTime() > a)
+    .map((o) => ({
+      channel: o.radio_channel,
+      order_id: o.id,
+      guide_name: o.guide_name,
+      status: o.status,
+      delivery_at: o.delivery_at,
+      pickup_at: o.pickup_at,
+      busy_until: busyUntil(o).toISOString(),
+    }))
+    .sort((x, y) => x.channel - y.channel || x.delivery_at.localeCompare(y.delivery_at));
+}
+
+/** public.free_channels(delivery, pickup, exclude, limit) */
+export function freeChannels(db, deliveryAt, pickupAt, excludeOrderId, limit = 12) {
+  const from = deliveryAt;
+  const to = busyUntil({ delivery_at: deliveryAt, pickup_at: pickupAt ?? null }).toISOString();
+  const busy = new Set(channelBoard(db, from, to).filter((u) => u.order_id !== excludeOrderId).map((u) => u.channel));
+  const out = [];
+  for (let c = db.tenant.channel_min; c <= db.tenant.channel_max && out.length < limit; c++) {
+    if (!busy.has(c) && !db.tenant.disabled_channels.includes(c)) out.push(c);
+  }
+  return out;
 }
 
 export function dashboardStats(db, monthStr) {
@@ -566,7 +601,8 @@ export function dashboardStats(db, monthStr) {
 
   const channels = [...groupCount(live.filter((o) => o.radio_channel !== null), (o) => o.radio_channel)]
     .map(([channel, e]) => ({ channel, orders: e.rows.length }))
-    .sort((a, b) => a.channel - b.channel);
+    .sort((a, b) => b.orders - a.orders || a.channel - b.channel)
+    .slice(0, 20);
 
   const top_locations = [...groupCount(live, (o) => o.delivery_address)]
     .map(([location, e]) => ({ location, orders: e.rows.length }))

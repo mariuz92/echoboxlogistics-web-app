@@ -34,12 +34,12 @@ import { AddressInput } from "../../../shared/components/AddressInput";
 import { StatusTag } from "../../../shared/components/StatusTag";
 import {
   ORDER_STATUS_META,
-  selectableChannels,
   type Order,
   type OrderEvent,
   type OrderStatus,
 } from "../../../types/domain";
-import { useChannelStatus, useGuides, useMembers, useOrderEvents, useOrderMutations } from "../hooks";
+import { useGuides, useMembers, useOrderEvents, useOrderMutations } from "../hooks";
+import { ChannelPicker } from "./ChannelPicker";
 import type { NewOrderInput, OrderPatch } from "../api";
 
 export type DrawerMode = "create" | "view" | "edit";
@@ -123,7 +123,6 @@ function OrderFormBody({
   const { tenant, timezone } = useReadyUser();
   const [form] = Form.useForm<FormValues>();
   const { data: guides = [] } = useGuides();
-  const { data: channels = [] } = useChannelStatus();
   const { create, update } = useOrderMutations();
   const saving = create.isPending || update.isPending;
 
@@ -156,15 +155,6 @@ function OrderFormBody({
       delivery_at: defaultDate?.hour(9).minute(0).second(0),
     };
   }, [mode, order, timezone, defaultDate]);
-
-  const freeChannelOptions = useMemo(
-    () =>
-      selectableChannels(channels, order?.id).map((channel) => ({
-        value: channel,
-        label: `Canale ${channel}`,
-      })),
-    [channels, order?.id],
-  );
 
   const onGuideSelect = (guideId?: string) => {
     const guide = guides.find((g) => g.id === guideId);
@@ -303,16 +293,6 @@ function OrderFormBody({
             </Form.Item>
           </Col>
         )}
-        <Col xs={12} sm={6}>
-          <Form.Item label="Canale radio" name="radio_channel">
-            <Select
-              allowClear
-              placeholder={freeChannelOptions.length ? "Scegli" : "Nessuno libero"}
-              options={freeChannelOptions}
-              showSearch={{ optionFilterProp: "label" }}
-            />
-          </Form.Item>
-        </Col>
       </Row>
       <Row gutter={16}>
         <Col xs={12} sm={6}>
@@ -401,6 +381,12 @@ function OrderFormBody({
           </Form.Item>
         </Col>
       </Row>
+
+      <Divider />
+      <Typography.Title level={5} style={{ marginTop: 0 }}>
+        Canale radio
+      </Typography.Title>
+      <ChannelPicker orderId={order?.id} autoFill={mode === "create"} />
 
       <Form.Item label="Note" name="notes">
         <Input.TextArea rows={3} maxLength={1000} showCount />

@@ -58,10 +58,10 @@ The same checks run in CI (`.github/workflows/ci.yml`).
 
 ## Testing
 
-- **Unit tests** (`*.test.ts` next to the code): pure rules such as assignment legs, selectable channels,
+- **Unit tests** (`*.test.ts` next to the code): pure rules such as assignment legs, channel windows and conflicts,
   status actions, period boundaries around daylight-saving changes, percentage changes, error mapping.
 - **Database tests** (`supabase/tests/*.test.sql`, pgTAP): tenant isolation, column privileges, the order
-  state machine, channel uniqueness, onboarding (`bootstrap_profile`), member rules, public booking and throttling.
+  state machine, channel conflicts on time windows, onboarding (`bootstrap_profile`), member rules, public booking and throttling.
   Each file runs in a transaction that is rolled back.
 - Edge Function: exercised end to end by the browser tests (invitation emails) and with `curl` (see [API.md](API.md#edge-function-invite-member)).
 - **Browser tests** (`e2e/*.spec.ts`, Playwright): see below.
@@ -82,7 +82,7 @@ npm run e2e:report        # open the last HTML report
 | Spec | Covers |
 |---|---|
 | `auth` | login errors, redirects, rider vs admin access, legacy URLs, 404 |
-| `orders` | create / validate / edit / assign / cancel / delete, radio-channel reservation, filters, periods, PDF, channel board |
+| `orders` | create / validate / edit / assign / cancel / delete, radio-channel suggestions and conflicts, filters, periods, PDF, channel board |
 | `rider` | one order from creation to pickup across **two browsers** (admin + rider on a phone-sized screen), live updates, isolation between riders |
 | `booking` | the anonymous form: validation, success, time zone, honeypot, switching bookings off |
 | `team` | invitation by email → join → password change → deactivation; revoke; duplicate email; last-admin protection |

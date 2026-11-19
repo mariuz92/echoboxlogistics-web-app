@@ -10,6 +10,7 @@ The schema lives in `supabase/migrations/` (apply order = file name order):
 | `…000300_rpcs.sql` | business RPCs, `rider_activity` view, dashboard stats, public booking |
 | `…000400_bootstrap_profile_lock.sql` | makes `bootstrap_profile()` safe under concurrent first-login calls (advisory lock) |
 | `20261119000000_contact_messages.sql` | `contact_messages` for the landing-page contact form (service role only, written by the `contact` Edge Function) |
+| `20261120000000_channels_any_range.sql` | channel range 1–10,000 per company, time-based channel conflicts, `free_channels`, `get_channel_board`, channels for public bookings |
 
 Tests: `supabase/tests/database.test.sql` (pgTAP, run with `supabase test db`).
 
@@ -34,7 +35,9 @@ erDiagram
     text name
     text slug UK
     text timezone
-    int radio_channels_total
+    int channel_min
+    int channel_max
+    bool channels_exclusive
     int_array disabled_channels
     bool public_booking_enabled
   }
@@ -97,7 +100,10 @@ erDiagram
 ### `tenants`
 One row per company. `name_key` (lower-cased, trimmed name) is unique, so company names cannot be
 claimed twice. `slug` is the public booking identifier (`/book/<slug>`).
-`radio_channels_total` defines channels `0..N` (inclusive); `disabled_channels` lists unusable ones.
+`channel_min..channel_max` is the company's channel range (any equipment, at most 10,000 channels);
+`disabled_channels` lists unusable ones (kept sorted, unique and inside the range by
+`tenants_channel_guard`, which also refuses to drop or disable a channel an open order uses);
+`channels_exclusive` says whether a channel serves one group at a time.
 
 ### `profiles`
 Platform users, 1:1 with `auth.users`. `roles` must contain at least one role. Users can update only
@@ -126,7 +132,9 @@ Constraints:
 
 - `pickup_at >= delivery_at`
 - `delivery_assigned` / `out_for_delivery` require `delivery_rider_id`; `pickup_assigned` / `out_for_pickup` require `pickup_rider_id`
-- **unique `(tenant_id, radio_channel)` while the order is open** (status not `picked_up`/`cancelled`)
+- an open order occupies its channel from `delivery_at` to `pickup_at` (or the end of the delivery day
+  without a pickup); with `channels_exclusive`, two open orders on the same channel cannot overlap in
+  time (checked by `orders_guard` under a per-channel advisory lock)
 
 ### `order_events`
 Append-only audit log filled by a trigger: `created`, `status_changed`, `assigned`, `updated`,
@@ -178,7 +186,8 @@ authorisation failures use SQLSTATE `42501`. See [API.md](API.md) for request ex
 | `assign_order(order, leg, rider)` | admin | Assign / unassign a rider to the `delivery` or `pickup` leg |
 | `admin_set_status(order, status)` | admin | Cancel, re-open, or move an order forward manually |
 | `rider_order_action(order, action, lost)` | rider | `claim_pickup`, `start_delivery`, `complete_delivery`, `start_pickup`, `complete_pickup` |
-| `get_channel_status()` | admin | One row per channel with `free` / `busy` / `disabled` |
+| `free_channels(delivery_at, pickup_at, exclude_order, limit)` | admin | First enabled channels free for those times |
+| `get_channel_board(from, to)` | admin | Open orders holding a channel during the period, with `busy_until` |
 | `get_dashboard_stats(month)` | admin | All dashboard figures for a month, in the tenant time zone |
 | `get_public_tenant(slug)` | anon | Company name, time zone and whether bookings are open |
 | `create_public_order(...)` | anon | Public booking: validates, throttles, upserts the guide, creates the order |
@@ -190,7 +199,8 @@ authorisation failures use SQLSTATE `42501`. See [API.md](API.md) for request ex
 `pickup_not_assignable`, `pickup_details_missing`, `transition_not_allowed`, `use_assign_order`,
 `order_not_claimable`, `invalid_lost_count`, `unknown_action`, `booking_unavailable`,
 `invalid_guide_name`, `invalid_phone`, `invalid_radios_count`, `invalid_delivery_time`,
-`invalid_pickup_time`, `invalid_address`, `too_many_requests`.
+`invalid_pickup_time`, `invalid_address`, `too_many_requests`, `channel_busy`, `channel_out_of_range`,
+`channel_disabled`, `channel_used_by_open_order`, `channel_conflicts_exist`.
 
 ## Working with migrations
 
@@ -206,4 +216,4 @@ Never edit a migration that has been applied to a shared database; add a new one
 edited in place during development because nothing had been deployed.)
 
 > The generated types mark every column of a `returns table` function as non-null. Where that is wrong
-> (`get_channel_status`), the hand-written type in `src/types/domain.ts` is used instead.
+> (`get_channel_board`: `pickup_at` can be null), the hand-written type in `src/types/domain.ts` is used instead.

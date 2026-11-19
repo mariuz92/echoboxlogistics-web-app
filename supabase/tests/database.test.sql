@@ -2,7 +2,7 @@
 -- Database tests (pgTAP).  Run with:  supabase test db
 --
 -- Covers tenant isolation (RLS), column privileges, the order state machine,
--- radio-channel uniqueness, onboarding (bootstrap_profile), member management
+-- radio-channel conflicts on time windows, onboarding (bootstrap_profile), member management
 -- and the public booking RPC. Everything runs inside a transaction that is
 -- rolled back. Relies on the demo data in supabase/seed.sql for the main tenant.
 -- =============================================================================
@@ -202,30 +202,69 @@ select is((select notes from public.orders where id = (select o1 from ids)), 'ed
   'the admin''s own order was modified');
 
 -- =============================================================================
--- 3. Radio channels
+-- 3. Radio channels (any range; a channel is busy from delivery to pickup)
 -- =============================================================================
-select throws_ok($$insert into public.orders (tenant_id, guide_name, radio_channel, delivery_at, delivery_address)
-  values ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'Dup', 10, now() + interval '9 days', 'x')$$,
-  '23505', null, 'an open channel cannot be booked twice');
+-- o1 holds channel 10 from now()+1h to now()+5h.
+select throws_ok($$insert into public.orders (tenant_id, guide_name, radio_channel, delivery_at, delivery_address, pickup_at, pickup_address)
+  values ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'Overlap', 10, now() + interval '2 hours', 'x', now() + interval '3 hours', 'x')$$,
+  '23P01', 'channel_busy', 'a channel cannot serve two groups at the same time');
+
+select lives_ok($$insert into public.orders (tenant_id, guide_name, radio_channel, delivery_at, delivery_address)
+  values ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'Another day', 10, now() + interval '9 days', 'x')$$,
+  'the same channel can serve another group on another day');
 
 select throws_ok($$insert into public.orders (tenant_id, guide_name, radio_channel, delivery_at, delivery_address)
   values ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'Range', 99, now() + interval '9 days', 'x')$$,
-  '23514', null, 'a channel outside the configured range is rejected');
+  '23514', 'channel_out_of_range', 'a channel outside the configured range is rejected');
 
-update public.tenants set disabled_channels = array[20] where id = (select demo from ids);
+update public.tenants set disabled_channels = array[20, 20, 500] where id = (select demo from ids);
+select is((select disabled_channels from public.tenants where id = (select demo from ids)), array[20],
+  'disabled channels are kept unique and inside the range');
 
 select throws_ok($$insert into public.orders (tenant_id, guide_name, radio_channel, delivery_at, delivery_address)
   values ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'Disabled', 20, now() + interval '9 days', 'x')$$,
-  '23514', null, 'a disabled channel cannot be used');
+  '23514', 'channel_disabled', 'a disabled channel cannot be used');
+
+select throws_ok($$update public.tenants set channel_max = 5 where id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'$$,
+  '23514', 'channel_used_by_open_order', 'the range cannot drop a channel an open order uses');
+
+select throws_ok($$update public.tenants set channel_min = 1, channel_max = 10001 where id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'$$,
+  '23514', null, 'at most 10,000 channels');
 
 select tests.login_as((select admin1 from ids));
-select is((select state from public.get_channel_status() where channel = 10), 'busy',
-  'channel 10 is reported busy');
-select is((select state from public.get_channel_status() where channel = 20), 'disabled',
-  'channel 20 is reported disabled');
-select is((select count(*)::int from public.get_channel_status()), 36,
-  'channels 0..35 are listed');
+select ok(not (10 = any (public.free_channels(now() + interval '2 hours', now() + interval '3 hours', null, 200))),
+  'channel 10 is not suggested while o1 uses it');
+select ok(10 = any (public.free_channels(now() + interval '2 hours', now() + interval '3 hours', (select o1 from ids), 200)),
+  'the order being edited keeps its own channel among the suggestions');
+select ok(not (20 = any (public.free_channels(now() + interval '2 hours', now() + interval '3 hours', null, 200))),
+  'disabled channels are never suggested');
+select is((select count(*)::int from public.get_channel_board(now(), now() + interval '6 hours') where channel = 10), 1,
+  'the channel board shows channel 10 in use now');
 select tests.logout();
+
+-- Shared channels: overlapping groups are allowed, and exclusivity cannot come back
+-- while they exist.
+update public.tenants set channels_exclusive = false where id = (select demo from ids);
+select lives_ok($$insert into public.orders (tenant_id, guide_name, radio_channel, delivery_at, delivery_address, pickup_at, pickup_address)
+  values ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'Shared', 10, now() + interval '2 hours', 'x', now() + interval '3 hours', 'x')$$,
+  'shared channels: two groups may use the same channel at the same time');
+select throws_ok($$update public.tenants set channels_exclusive = true where id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'$$,
+  '23P01', 'channel_conflicts_exist', 'channels cannot become exclusive while groups share one');
+delete from public.orders where guide_name = 'Shared';
+update public.tenants set channels_exclusive = true where id = (select demo from ids);
+
+-- A company with a single channel can still run tours back to back.
+insert into public.tenants (id, name, slug, channel_min, channel_max)
+values ('dddddddd-dddd-4ddd-8ddd-dddddddddddd', 'One Channel Co', 'one-channel-co', 1, 1);
+select lives_ok($$insert into public.orders (tenant_id, guide_name, radio_channel, delivery_at, delivery_address, pickup_at, pickup_address)
+  values ('dddddddd-dddd-4ddd-8ddd-dddddddddddd', 'Morning', 1, now() + interval '1 day', 'x', now() + interval '1 day 3 hours', 'x')$$,
+  'one channel: morning tour');
+select lives_ok($$insert into public.orders (tenant_id, guide_name, radio_channel, delivery_at, delivery_address, pickup_at, pickup_address)
+  values ('dddddddd-dddd-4ddd-8ddd-dddddddddddd', 'Afternoon', 1, now() + interval '1 day 4 hours', 'x', now() + interval '1 day 7 hours', 'x')$$,
+  'one channel: afternoon tour on the same channel');
+select throws_ok($$insert into public.orders (tenant_id, guide_name, radio_channel, delivery_at, delivery_address, pickup_at, pickup_address)
+  values ('dddddddd-dddd-4ddd-8ddd-dddddddddddd', 'Clash', 1, now() + interval '1 day 2 hours', 'x', now() + interval '1 day 5 hours', 'x')$$,
+  '23P01', 'channel_busy', 'one channel: overlapping tours are rejected');
 
 -- =============================================================================
 -- 4. Order state machine
@@ -279,8 +318,9 @@ select throws_ok($$select public.assign_order('c0000000-0000-4000-8000-000000000
   '42501', null, 'riders cannot assign orders');
 select throws_ok($$select * from public.get_dashboard_stats(current_date)$$, '42501', null,
   'riders cannot read dashboard stats');
-select is((select count(*)::int from public.get_channel_status()), 0,
+select is((select count(*)::int from public.get_channel_board(now() - interval '1 year', now() + interval '1 year')), 0,
   'riders get no channel map');
+select throws_ok($$select public.free_channels(now())$$, '42501', null, 'riders cannot ask for free channels');
 select tests.logout();
 
 -- rider 1 runs the delivery
@@ -322,9 +362,9 @@ select ok((select delivered_at is not null and picked_up_at is not null
            from public.orders where id = (select o1 from ids)),
   'lifecycle timestamps were stamped');
 
--- the channel is free again as soon as the order is closed
-select lives_ok($$insert into public.orders (tenant_id, guide_name, radio_channel, delivery_at, delivery_address)
-  values ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'Reuse', 10, now() + interval '9 days', 'x')$$,
+-- the channel is free again, even during o1's planned window, once o1 is closed
+select lives_ok($$insert into public.orders (tenant_id, guide_name, radio_channel, delivery_at, delivery_address, pickup_at, pickup_address)
+  values ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'Reuse', 10, now() + interval '2 hours', 'x', now() + interval '3 hours', 'x')$$,
   'a channel is reusable once its order is picked up');
 
 -- delivered without a pickup plan: rider cannot be assigned until details exist

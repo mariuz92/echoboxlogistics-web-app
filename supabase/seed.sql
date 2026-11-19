@@ -16,9 +16,9 @@ select set_config('app.order_actions', 'on', false);
 -- -----------------------------------------------------------------------------
 -- Tenant
 -- -----------------------------------------------------------------------------
-insert into public.tenants (id, name, slug, description, radio_channels_total)
+insert into public.tenants (id, name, slug, description, channel_min, channel_max)
 values ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'EchoBox Demo', 'echobox-demo',
-        'Demo company for local development', 35);
+        'Demo company for local development', 0, 35);
 
 -- -----------------------------------------------------------------------------
 -- Auth users + profiles
@@ -108,7 +108,7 @@ cross join lateral (
 join g on g.idx = n % 6;
 
 -- -----------------------------------------------------------------------------
--- Open orders: one per interesting state (channels are reserved while open)
+-- Open orders: one per interesting state (each holds its channel from delivery to pickup)
 -- -----------------------------------------------------------------------------
 insert into public.orders (
   tenant_id, guide_name, guide_phone, radio_channel, radios_count, extra_radios, balance,
