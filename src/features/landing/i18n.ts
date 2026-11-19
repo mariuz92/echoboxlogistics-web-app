@@ -16,47 +16,43 @@ export const LANG_NAMES: Record<Lang, string> = {
   fr: "Français",
 };
 
-export type ScreenId =
-  | "web-orders"
-  | "web-order-detail"
-  | "web-channels"
-  | "web-dashboard"
-  | "web-calendar"
-  | "web-team"
-  | "mobile-rider"
-  | "mobile-orders"
-  | "mobile-booking";
+export const SECTION_IDS = ["orders", "channels", "riders", "pickups", "booking", "stats"] as const;
+export type SectionId = (typeof SECTION_IDS)[number];
 
 interface Item {
   title: string;
   text: string;
 }
 
+interface ProductSection {
+  label: string;
+  title: string;
+  text: string;
+  points: string[];
+}
+
 export interface Dict {
   meta: { title: string; description: string };
-  nav: { features: string; screens: string; how: string; faq: string; contact: string; login: string; demo: string; menu: string };
-  hero: {
-    eyebrow: string;
+  nav: { product: string; start: string; faq: string; contact: string; login: string; demo: string; menu: string; language: string };
+  hero: { title: string; subtitle: string; primary: string; secondary: string; note: string; imageAlt: string };
+  day: { label: string; title: string; intro: string; items: { time: string; text: string }[]; outro: string };
+  product: {
+    label: string;
     title: string;
-    accent: string;
-    subtitle: string;
-    primary: string;
-    secondary: string;
-    points: string[];
-    liveBadge: string;
+    note: string;
+    enlarge: string;
+    close: string;
+    sections: Record<SectionId, ProductSection>;
+    moreTitle: string;
+    more: Item[];
   };
-  audience: { label: string; items: string[] };
-  problems: { label: string; title: string; subtitle: string; before: string; after: string; items: { problem: string; solution: string }[] };
-  features: { label: string; title: string; subtitle: string; items: Item[] };
-  screens: { label: string; title: string; subtitle: string; web: string; mobile: string; enlarge: string; close: string; note: string; items: Record<ScreenId, Item> };
-  how: { label: string; title: string; steps: Item[] };
-  roles: { label: string; title: string; items: { role: string; title: string; points: string[] }[] };
+  start: { label: string; title: string; steps: Item[]; cta: string };
   faq: { label: string; title: string; items: { q: string; a: string }[] };
   contact: {
     label: string;
     title: string;
     subtitle: string;
-    perks: string[];
+    direct: string;
     name: string;
     email: string;
     company: string;
@@ -72,143 +68,156 @@ export interface Dict {
     successTitle: string;
     successText: string;
     again: string;
-    direct: string;
     errors: { name: string; email: string; message: string; consent: string; rate: string; generic: string };
   };
-  footer: { tagline: string; product: string; legal: string; privacy: string; terms: string; cookies: string; rights: string; language: string; login: string };
+  footer: { tagline: string; product: string; legal: string; privacy: string; terms: string; cookies: string; rights: string; login: string };
 }
 
 const it: Dict = {
   meta: {
-    title: "EchoBox Logistics — Gestionale per il noleggio di radioguide",
+    title: "EchoBox Logistics · Gestionale per il noleggio di radioguide",
     description:
-      "Ordini, canali radio, consegne e ritiri delle radioguide in un unico posto. Per chi noleggia sistemi audio a guide e gruppi turistici.",
+      "Ordini, canali radio, rider e ritiri delle radioguide in un unico posto. Per chi noleggia radioguide a guide e gruppi turistici.",
   },
-  nav: { features: "Funzioni", screens: "Il prodotto", how: "Come funziona", faq: "FAQ", contact: "Contatti", login: "Accedi", demo: "Richiedi una demo", menu: "Menu" },
+  nav: {
+    product: "Il prodotto",
+    start: "Come si parte",
+    faq: "Domande",
+    contact: "Contatti",
+    login: "Accedi",
+    demo: "Prenota una demo",
+    menu: "Menu",
+    language: "Lingua",
+  },
   hero: {
-    eyebrow: "Per chi noleggia radioguide a guide e gruppi",
-    title: "Radioguide consegnate in orario.",
-    accent: "Nessun canale doppio. Nessun ritiro dimenticato.",
+    title: "Consegne e ritiri di radioguide, gestiti da un'unica schermata.",
     subtitle:
-      "EchoBox Logistics organizza tutto il servizio: le prenotazioni delle guide, l'assegnazione dei canali radio, i rider che consegnano e ritirano, e i numeri di fine mese.",
-    primary: "Richiedi una demo",
+      "EchoBox è il gestionale per chi noleggia radioguide a guide e gruppi. Ordini, canali radio, rider e ritiri stanno nello stesso posto: l'ufficio vede ogni consegna mentre succede e nessun gruppo finisce sul canale di un altro.",
+    primary: "Prenota una demo",
     secondary: "Guarda il prodotto",
-    points: ["Funziona nel browser, anche sul telefono", "Aggiornamenti in tempo reale", "Dati separati per ogni azienda"],
-    liveBadge: "In tempo reale",
+    note: "Funziona nel browser, da computer e da telefono. Non c'è niente da installare.",
+    imageAlt: "La schermata Ordini di EchoBox con le consegne e i ritiri della giornata",
   },
-  audience: {
-    label: "Pensato per",
-    items: ["Noleggio radioguide e whisper", "Tour operator e agenzie", "Escursioni da crociera", "Gruppi scolastici e congressi"],
-  },
-  problems: {
-    label: "Perché",
-    title: "Dalla chat di gruppo a un unico posto",
-    subtitle: "Fogli Excel, messaggi e telefonate funzionano finché la giornata è tranquilla. Poi arriva l'alta stagione.",
-    before: "Prima",
-    after: "Con EchoBox",
+  day: {
+    label: "Il problema",
+    title: "Una giornata normale, prima di EchoBox",
+    intro: "Le chat di gruppo e i fogli Excel reggono finché la giornata è tranquilla. In alta stagione succede questo:",
     items: [
       {
-        problem: "Due gruppi sullo stesso canale: le guide si sovrappongono e il tour è rovinato.",
-        solution: "Ogni ordine aperto occupa il suo canale. Il sistema impedisce i doppioni e libera il canale al ritiro.",
+        time: "07:50",
+        text: "Il rider chiama per la terza volta: la consegna al Colosseo è alle 8:15 o alle 8:45? Nella chat ci sono due messaggi diversi.",
       },
       {
-        problem: "Radioguide consegnate e mai ritirate. Te ne accorgi giorni dopo, quando mancano.",
-        solution: "I ritiri restano in evidenza finché non sono chiusi; quelli in ritardo o senza data vengono segnalati.",
+        time: "10:40",
+        text: "Due gruppi davanti a San Pietro sono sullo stesso canale. Le guide si sentono a vicenda e la visita salta.",
       },
       {
-        problem: "«Dov'è il rider?», «A chi le ho date?»: telefonate continue per sapere a che punto siamo.",
-        solution: "Ogni rider aggiorna lo stato dal telefono con un tocco: l'ufficio vede tutto mentre succede.",
+        time: "18:00",
+        text: "In magazzino mancano 26 radio. Erano di un tour di martedì e nessuno è passato a ritirarle.",
       },
     ],
+    outro: "EchoBox mette ordini, canali e ritiri nello stesso posto, visibile a tutto il team. Queste telefonate non servono più.",
   },
-  features: {
-    label: "Funzioni",
-    title: "Tutto il servizio, dall'ordine al rientro delle radio",
-    subtitle: "Pensato per chi consegna radioguide ogni giorno nei centri storici, non un gestionale generico adattato.",
-    items: [
-      { title: "Ordini e giornata", text: "Vista per giorno, settimana, mese o anno, con ricerca, filtri per stato ed esportazione PDF." },
-      { title: "Mappa dei canali radio", text: "Canali liberi, occupati e disabilitati a colpo d'occhio. Un canale non può essere assegnato due volte." },
-      { title: "App per i rider", text: "I rider vedono solo i propri lavori e avanzano consegna e ritiro con un tocco, anche sotto il sole di agosto." },
-      { title: "Ritiri sotto controllo", text: "Ritiri da pianificare, in ritardo o da assegnare: in cima alla pagina finché qualcuno non li chiude." },
-      { title: "Prenotazione per le guide", text: "Un link pubblico con il nome della tua azienda: le guide prenotano da sole e l'ordine arriva già compilato." },
-      { title: "Dashboard e statistiche", text: "Incassi, radioguide consegnate e perse, orari di punta, guide e luoghi più frequenti, mese su mese." },
-      { title: "Team e ruoli", text: "Inviti via email, ruoli amministratore e rider, e chi è in servizio adesso e dove sta andando." },
-      { title: "Cronologia di ogni ordine", text: "Chi ha creato, assegnato, consegnato o modificato cosa, e quando. Utile quando qualcosa non torna." },
-    ],
-  },
-  screens: {
+  product: {
     label: "Il prodotto",
-    title: "Guarda come si lavora con EchoBox",
-    subtitle: "Schermate reali dell'applicazione, con dati di esempio di una giornata a Roma.",
-    web: "Ufficio (web)",
-    mobile: "Rider e guide (mobile)",
+    title: "Tutto il lavoro di una giornata, dall'ordine al rientro delle radio",
+    note: "Le schermate mostrano dati di esempio: nomi, numeri e indirizzi sono inventati.",
     enlarge: "Ingrandisci",
     close: "Chiudi",
-    note: "Dati dimostrativi: nomi, numeri e indirizzi sono di fantasia.",
-    items: {
-      "web-orders": { title: "La giornata in un colpo d'occhio", text: "Consegne e ritiri del giorno, con stato, rider assegnati, incasso e ritiri da sistemare." },
-      "web-order-detail": { title: "Ogni ordine, con la sua storia", text: "Guida, canale, radioguide, orari e luoghi, più la cronologia completa di ogni cambiamento." },
-      "web-channels": { title: "Mappa dei canali radio", text: "Liberi, in uso e disabilitati. Un clic per escludere un canale guasto." },
-      "web-dashboard": { title: "I numeri del mese", text: "Incassi e ordini rispetto al mese precedente, andamento giornaliero, perdite e orari di punta." },
-      "web-calendar": { title: "Calendario", text: "Consegne e ritiri di ogni giorno del mese. Un clic sul giorno apre i suoi ordini." },
-      "web-team": { title: "Team e rider in servizio", text: "Chi sta consegnando, chi sta ritirando e dove, con gli inviti e i ruoli del team." },
-      "mobile-rider": { title: "L'app del rider", text: "Solo i lavori assegnati, con indirizzo, telefono della guida e un grande pulsante per avanzare." },
-      "mobile-orders": { title: "L'ufficio in tasca", text: "Tutta la gestione ordini funziona anche dal telefono, quando non sei alla scrivania." },
-      "mobile-booking": { title: "Il modulo per le guide", text: "Le guide prenotano dal tuo link pubblico: l'ordine compare subito nell'elenco." },
+    sections: {
+      orders: {
+        label: "Ordini",
+        title: "La giornata intera in una schermata",
+        text: "Consegne e ritiri di oggi con orario, luogo, canale, rider e incasso. Cerchi una guida, filtri per stato, passi alla settimana o al mese e stampi il PDF per chi è in strada.",
+        points: [
+          "Ogni ordine ha la sua cronologia: chi l'ha creato, assegnato e consegnato, e quando",
+          "Gli ordini arrivati dal modulo delle guide si riconoscono a colpo d'occhio",
+        ],
+      },
+      channels: {
+        label: "Canali radio",
+        title: "Un canale, un gruppo",
+        text: "Ogni ordine aperto tiene il suo canale finché le radio non rientrano, poi il canale torna libero. EchoBox non permette di dare lo stesso canale a due ordini aperti.",
+        points: ["Mappa dei canali liberi, in uso e disabilitati", "Un canale guasto si esclude con un clic"],
+      },
+      riders: {
+        label: "Rider",
+        title: "Sul telefono del rider, solo quello che serve",
+        text: "Il rider vede i lavori assegnati a lui, con indirizzo, numero della guida, quantità di radio e canale. Un pulsante per ogni passaggio, dalla partenza al ritiro.",
+        points: ["Al ritiro segnala le radio mancanti", "L'ufficio vede il nuovo stato nello stesso momento"],
+      },
+      pickups: {
+        label: "Ritiri",
+        title: "Nessuna radio resta in giro",
+        text: "I ritiri restano in cima alla pagina degli ordini finché qualcuno non li chiude. Quelli senza data o in ritardo vengono segnalati ogni giorno, anche se il tour era la settimana scorsa.",
+        points: ["Chi ha consegnato e dove, a portata di clic"],
+      },
+      booking: {
+        label: "Prenotazioni",
+        title: "Le guide prenotano da sole",
+        text: "Condividi il link di prenotazione della tua azienda. La guida inserisce nome del gruppo, telefono, numero di radio, orari e luoghi: l'ordine compare nella tua lista già compilato.",
+        points: ["La guida non deve creare un account", "Puoi chiudere le prenotazioni online quando vuoi"],
+      },
+      stats: {
+        label: "Statistiche",
+        title: "Il mese in numeri, senza Excel",
+        text: "Incasso, ordini, radio consegnate e perse, a confronto con il mese precedente. In più gli orari di punta, le guide che lavorano di più e i luoghi più frequenti.",
+        points: ["Esportazione CSV dal calendario"],
+      },
     },
+    moreTitle: "E inoltre",
+    more: [
+      { title: "Calendario", text: "Consegne e ritiri di ogni giorno del mese, con l'incasso." },
+      { title: "Team e ruoli", text: "Inviti via email, ruoli amministratore e rider, e chi è in servizio adesso." },
+      { title: "Rubrica delle guide", text: "Le guide con cui lavori, con telefono, email e note." },
+      { title: "Dati separati", text: "Ogni azienda vede solo i propri ordini, rider e guide." },
+      { title: "Chiaro o scuro", text: "Ognuno sceglie il tema che preferisce." },
+      { title: "Esportazioni", text: "Il PDF della giornata, il CSV del mese." },
+    ],
   },
-  how: {
-    label: "Come funziona",
-    title: "Quattro passaggi, ogni giorno",
+  start: {
+    label: "Come si parte",
+    title: "Si parte in tre passi",
     steps: [
-      { title: "Arriva l'ordine", text: "Lo inserisci tu o la guida lo prenota dal tuo link pubblico: radioguide, orari e luoghi di consegna e ritiro." },
-      { title: "Canale e rider", text: "Scegli un canale libero e assegni consegna e ritiro ai rider. I conflitti sono impossibili." },
-      { title: "Consegna e ritiro", text: "Il rider parte, consegna e ritira aggiornando lo stato dal telefono. Segnala anche le radio perse." },
-      { title: "Tutto tracciato", text: "Canale liberato, incasso registrato, statistiche aggiornate. Il giorno dopo si riparte da una lista pulita." },
+      { title: "Registra l'azienda", text: "Crei l'account, dai un nome all'azienda e imposti quanti canali radio hai." },
+      { title: "Invita i rider", text: "Ricevono un'email, scelgono una password e lavorano dal telefono." },
+      { title: "Condividi il link", text: "Manda alle guide il link di prenotazione: gli ordini iniziano ad arrivare da soli." },
     ],
-  },
-  roles: {
-    label: "Per tutto il team",
-    title: "Una piattaforma, tre punti di vista",
-    items: [
-      { role: "Ufficio", title: "Pianifica e controlla", points: ["Ordini, canali e assegnazioni", "Ritiri in ritardo in evidenza", "Statistiche ed esportazioni"] },
-      { role: "Rider", title: "Sa sempre cosa fare", points: ["Solo i propri lavori", "Indirizzi e telefono della guida", "Un tocco per ogni passaggio"] },
-      { role: "Guide", title: "Prenotano in un minuto", points: ["Link pubblico della tua azienda", "Nessun account da creare", "Conferma immediata"] },
-    ],
+    cta: "Vuoi vederlo prima? Prenota una demo",
   },
   faq: {
-    label: "FAQ",
+    label: "Domande",
     title: "Domande frequenti",
     items: [
-      { q: "Devo installare qualcosa?", a: "No. EchoBox funziona nel browser, su computer, tablet e telefono. I rider la aprono dal telefono come una normale pagina web." },
-      { q: "Quanti canali radio posso gestire?", a: "Quanti ne hai: imposti il numero totale e puoi disabilitare i canali guasti o riservati. Ogni canale può essere usato da un solo ordine aperto alla volta." },
-      { q: "Le guide devono registrarsi?", a: "No. Condividi il link di prenotazione della tua azienda: la guida inserisce nome, telefono, radioguide e orari, e l'ordine arriva subito a te." },
-      { q: "I miei dati sono separati da quelli di altre aziende?", a: "Sì. Ogni azienda vede solo i propri ordini, rider e guide. Le regole di accesso sono applicate direttamente nel database." },
-      { q: "In che lingua è l'applicazione?", a: "L'interfaccia di lavoro è in italiano; questo sito è disponibile anche in inglese, tedesco e francese. Se il tuo team lavora in un'altra lingua, scrivici." },
-      { q: "Quanto costa?", a: "Dipende dal numero di rider e di ordini. Scrivici due righe sul tuo servizio e ti prepariamo una proposta." },
+      { q: "Bisogna installare qualcosa?", a: "No. EchoBox si apre dal browser su computer, tablet e telefono. I rider lo usano dal telefono come un normale sito." },
+      { q: "Quanti canali radio posso gestire?", a: "Tutti quelli che hai. Imposti il numero totale e disabiliti quelli guasti o riservati. Un canale può essere usato da un solo ordine aperto alla volta." },
+      { q: "Le guide devono registrarsi?", a: "No. Usano il link di prenotazione della tua azienda e compilano un modulo che richiede un minuto. L'ordine arriva subito a te." },
+      { q: "I nostri dati sono separati da quelli di altre aziende?", a: "Sì. Ogni azienda vede solo i propri ordini, rider e guide, e la separazione è applicata direttamente nel database." },
+      { q: "In che lingua è l'applicazione?", a: "L'applicazione è in italiano. Questo sito è anche in inglese, tedesco e francese: se il tuo team lavora in un'altra lingua, scrivici." },
+      { q: "Quanto costa?", a: "Dipende da quanti rider e ordini gestite. Raccontaci il tuo servizio e ti mandiamo una proposta." },
     ],
   },
   contact: {
     label: "Contatti",
-    title: "Parliamo del tuo servizio",
-    subtitle: "Raccontaci quante radioguide gestisci e come lavori oggi. Ti rispondiamo il prima possibile.",
-    perks: ["Demo dal vivo sui tuoi casi reali", "Configurazione di canali e rider insieme a te", "Nessun impegno"],
+    title: "Vediamo EchoBox su una giornata come la tua",
+    subtitle:
+      "Scrivici quante radioguide gestisci, quanti rider avete e come vi organizzate oggi. Ti ricontattiamo per fissare una demo.",
+    direct: "Oppure scrivi a",
     name: "Nome e cognome",
     email: "Email",
     company: "Azienda",
     phone: "Telefono",
     optional: "facoltativo",
     message: "Messaggio",
-    messagePlaceholder: "Es. noleggiamo 400 radioguide a Roma con 4 rider e vorremmo smettere di usare la chat di gruppo…",
+    messagePlaceholder: "Es. noleggiamo 400 radioguide a Roma con 4 rider e vorremmo smettere di organizzarci in chat…",
     consentBefore: "Ho letto l'",
     consentLink: "informativa sulla privacy",
     consentAfter: " e acconsento a essere ricontattato.",
     submit: "Invia messaggio",
     sending: "Invio in corso…",
-    successTitle: "Messaggio inviato, grazie!",
+    successTitle: "Messaggio inviato, grazie.",
     successText: "Ti risponderemo all'indirizzo email che ci hai lasciato.",
     again: "Invia un altro messaggio",
-    direct: "Preferisci l'email?",
     errors: {
       name: "Inserisci il tuo nome.",
       email: "Inserisci un indirizzo email valido.",
@@ -226,142 +235,155 @@ const it: Dict = {
     terms: "Termini e condizioni",
     cookies: "Cookie",
     rights: "Tutti i diritti riservati.",
-    language: "Lingua",
     login: "Accedi alla piattaforma",
   },
 };
 
 const en: Dict = {
   meta: {
-    title: "EchoBox Logistics — Software for audio-guide rental companies",
+    title: "EchoBox Logistics · Software for audio-guide rentals",
     description:
-      "Orders, radio channels, deliveries and pickups of tour-guide radio sets in one place. Built for companies that rent audio systems to guides and tour groups.",
+      "Orders, radio channels, riders and pickups of tour radio sets in one place. For companies that rent audio guides to tour guides and groups.",
   },
-  nav: { features: "Features", screens: "Product", how: "How it works", faq: "FAQ", contact: "Contact", login: "Log in", demo: "Request a demo", menu: "Menu" },
+  nav: {
+    product: "Product",
+    start: "Getting started",
+    faq: "Questions",
+    contact: "Contact",
+    login: "Log in",
+    demo: "Book a demo",
+    menu: "Menu",
+    language: "Language",
+  },
   hero: {
-    eyebrow: "For companies renting audio guides to tour groups",
-    title: "Radio sets delivered on time.",
-    accent: "No channel clashes. No forgotten pickups.",
+    title: "Run audio-guide deliveries and pickups from one screen.",
     subtitle:
-      "EchoBox Logistics runs your whole service: guide bookings, radio-channel allocation, the riders who deliver and collect, and the numbers at the end of the month.",
-    primary: "Request a demo",
+      "EchoBox is the operations app for companies that rent radio sets to tour guides and groups. Orders, radio channels, riders and pickups live in one place: the office sees every delivery as it happens, and no group ends up on another group's channel.",
+    primary: "Book a demo",
     secondary: "See the product",
-    points: ["Runs in the browser, phones included", "Real-time updates", "Each company's data kept apart"],
-    liveBadge: "Live",
+    note: "Runs in the browser on computers and phones. Nothing to install.",
+    imageAlt: "The EchoBox Orders screen with the day's deliveries and pickups",
   },
-  audience: {
-    label: "Built for",
-    items: ["Audio-guide & whisper rental", "Tour operators & agencies", "Cruise shore excursions", "School groups & conferences"],
-  },
-  problems: {
-    label: "Why",
-    title: "From the group chat to a single place",
-    subtitle: "Spreadsheets, messages and phone calls work while the day is quiet. Then high season arrives.",
-    before: "Before",
-    after: "With EchoBox",
+  day: {
+    label: "The problem",
+    title: "An ordinary day, before EchoBox",
+    intro: "Group chats and spreadsheets hold up while the day is quiet. In high season, this happens:",
     items: [
       {
-        problem: "Two groups on the same channel: the guides talk over each other and the tour is ruined.",
-        solution: "Every open order holds its own channel. Duplicates are blocked and the channel is released at pickup.",
+        time: "07:50",
+        text: "The rider calls for the third time: is the Colosseum drop-off at 8:15 or 8:45? The chat has two different messages.",
       },
       {
-        problem: "Radio sets delivered and never collected. You notice days later, when they are missing.",
-        solution: "Pickups stay on screen until they are closed; late or unscheduled ones are flagged.",
+        time: "10:40",
+        text: "Two groups outside St Peter's are on the same channel. The guides hear each other and the tour falls apart.",
       },
       {
-        problem: "“Where is the rider?” “Who did I give them to?” Endless calls just to know where things stand.",
-        solution: "Riders update the status from their phone with one tap: the office sees everything as it happens.",
+        time: "18:00",
+        text: "26 radio sets are missing from the stockroom. They belonged to Tuesday's tour, and nobody went to collect them.",
       },
     ],
+    outro: "EchoBox puts orders, channels and pickups in one place the whole team can see. Those phone calls stop.",
   },
-  features: {
-    label: "Features",
-    title: "The whole service, from the order to the radios coming back",
-    subtitle: "Designed for teams delivering radio sets in busy city centres every day, not a generic back-office tool.",
-    items: [
-      { title: "Orders and daily plan", text: "Day, week, month or year views with search, status filters and PDF export." },
-      { title: "Radio channel map", text: "Free, busy and disabled channels at a glance. A channel can never be assigned twice." },
-      { title: "Rider app", text: "Riders only see their own jobs and move deliveries and pickups forward with a single tap." },
-      { title: "Pickups under control", text: "Pickups that are late, unscheduled or unassigned stay at the top of the page until someone closes them." },
-      { title: "Booking link for guides", text: "A public link with your company name: guides book on their own and the order arrives ready to go." },
-      { title: "Dashboard and statistics", text: "Revenue, radios delivered and lost, peak hours, top guides and locations, month over month." },
-      { title: "Team and roles", text: "Email invitations, admin and rider roles, and who is on duty right now and where they are heading." },
-      { title: "Full order history", text: "Who created, assigned, delivered or changed what, and when. Handy when something does not add up." },
-    ],
-  },
-  screens: {
+  product: {
     label: "Product",
-    title: "See how work gets done in EchoBox",
-    subtitle: "Real screens of the application, with sample data from a working day in Rome.",
-    web: "Office (web)",
-    mobile: "Riders & guides (mobile)",
+    title: "A whole working day, from the order to the radios coming back",
+    note: "The screens show sample data: names, numbers and addresses are made up. The app's interface is in Italian.",
     enlarge: "Enlarge",
     close: "Close",
-    note: "Demo data: names, numbers and addresses are made up. The app interface is in Italian.",
-    items: {
-      "web-orders": { title: "The whole day at a glance", text: "Today's deliveries and pickups with status, assigned riders, revenue and pickups that need attention." },
-      "web-order-detail": { title: "Every order, with its history", text: "Guide, channel, radio sets, times and places, plus the full timeline of every change." },
-      "web-channels": { title: "Radio channel map", text: "Free, in use and disabled. One click takes a faulty channel out of service." },
-      "web-dashboard": { title: "The month in numbers", text: "Revenue and orders against last month, daily trend, losses and peak hours." },
-      "web-calendar": { title: "Calendar", text: "Deliveries and pickups for every day of the month. Click a day to open its orders." },
-      "web-team": { title: "Team and riders on duty", text: "Who is delivering, who is collecting and where, plus team invitations and roles." },
-      "mobile-rider": { title: "The rider app", text: "Only assigned jobs, with address, the guide's phone and one big button to move on." },
-      "mobile-orders": { title: "The office in your pocket", text: "Order management works from the phone too, when you are away from the desk." },
-      "mobile-booking": { title: "The guide booking form", text: "Guides book from your public link: the order shows up in your list straight away." },
+    sections: {
+      orders: {
+        label: "Orders",
+        title: "The whole day on one screen",
+        text: "Today's deliveries and pickups with time, place, channel, rider and revenue. Search for a guide, filter by status, switch to the week or month, and print a PDF for the team on the street.",
+        points: [
+          "Every order keeps its history: who created, assigned and delivered it, and when",
+          "Orders that came in through the guides' booking form are easy to spot",
+        ],
+      },
+      channels: {
+        label: "Radio channels",
+        title: "One channel, one group",
+        text: "Each open order holds its channel until the radios come back, then the channel is free again. EchoBox will not let you give the same channel to two open orders.",
+        points: ["A map of free, busy and disabled channels", "Take a faulty channel out of service with one click"],
+      },
+      riders: {
+        label: "Riders",
+        title: "Only what the rider needs, on their phone",
+        text: "Riders see the jobs assigned to them, with the address, the guide's number, the radio count and the channel. One button for each step, from setting off to collecting.",
+        points: ["Missing radios are reported at pickup", "The office sees the new status at the same moment"],
+      },
+      pickups: {
+        label: "Pickups",
+        title: "No radio set left behind",
+        text: "Pickups stay at the top of the orders page until someone closes them. Unscheduled or late ones are flagged every day, even if the tour was last week.",
+        points: ["Who delivered, and where, one click away"],
+      },
+      booking: {
+        label: "Bookings",
+        title: "Guides book on their own",
+        text: "Share your company's booking link. The guide enters the group name, phone, number of radios, times and places, and the order appears in your list already filled in.",
+        points: ["Guides don't need an account", "Close online bookings whenever you want"],
+      },
+      stats: {
+        label: "Statistics",
+        title: "The month in numbers, without a spreadsheet",
+        text: "Revenue, orders, radios delivered and lost, compared with the previous month. Plus peak hours, your busiest guides and the most frequent locations.",
+        points: ["CSV export from the calendar"],
+      },
     },
+    moreTitle: "Also included",
+    more: [
+      { title: "Calendar", text: "Every day's deliveries and pickups, with revenue." },
+      { title: "Team and roles", text: "Email invitations, admin and rider roles, and who is on duty now." },
+      { title: "Guide directory", text: "The guides you work with, with phone, email and notes." },
+      { title: "Separate data", text: "Each company only sees its own orders, riders and guides." },
+      { title: "Light or dark", text: "Everyone picks the theme they prefer." },
+      { title: "Exports", text: "A PDF of the day, a CSV of the month." },
+    ],
   },
-  how: {
-    label: "How it works",
-    title: "Four steps, every day",
+  start: {
+    label: "Getting started",
+    title: "Up and running in three steps",
     steps: [
-      { title: "An order comes in", text: "You enter it, or the guide books it from your public link: radio sets, times, delivery and pickup places." },
-      { title: "Channel and riders", text: "Pick a free channel and assign delivery and pickup to your riders. Conflicts are impossible." },
-      { title: "Delivery and pickup", text: "The rider sets off, delivers and collects, updating the status from the phone and reporting lost sets." },
-      { title: "Everything tracked", text: "Channel released, revenue recorded, statistics updated. Tomorrow starts from a clean list." },
+      { title: "Create your company", text: "Sign up, name your company and set how many radio channels you have." },
+      { title: "Invite your riders", text: "They get an email, choose a password and work from their phone." },
+      { title: "Share your link", text: "Send guides your booking link and orders start arriving on their own." },
     ],
-  },
-  roles: {
-    label: "For the whole team",
-    title: "One platform, three points of view",
-    items: [
-      { role: "Office", title: "Plan and keep control", points: ["Orders, channels and assignments", "Late pickups highlighted", "Statistics and exports"] },
-      { role: "Riders", title: "Always know what is next", points: ["Only their own jobs", "Addresses and the guide's phone", "One tap per step"] },
-      { role: "Guides", title: "Book in a minute", points: ["Your company's public link", "No account needed", "Instant confirmation"] },
-    ],
+    cta: "Want to see it first? Book a demo",
   },
   faq: {
-    label: "FAQ",
+    label: "Questions",
     title: "Frequently asked questions",
     items: [
-      { q: "Do I need to install anything?", a: "No. EchoBox runs in the browser on computers, tablets and phones. Riders open it on their phone like any web page." },
-      { q: "How many radio channels can I manage?", a: "As many as you have: set the total and disable faulty or reserved channels. Each channel can only be used by one open order at a time." },
-      { q: "Do guides need to sign up?", a: "No. Share your company's booking link: the guide enters name, phone, radio sets and times, and the order reaches you immediately." },
-      { q: "Is my data kept apart from other companies?", a: "Yes. Each company only sees its own orders, riders and guides. Access rules are enforced directly in the database." },
-      { q: "What language is the app in?", a: "The working interface is in Italian; this website is also available in English, German and French. If your team works in another language, get in touch." },
-      { q: "How much does it cost?", a: "It depends on the number of riders and orders. Tell us a little about your service and we will send you a proposal." },
+      { q: "Do we need to install anything?", a: "No. EchoBox opens in the browser on computers, tablets and phones. Riders use it on their phone like any website." },
+      { q: "How many radio channels can I manage?", a: "All the ones you have. Set the total and disable faulty or reserved channels. A channel can only be used by one open order at a time." },
+      { q: "Do guides need to sign up?", a: "No. They use your company's booking link and fill in a form that takes a minute. The order reaches you straight away." },
+      { q: "Is our data kept apart from other companies?", a: "Yes. Each company only sees its own orders, riders and guides, and the separation is enforced in the database itself." },
+      { q: "What language is the app in?", a: "The app is in Italian. This website is also in English, German and French: if your team works in another language, get in touch." },
+      { q: "How much does it cost?", a: "It depends on how many riders and orders you handle. Tell us about your service and we will send you a proposal." },
     ],
   },
   contact: {
     label: "Contact",
-    title: "Let's talk about your service",
-    subtitle: "Tell us how many radio sets you manage and how you work today. We will get back to you as soon as possible.",
-    perks: ["Live demo on your real cases", "Channels and riders set up together with you", "No commitment"],
+    title: "Let's look at EchoBox on a day like yours",
+    subtitle:
+      "Tell us how many radio sets you manage, how many riders you have and how you organise things today. We'll get back to you to set up a demo.",
+    direct: "Or email",
     name: "Full name",
     email: "Email",
     company: "Company",
     phone: "Phone",
     optional: "optional",
     message: "Message",
-    messagePlaceholder: "E.g. we rent 400 radio sets in Rome with 4 riders and want to stop running everything from a group chat…",
+    messagePlaceholder: "E.g. we rent 400 radio sets in Rome with 4 riders and want to stop organising everything in a group chat…",
     consentBefore: "I have read the ",
     consentLink: "privacy policy",
     consentAfter: " and agree to be contacted.",
     submit: "Send message",
     sending: "Sending…",
-    successTitle: "Message sent, thank you!",
+    successTitle: "Message sent, thank you.",
     successText: "We will reply to the email address you gave us.",
     again: "Send another message",
-    direct: "Prefer email?",
     errors: {
       name: "Please enter your name.",
       email: "Please enter a valid email address.",
@@ -372,149 +394,162 @@ const en: Dict = {
     },
   },
   footer: {
-    tagline: "Software for companies renting audio guides to tour guides and groups.",
+    tagline: "Operations software for companies renting audio guides to tour guides and groups.",
     product: "Product",
     legal: "Legal",
     privacy: "Privacy",
     terms: "Terms and conditions",
     cookies: "Cookies",
     rights: "All rights reserved.",
-    language: "Language",
     login: "Log in to the platform",
   },
 };
 
 const de: Dict = {
   meta: {
-    title: "EchoBox Logistics — Software für den Verleih von Audioguide-Systemen",
+    title: "EchoBox Logistics · Software für den Verleih von Führungsanlagen",
     description:
-      "Aufträge, Funkkanäle, Lieferungen und Abholungen von Führungsanlagen an einem Ort. Für Unternehmen, die Audiosysteme an Gästeführer und Reisegruppen vermieten.",
+      "Aufträge, Funkkanäle, Fahrer und Abholungen von Führungsanlagen an einem Ort. Für Unternehmen, die Audioguides an Gästeführer und Reisegruppen vermieten.",
   },
-  nav: { features: "Funktionen", screens: "Produkt", how: "So funktioniert's", faq: "FAQ", contact: "Kontakt", login: "Anmelden", demo: "Demo anfragen", menu: "Menü" },
+  nav: {
+    product: "Produkt",
+    start: "Einstieg",
+    faq: "Fragen",
+    contact: "Kontakt",
+    login: "Anmelden",
+    demo: "Demo vereinbaren",
+    menu: "Menü",
+    language: "Sprache",
+  },
   hero: {
-    eyebrow: "Für Verleiher von Führungsanlagen und Audioguides",
-    title: "Empfänger pünktlich geliefert.",
-    accent: "Keine doppelten Kanäle. Keine vergessenen Abholungen.",
+    title: "Lieferung und Abholung Ihrer Führungsanlagen, auf einem Bildschirm.",
     subtitle:
-      "EchoBox Logistics organisiert Ihren gesamten Service: Buchungen der Gästeführer, Vergabe der Funkkanäle, die Fahrer, die liefern und abholen, und die Zahlen am Monatsende.",
-    primary: "Demo anfragen",
+      "EchoBox ist die Software für Unternehmen, die Führungsanlagen an Gästeführer und Gruppen vermieten. Aufträge, Funkkanäle, Fahrer und Abholungen an einem Ort: Das Büro sieht jede Lieferung, während sie passiert, und keine Gruppe landet auf dem Kanal einer anderen.",
+    primary: "Demo vereinbaren",
     secondary: "Produkt ansehen",
-    points: ["Läuft im Browser, auch auf dem Handy", "Updates in Echtzeit", "Daten jeder Firma getrennt"],
-    liveBadge: "Live",
+    note: "Läuft im Browser auf Computer und Handy. Nichts zu installieren.",
+    imageAlt: "Die Auftragsansicht von EchoBox mit den Lieferungen und Abholungen des Tages",
   },
-  audience: {
-    label: "Gemacht für",
-    items: ["Verleih von Führungsanlagen", "Reiseveranstalter & Agenturen", "Landausflüge von Kreuzfahrten", "Schulgruppen & Kongresse"],
-  },
-  problems: {
-    label: "Warum",
-    title: "Vom Gruppenchat an einen einzigen Ort",
-    subtitle: "Tabellen, Nachrichten und Anrufe funktionieren, solange der Tag ruhig ist. Dann kommt die Hochsaison.",
-    before: "Vorher",
-    after: "Mit EchoBox",
+  day: {
+    label: "Das Problem",
+    title: "Ein ganz normaler Tag, vor EchoBox",
+    intro: "Gruppenchats und Tabellen halten, solange der Tag ruhig ist. In der Hochsaison passiert das:",
     items: [
       {
-        problem: "Zwei Gruppen auf demselben Kanal: Die Gästeführer reden durcheinander und die Führung ist ruiniert.",
-        solution: "Jeder offene Auftrag belegt seinen eigenen Kanal. Doppelte Vergabe ist ausgeschlossen, bei Abholung wird der Kanal frei.",
+        time: "07:50",
+        text: "Der Fahrer ruft zum dritten Mal an: Ist die Lieferung am Kolosseum um 8:15 oder um 8:45? Im Chat stehen zwei verschiedene Nachrichten.",
       },
       {
-        problem: "Geräte geliefert und nie abgeholt. Man merkt es Tage später, wenn sie fehlen.",
-        solution: "Abholungen bleiben sichtbar, bis sie erledigt sind; verspätete oder ungeplante werden markiert.",
+        time: "10:40",
+        text: "Zwei Gruppen vor dem Petersdom sind auf demselben Kanal. Die Gästeführer hören sich gegenseitig, die Führung ist gelaufen.",
       },
       {
-        problem: "„Wo ist der Fahrer?“ „Wem habe ich sie gegeben?“ Ständige Anrufe, nur um den Stand zu kennen.",
-        solution: "Die Fahrer aktualisieren den Status mit einem Tippen am Handy: Das Büro sieht alles in dem Moment, in dem es passiert.",
+        time: "18:00",
+        text: "Im Lager fehlen 26 Empfänger. Sie gehörten zur Tour vom Dienstag, und niemand hat sie abgeholt.",
       },
     ],
+    outro: "EchoBox bringt Aufträge, Kanäle und Abholungen an einen Ort, den das ganze Team sieht. Diese Anrufe braucht es nicht mehr.",
   },
-  features: {
-    label: "Funktionen",
-    title: "Der ganze Service, vom Auftrag bis zur Rückgabe der Geräte",
-    subtitle: "Gemacht für Teams, die täglich Empfänger in belebten Innenstädten ausliefern, keine angepasste Standardsoftware.",
-    items: [
-      { title: "Aufträge und Tagesplan", text: "Tages-, Wochen-, Monats- oder Jahresansicht mit Suche, Statusfiltern und PDF-Export." },
-      { title: "Kanalübersicht", text: "Freie, belegte und gesperrte Kanäle auf einen Blick. Ein Kanal kann nie doppelt vergeben werden." },
-      { title: "App für Fahrer", text: "Fahrer sehen nur ihre eigenen Aufträge und schalten Lieferung und Abholung mit einem Tippen weiter." },
-      { title: "Abholungen im Griff", text: "Verspätete, ungeplante oder nicht zugewiesene Abholungen bleiben oben, bis jemand sie erledigt." },
-      { title: "Buchungslink für Gästeführer", text: "Ein öffentlicher Link mit Ihrem Firmennamen: Gästeführer buchen selbst, der Auftrag kommt fertig ausgefüllt an." },
-      { title: "Dashboard und Statistiken", text: "Umsatz, gelieferte und verlorene Geräte, Stoßzeiten, häufigste Gästeführer und Orte, Monat für Monat." },
-      { title: "Team und Rollen", text: "Einladungen per E-Mail, Rollen für Admins und Fahrer, und wer gerade im Dienst ist und wohin er fährt." },
-      { title: "Verlauf jedes Auftrags", text: "Wer hat was erstellt, zugewiesen, geliefert oder geändert, und wann. Praktisch, wenn etwas nicht stimmt." },
-    ],
-  },
-  screens: {
+  product: {
     label: "Produkt",
-    title: "So arbeiten Sie mit EchoBox",
-    subtitle: "Echte Bildschirme der Anwendung, mit Beispieldaten eines Arbeitstags in Rom.",
-    web: "Büro (Web)",
-    mobile: "Fahrer & Gästeführer (mobil)",
+    title: "Ein ganzer Arbeitstag, vom Auftrag bis zur Rückgabe der Geräte",
+    note: "Die Bildschirme zeigen Beispieldaten: Namen, Nummern und Adressen sind erfunden. Die Oberfläche der App ist auf Italienisch.",
     enlarge: "Vergrößern",
     close: "Schließen",
-    note: "Demodaten: Namen, Nummern und Adressen sind frei erfunden. Die App-Oberfläche ist auf Italienisch.",
-    items: {
-      "web-orders": { title: "Der ganze Tag auf einen Blick", text: "Lieferungen und Abholungen des Tages mit Status, Fahrern, Umsatz und offenen Abholungen." },
-      "web-order-detail": { title: "Jeder Auftrag mit seiner Geschichte", text: "Gästeführer, Kanal, Geräte, Zeiten und Orte, dazu der vollständige Verlauf jeder Änderung." },
-      "web-channels": { title: "Kanalübersicht", text: "Frei, belegt und gesperrt. Ein Klick nimmt einen defekten Kanal aus dem Betrieb." },
-      "web-dashboard": { title: "Der Monat in Zahlen", text: "Umsatz und Aufträge im Vergleich zum Vormonat, Tagesverlauf, Verluste und Stoßzeiten." },
-      "web-calendar": { title: "Kalender", text: "Lieferungen und Abholungen für jeden Tag des Monats. Ein Klick auf den Tag öffnet seine Aufträge." },
-      "web-team": { title: "Team und Fahrer im Dienst", text: "Wer liefert, wer abholt und wo, dazu Einladungen und Rollen im Team." },
-      "mobile-rider": { title: "Die Fahrer-App", text: "Nur zugewiesene Aufträge, mit Adresse, Telefon des Gästeführers und einem großen Knopf für den nächsten Schritt." },
-      "mobile-orders": { title: "Das Büro in der Tasche", text: "Die Auftragsverwaltung funktioniert auch auf dem Handy, wenn Sie nicht am Schreibtisch sind." },
-      "mobile-booking": { title: "Das Buchungsformular", text: "Gästeführer buchen über Ihren öffentlichen Link: Der Auftrag erscheint sofort in Ihrer Liste." },
+    sections: {
+      orders: {
+        label: "Aufträge",
+        title: "Der ganze Tag auf einem Bildschirm",
+        text: "Lieferungen und Abholungen von heute mit Uhrzeit, Ort, Kanal, Fahrer und Umsatz. Gästeführer suchen, nach Status filtern, zur Woche oder zum Monat wechseln und ein PDF für das Team unterwegs drucken.",
+        points: [
+          "Jeder Auftrag hat seinen Verlauf: wer ihn angelegt, zugewiesen und geliefert hat, und wann",
+          "Aufträge aus dem Buchungsformular der Gästeführer erkennt man auf einen Blick",
+        ],
+      },
+      channels: {
+        label: "Funkkanäle",
+        title: "Ein Kanal, eine Gruppe",
+        text: "Jeder offene Auftrag behält seinen Kanal, bis die Geräte zurück sind, dann ist der Kanal wieder frei. EchoBox lässt nicht zu, dass zwei offene Aufträge denselben Kanal bekommen.",
+        points: ["Übersicht über freie, belegte und gesperrte Kanäle", "Einen defekten Kanal mit einem Klick sperren"],
+      },
+      riders: {
+        label: "Fahrer",
+        title: "Auf dem Handy des Fahrers nur das Nötige",
+        text: "Fahrer sehen ihre eigenen Aufträge mit Adresse, Nummer des Gästeführers, Anzahl der Geräte und Kanal. Ein Knopf für jeden Schritt, von der Abfahrt bis zur Abholung.",
+        points: ["Fehlende Geräte werden bei der Abholung gemeldet", "Das Büro sieht den neuen Status im selben Moment"],
+      },
+      pickups: {
+        label: "Abholungen",
+        title: "Kein Gerät bleibt liegen",
+        text: "Abholungen bleiben oben auf der Auftragsseite, bis jemand sie erledigt. Ungeplante oder verspätete werden jeden Tag markiert, auch wenn die Tour letzte Woche war.",
+        points: ["Wer geliefert hat und wo, mit einem Klick"],
+      },
+      booking: {
+        label: "Buchungen",
+        title: "Gästeführer buchen selbst",
+        text: "Teilen Sie den Buchungslink Ihrer Firma. Der Gästeführer gibt Gruppenname, Telefon, Anzahl der Geräte, Zeiten und Orte ein, und der Auftrag steht fertig ausgefüllt in Ihrer Liste.",
+        points: ["Gästeführer brauchen kein Konto", "Online-Buchungen jederzeit schließen"],
+      },
+      stats: {
+        label: "Statistiken",
+        title: "Der Monat in Zahlen, ohne Tabellenkalkulation",
+        text: "Umsatz, Aufträge, gelieferte und verlorene Geräte im Vergleich zum Vormonat. Dazu Stoßzeiten, die aktivsten Gästeführer und die häufigsten Orte.",
+        points: ["CSV-Export aus dem Kalender"],
+      },
     },
+    moreTitle: "Außerdem dabei",
+    more: [
+      { title: "Kalender", text: "Lieferungen und Abholungen jedes Tages, mit Umsatz." },
+      { title: "Team und Rollen", text: "Einladungen per E-Mail, Rollen für Admins und Fahrer, und wer gerade im Dienst ist." },
+      { title: "Gästeführer-Verzeichnis", text: "Ihre Gästeführer mit Telefon, E-Mail und Notizen." },
+      { title: "Getrennte Daten", text: "Jede Firma sieht nur ihre eigenen Aufträge, Fahrer und Gästeführer." },
+      { title: "Hell oder dunkel", text: "Jeder wählt das Design, das ihm liegt." },
+      { title: "Exporte", text: "Ein PDF des Tages, eine CSV des Monats." },
+    ],
   },
-  how: {
-    label: "So funktioniert's",
-    title: "Vier Schritte, jeden Tag",
+  start: {
+    label: "Einstieg",
+    title: "In drei Schritten startklar",
     steps: [
-      { title: "Ein Auftrag kommt rein", text: "Sie erfassen ihn, oder der Gästeführer bucht über Ihren Link: Geräte, Zeiten, Liefer- und Abholort." },
-      { title: "Kanal und Fahrer", text: "Freien Kanal wählen, Lieferung und Abholung den Fahrern zuweisen. Konflikte sind unmöglich." },
-      { title: "Lieferung und Abholung", text: "Der Fahrer liefert und holt ab und aktualisiert den Status am Handy, inklusive verlorener Geräte." },
-      { title: "Alles erfasst", text: "Kanal frei, Umsatz gebucht, Statistiken aktualisiert. Morgen beginnt mit einer sauberen Liste." },
+      { title: "Firma anlegen", text: "Registrieren, Firmennamen eingeben und festlegen, wie viele Funkkanäle Sie haben." },
+      { title: "Fahrer einladen", text: "Sie bekommen eine E-Mail, wählen ein Passwort und arbeiten vom Handy aus." },
+      { title: "Link teilen", text: "Schicken Sie den Gästeführern Ihren Buchungslink, und die Aufträge kommen von selbst." },
     ],
-  },
-  roles: {
-    label: "Für das ganze Team",
-    title: "Eine Plattform, drei Blickwinkel",
-    items: [
-      { role: "Büro", title: "Planen und den Überblick behalten", points: ["Aufträge, Kanäle und Zuweisungen", "Verspätete Abholungen hervorgehoben", "Statistiken und Exporte"] },
-      { role: "Fahrer", title: "Wissen immer, was als Nächstes kommt", points: ["Nur die eigenen Aufträge", "Adressen und Telefon des Gästeführers", "Ein Tippen pro Schritt"] },
-      { role: "Gästeführer", title: "Buchen in einer Minute", points: ["Öffentlicher Link Ihrer Firma", "Kein Konto nötig", "Sofortige Bestätigung"] },
-    ],
+    cta: "Lieber erst ansehen? Demo vereinbaren",
   },
   faq: {
-    label: "FAQ",
+    label: "Fragen",
     title: "Häufige Fragen",
     items: [
-      { q: "Muss ich etwas installieren?", a: "Nein. EchoBox läuft im Browser auf Computer, Tablet und Handy. Fahrer öffnen es auf dem Handy wie eine normale Webseite." },
-      { q: "Wie viele Funkkanäle kann ich verwalten?", a: "So viele, wie Sie haben: Gesamtzahl festlegen und defekte oder reservierte Kanäle sperren. Jeder Kanal gehört immer nur einem offenen Auftrag." },
-      { q: "Müssen sich Gästeführer registrieren?", a: "Nein. Teilen Sie den Buchungslink Ihrer Firma: Der Gästeführer gibt Name, Telefon, Geräte und Zeiten ein, und der Auftrag ist sofort bei Ihnen." },
-      { q: "Sind meine Daten von anderen Firmen getrennt?", a: "Ja. Jede Firma sieht nur ihre eigenen Aufträge, Fahrer und Gästeführer. Die Zugriffsregeln werden direkt in der Datenbank durchgesetzt." },
-      { q: "In welcher Sprache ist die App?", a: "Die Arbeitsoberfläche ist auf Italienisch; diese Website gibt es auch auf Englisch, Deutsch und Französisch. Arbeitet Ihr Team in einer anderen Sprache, schreiben Sie uns." },
-      { q: "Was kostet es?", a: "Das hängt von der Zahl der Fahrer und Aufträge ab. Erzählen Sie uns kurz von Ihrem Service, und wir schicken Ihnen ein Angebot." },
+      { q: "Müssen wir etwas installieren?", a: "Nein. EchoBox öffnet sich im Browser auf Computer, Tablet und Handy. Fahrer nutzen es auf dem Handy wie eine normale Website." },
+      { q: "Wie viele Funkkanäle kann ich verwalten?", a: "Alle, die Sie haben. Gesamtzahl festlegen und defekte oder reservierte Kanäle sperren. Ein Kanal gehört immer nur einem offenen Auftrag." },
+      { q: "Müssen sich Gästeführer registrieren?", a: "Nein. Sie nutzen den Buchungslink Ihrer Firma und füllen ein Formular aus, das eine Minute dauert. Der Auftrag ist sofort bei Ihnen." },
+      { q: "Sind unsere Daten von anderen Firmen getrennt?", a: "Ja. Jede Firma sieht nur ihre eigenen Aufträge, Fahrer und Gästeführer, und die Trennung wird direkt in der Datenbank durchgesetzt." },
+      { q: "In welcher Sprache ist die App?", a: "Die App ist auf Italienisch. Diese Website gibt es auch auf Englisch, Deutsch und Französisch: Arbeitet Ihr Team in einer anderen Sprache, schreiben Sie uns." },
+      { q: "Was kostet es?", a: "Das hängt davon ab, wie viele Fahrer und Aufträge Sie haben. Erzählen Sie uns von Ihrem Service, und wir schicken Ihnen ein Angebot." },
     ],
   },
   contact: {
     label: "Kontakt",
-    title: "Sprechen wir über Ihren Service",
-    subtitle: "Erzählen Sie uns, wie viele Geräte Sie verwalten und wie Sie heute arbeiten. Wir melden uns so bald wie möglich.",
-    perks: ["Live-Demo mit Ihren echten Fällen", "Einrichtung von Kanälen und Fahrern gemeinsam mit Ihnen", "Unverbindlich"],
+    title: "Schauen wir uns EchoBox an einem Tag wie Ihrem an",
+    subtitle:
+      "Schreiben Sie uns, wie viele Geräte Sie verwalten, wie viele Fahrer Sie haben und wie Sie heute organisiert sind. Wir melden uns, um eine Demo zu vereinbaren.",
+    direct: "Oder per E-Mail an",
     name: "Vor- und Nachname",
     email: "E-Mail",
     company: "Firma",
     phone: "Telefon",
     optional: "optional",
     message: "Nachricht",
-    messagePlaceholder: "Z. B. wir vermieten 400 Empfänger in Rom mit 4 Fahrern und möchten weg vom Gruppenchat…",
+    messagePlaceholder: "Z. B. wir vermieten 400 Empfänger in Rom mit 4 Fahrern und möchten nicht mehr alles im Gruppenchat organisieren…",
     consentBefore: "Ich habe die ",
     consentLink: "Datenschutzerklärung",
     consentAfter: " gelesen und bin mit einer Kontaktaufnahme einverstanden.",
     submit: "Nachricht senden",
     sending: "Wird gesendet…",
-    successTitle: "Nachricht gesendet, vielen Dank!",
+    successTitle: "Nachricht gesendet, vielen Dank.",
     successText: "Wir antworten an die angegebene E-Mail-Adresse.",
     again: "Weitere Nachricht senden",
-    direct: "Lieber per E-Mail?",
     errors: {
       name: "Bitte geben Sie Ihren Namen ein.",
       email: "Bitte geben Sie eine gültige E-Mail-Adresse ein.",
@@ -532,142 +567,155 @@ const de: Dict = {
     terms: "AGB",
     cookies: "Cookies",
     rights: "Alle Rechte vorbehalten.",
-    language: "Sprache",
     login: "Zur Plattform",
   },
 };
 
 const fr: Dict = {
   meta: {
-    title: "EchoBox Logistics — Logiciel pour la location d'audioguides",
+    title: "EchoBox Logistics · Logiciel pour la location d'audioguides",
     description:
-      "Commandes, canaux radio, livraisons et retraits des récepteurs au même endroit. Pour les entreprises qui louent des systèmes audio aux guides et aux groupes.",
+      "Commandes, canaux radio, livreurs et retraits des récepteurs au même endroit. Pour les entreprises qui louent des audioguides aux guides et aux groupes.",
   },
-  nav: { features: "Fonctions", screens: "Le produit", how: "Comment ça marche", faq: "FAQ", contact: "Contact", login: "Connexion", demo: "Demander une démo", menu: "Menu" },
+  nav: {
+    product: "Le produit",
+    start: "Démarrer",
+    faq: "Questions",
+    contact: "Contact",
+    login: "Connexion",
+    demo: "Réserver une démo",
+    menu: "Menu",
+    language: "Langue",
+  },
   hero: {
-    eyebrow: "Pour les loueurs d'audioguides aux guides et aux groupes",
-    title: "Des récepteurs livrés à l'heure.",
-    accent: "Aucun canal en double. Aucun retrait oublié.",
+    title: "Livraisons et retraits d'audioguides, gérés depuis un seul écran.",
     subtitle:
-      "EchoBox Logistics organise tout votre service : les réservations des guides, l'attribution des canaux radio, les livreurs qui livrent et récupèrent, et les chiffres de fin de mois.",
-    primary: "Demander une démo",
+      "EchoBox est le logiciel des entreprises qui louent des récepteurs aux guides et aux groupes. Commandes, canaux radio, livreurs et retraits au même endroit : le bureau voit chaque livraison au moment où elle a lieu, et aucun groupe ne se retrouve sur le canal d'un autre.",
+    primary: "Réserver une démo",
     secondary: "Voir le produit",
-    points: ["Fonctionne dans le navigateur, même sur mobile", "Mises à jour en temps réel", "Données séparées par entreprise"],
-    liveBadge: "En direct",
+    note: "Fonctionne dans le navigateur, sur ordinateur et sur téléphone. Rien à installer.",
+    imageAlt: "L'écran Commandes d'EchoBox avec les livraisons et retraits de la journée",
   },
-  audience: {
-    label: "Conçu pour",
-    items: ["Location d'audioguides et whisper", "Tour-opérateurs et agences", "Excursions de croisière", "Groupes scolaires et congrès"],
-  },
-  problems: {
-    label: "Pourquoi",
-    title: "Du groupe WhatsApp à un seul outil",
-    subtitle: "Tableurs, messages et appels fonctionnent tant que la journée est calme. Puis arrive la haute saison.",
-    before: "Avant",
-    after: "Avec EchoBox",
+  day: {
+    label: "Le problème",
+    title: "Une journée ordinaire, avant EchoBox",
+    intro: "Les groupes de messagerie et les tableurs tiennent tant que la journée est calme. En haute saison, voilà ce qui arrive :",
     items: [
       {
-        problem: "Deux groupes sur le même canal : les guides se superposent et la visite est gâchée.",
-        solution: "Chaque commande ouverte occupe son propre canal. Les doublons sont bloqués et le canal est libéré au retrait.",
+        time: "07:50",
+        text: "Le livreur appelle pour la troisième fois : la livraison au Colisée, c'est 8 h 15 ou 8 h 45 ? Il y a deux messages différents dans le groupe.",
       },
       {
-        problem: "Des récepteurs livrés et jamais récupérés. On s'en aperçoit des jours plus tard, quand ils manquent.",
-        solution: "Les retraits restent affichés jusqu'à leur clôture ; ceux en retard ou sans date sont signalés.",
+        time: "10:40",
+        text: "Deux groupes devant Saint-Pierre sont sur le même canal. Les guides s'entendent mutuellement et la visite tombe à l'eau.",
       },
       {
-        problem: "« Où est le livreur ? » « À qui les ai-je donnés ? » Des appels sans fin pour savoir où on en est.",
-        solution: "Les livreurs mettent à jour le statut depuis leur téléphone en un geste : le bureau voit tout en direct.",
+        time: "18:00",
+        text: "Il manque 26 récepteurs au dépôt. Ils étaient au tour de mardi, et personne n'est passé les récupérer.",
       },
     ],
+    outro: "EchoBox réunit commandes, canaux et retraits au même endroit, visible par toute l'équipe. Ces appels deviennent inutiles.",
   },
-  features: {
-    label: "Fonctions",
-    title: "Tout le service, de la commande au retour des récepteurs",
-    subtitle: "Pensé pour les équipes qui livrent des récepteurs chaque jour dans les centres-villes, pas un logiciel de gestion générique.",
-    items: [
-      { title: "Commandes et planning du jour", text: "Vue par jour, semaine, mois ou année, avec recherche, filtres par statut et export PDF." },
-      { title: "Carte des canaux radio", text: "Canaux libres, occupés et désactivés d'un coup d'œil. Un canal ne peut jamais être attribué deux fois." },
-      { title: "Application livreurs", text: "Les livreurs ne voient que leurs propres missions et font avancer livraison et retrait d'un seul geste." },
-      { title: "Retraits sous contrôle", text: "Retraits en retard, non planifiés ou non attribués : en haut de la page jusqu'à ce que quelqu'un les clôture." },
-      { title: "Lien de réservation pour les guides", text: "Un lien public au nom de votre entreprise : les guides réservent seuls et la commande arrive déjà remplie." },
-      { title: "Tableau de bord et statistiques", text: "Chiffre d'affaires, récepteurs livrés et perdus, heures de pointe, guides et lieux les plus fréquents, mois après mois." },
-      { title: "Équipe et rôles", text: "Invitations par e-mail, rôles administrateur et livreur, et qui est en service en ce moment et où il va." },
-      { title: "Historique de chaque commande", text: "Qui a créé, attribué, livré ou modifié quoi, et quand. Utile quand quelque chose ne colle pas." },
-    ],
-  },
-  screens: {
+  product: {
     label: "Le produit",
-    title: "Découvrez comment on travaille avec EchoBox",
-    subtitle: "De vrais écrans de l'application, avec des données d'exemple d'une journée à Rome.",
-    web: "Bureau (web)",
-    mobile: "Livreurs et guides (mobile)",
+    title: "Toute une journée de travail, de la commande au retour des récepteurs",
+    note: "Les écrans montrent des données d'exemple : noms, numéros et adresses sont inventés. L'interface de l'application est en italien.",
     enlarge: "Agrandir",
     close: "Fermer",
-    note: "Données de démonstration : noms, numéros et adresses sont fictifs. L'interface de l'application est en italien.",
-    items: {
-      "web-orders": { title: "Toute la journée d'un coup d'œil", text: "Livraisons et retraits du jour avec statut, livreurs, chiffre d'affaires et retraits à traiter." },
-      "web-order-detail": { title: "Chaque commande, avec son histoire", text: "Guide, canal, récepteurs, horaires et lieux, plus l'historique complet de chaque modification." },
-      "web-channels": { title: "Carte des canaux radio", text: "Libres, utilisés et désactivés. Un clic pour mettre hors service un canal défectueux." },
-      "web-dashboard": { title: "Le mois en chiffres", text: "Chiffre d'affaires et commandes par rapport au mois précédent, tendance quotidienne, pertes et heures de pointe." },
-      "web-calendar": { title: "Calendrier", text: "Livraisons et retraits de chaque jour du mois. Un clic sur un jour ouvre ses commandes." },
-      "web-team": { title: "Équipe et livreurs en service", text: "Qui livre, qui récupère et où, avec les invitations et les rôles de l'équipe." },
-      "mobile-rider": { title: "L'application du livreur", text: "Uniquement les missions attribuées, avec l'adresse, le téléphone du guide et un grand bouton pour avancer." },
-      "mobile-orders": { title: "Le bureau dans la poche", text: "La gestion des commandes fonctionne aussi sur mobile, quand vous n'êtes pas au bureau." },
-      "mobile-booking": { title: "Le formulaire des guides", text: "Les guides réservent depuis votre lien public : la commande apparaît aussitôt dans votre liste." },
+    sections: {
+      orders: {
+        label: "Commandes",
+        title: "Toute la journée sur un seul écran",
+        text: "Les livraisons et retraits du jour avec horaire, lieu, canal, livreur et chiffre d'affaires. Cherchez un guide, filtrez par statut, passez à la semaine ou au mois, et imprimez un PDF pour l'équipe sur le terrain.",
+        points: [
+          "Chaque commande garde son historique : qui l'a créée, attribuée, livrée, et quand",
+          "Les commandes arrivées par le formulaire des guides se repèrent d'un coup d'œil",
+        ],
+      },
+      channels: {
+        label: "Canaux radio",
+        title: "Un canal, un groupe",
+        text: "Chaque commande ouverte garde son canal jusqu'au retour des récepteurs, puis le canal se libère. EchoBox refuse d'attribuer le même canal à deux commandes ouvertes.",
+        points: ["Carte des canaux libres, occupés et désactivés", "Un canal défectueux se désactive en un clic"],
+      },
+      riders: {
+        label: "Livreurs",
+        title: "Sur le téléphone du livreur, seulement l'essentiel",
+        text: "Le livreur voit les missions qui lui sont attribuées, avec l'adresse, le numéro du guide, le nombre de récepteurs et le canal. Un bouton pour chaque étape, du départ au retrait.",
+        points: ["Les récepteurs manquants sont signalés au retrait", "Le bureau voit le nouveau statut au même moment"],
+      },
+      pickups: {
+        label: "Retraits",
+        title: "Aucun récepteur oublié",
+        text: "Les retraits restent en haut de la page des commandes jusqu'à ce que quelqu'un les clôture. Ceux sans date ou en retard sont signalés chaque jour, même si la visite date de la semaine dernière.",
+        points: ["Qui a livré, et où, en un clic"],
+      },
+      booking: {
+        label: "Réservations",
+        title: "Les guides réservent eux-mêmes",
+        text: "Partagez le lien de réservation de votre entreprise. Le guide saisit le nom du groupe, son téléphone, le nombre de récepteurs, les horaires et les lieux : la commande arrive dans votre liste, déjà remplie.",
+        points: ["Pas de compte à créer pour le guide", "Fermez les réservations en ligne quand vous voulez"],
+      },
+      stats: {
+        label: "Statistiques",
+        title: "Le mois en chiffres, sans tableur",
+        text: "Chiffre d'affaires, commandes, récepteurs livrés et perdus, comparés au mois précédent. Avec les heures de pointe, les guides les plus actifs et les lieux les plus fréquents.",
+        points: ["Export CSV depuis le calendrier"],
+      },
     },
+    moreTitle: "Également inclus",
+    more: [
+      { title: "Calendrier", text: "Les livraisons et retraits de chaque jour, avec le chiffre d'affaires." },
+      { title: "Équipe et rôles", text: "Invitations par e-mail, rôles administrateur et livreur, et qui est en service maintenant." },
+      { title: "Annuaire des guides", text: "Les guides avec qui vous travaillez, avec téléphone, e-mail et notes." },
+      { title: "Données séparées", text: "Chaque entreprise ne voit que ses commandes, livreurs et guides." },
+      { title: "Clair ou sombre", text: "Chacun choisit le thème qu'il préfère." },
+      { title: "Exports", text: "Un PDF de la journée, un CSV du mois." },
+    ],
   },
-  how: {
-    label: "Comment ça marche",
-    title: "Quatre étapes, chaque jour",
+  start: {
+    label: "Démarrer",
+    title: "Opérationnel en trois étapes",
     steps: [
-      { title: "Une commande arrive", text: "Vous la saisissez, ou le guide la réserve depuis votre lien public : récepteurs, horaires, lieux de livraison et de retrait." },
-      { title: "Canal et livreurs", text: "Choisissez un canal libre et attribuez livraison et retrait aux livreurs. Les conflits sont impossibles." },
-      { title: "Livraison et retrait", text: "Le livreur livre puis récupère en mettant à jour le statut depuis son téléphone, y compris les récepteurs perdus." },
-      { title: "Tout est tracé", text: "Canal libéré, chiffre d'affaires enregistré, statistiques à jour. Demain commence avec une liste propre." },
+      { title: "Créez votre entreprise", text: "Inscrivez-vous, nommez votre entreprise et indiquez combien de canaux radio vous avez." },
+      { title: "Invitez vos livreurs", text: "Ils reçoivent un e-mail, choisissent un mot de passe et travaillent depuis leur téléphone." },
+      { title: "Partagez votre lien", text: "Envoyez votre lien de réservation aux guides : les commandes arrivent toutes seules." },
     ],
-  },
-  roles: {
-    label: "Pour toute l'équipe",
-    title: "Une plateforme, trois points de vue",
-    items: [
-      { role: "Bureau", title: "Planifier et garder le contrôle", points: ["Commandes, canaux et attributions", "Retraits en retard mis en évidence", "Statistiques et exports"] },
-      { role: "Livreurs", title: "Savent toujours quoi faire", points: ["Uniquement leurs missions", "Adresses et téléphone du guide", "Un geste par étape"] },
-      { role: "Guides", title: "Réservent en une minute", points: ["Le lien public de votre entreprise", "Aucun compte à créer", "Confirmation immédiate"] },
-    ],
+    cta: "Envie de le voir d'abord ? Réservez une démo",
   },
   faq: {
-    label: "FAQ",
+    label: "Questions",
     title: "Questions fréquentes",
     items: [
-      { q: "Dois-je installer quelque chose ?", a: "Non. EchoBox fonctionne dans le navigateur, sur ordinateur, tablette et téléphone. Les livreurs l'ouvrent sur leur téléphone comme une page web." },
-      { q: "Combien de canaux radio puis-je gérer ?", a: "Autant que vous en avez : indiquez le total et désactivez les canaux défectueux ou réservés. Chaque canal ne sert qu'à une commande ouverte à la fois." },
-      { q: "Les guides doivent-ils s'inscrire ?", a: "Non. Partagez le lien de réservation de votre entreprise : le guide saisit nom, téléphone, récepteurs et horaires, et la commande vous parvient aussitôt." },
-      { q: "Mes données sont-elles séparées de celles des autres entreprises ?", a: "Oui. Chaque entreprise ne voit que ses commandes, livreurs et guides. Les règles d'accès sont appliquées directement dans la base de données." },
-      { q: "Dans quelle langue est l'application ?", a: "L'interface de travail est en italien ; ce site existe aussi en anglais, allemand et français. Si votre équipe travaille dans une autre langue, écrivez-nous." },
-      { q: "Combien ça coûte ?", a: "Cela dépend du nombre de livreurs et de commandes. Décrivez-nous votre service en quelques lignes et nous vous enverrons une offre." },
+      { q: "Faut-il installer quelque chose ?", a: "Non. EchoBox s'ouvre dans le navigateur, sur ordinateur, tablette et téléphone. Les livreurs l'utilisent sur leur téléphone comme n'importe quel site." },
+      { q: "Combien de canaux radio puis-je gérer ?", a: "Tous ceux que vous avez. Indiquez le total et désactivez les canaux défectueux ou réservés. Un canal ne sert qu'à une commande ouverte à la fois." },
+      { q: "Les guides doivent-ils s'inscrire ?", a: "Non. Ils utilisent le lien de réservation de votre entreprise et remplissent un formulaire d'une minute. La commande vous parvient aussitôt." },
+      { q: "Nos données sont-elles séparées de celles des autres entreprises ?", a: "Oui. Chaque entreprise ne voit que ses commandes, livreurs et guides, et la séparation est appliquée dans la base de données elle-même." },
+      { q: "Dans quelle langue est l'application ?", a: "L'application est en italien. Ce site existe aussi en anglais, allemand et français : si votre équipe travaille dans une autre langue, écrivez-nous." },
+      { q: "Combien ça coûte ?", a: "Cela dépend du nombre de livreurs et de commandes. Décrivez-nous votre service et nous vous enverrons une offre." },
     ],
   },
   contact: {
     label: "Contact",
-    title: "Parlons de votre service",
-    subtitle: "Dites-nous combien de récepteurs vous gérez et comment vous travaillez aujourd'hui. Nous vous répondons au plus vite.",
-    perks: ["Démo en direct sur vos cas réels", "Configuration des canaux et des livreurs avec vous", "Sans engagement"],
+    title: "Regardons EchoBox sur une journée comme la vôtre",
+    subtitle:
+      "Dites-nous combien de récepteurs vous gérez, combien de livreurs vous avez et comment vous vous organisez aujourd'hui. Nous revenons vers vous pour fixer une démo.",
+    direct: "Ou écrivez à",
     name: "Prénom et nom",
     email: "E-mail",
     company: "Entreprise",
     phone: "Téléphone",
     optional: "facultatif",
     message: "Message",
-    messagePlaceholder: "Ex. nous louons 400 récepteurs à Rome avec 4 livreurs et voulons arrêter de tout gérer par messagerie…",
+    messagePlaceholder: "Ex. nous louons 400 récepteurs à Rome avec 4 livreurs et voulons arrêter de tout organiser par messagerie…",
     consentBefore: "J'ai lu la ",
     consentLink: "politique de confidentialité",
     consentAfter: " et j'accepte d'être recontacté.",
     submit: "Envoyer le message",
     sending: "Envoi en cours…",
-    successTitle: "Message envoyé, merci !",
+    successTitle: "Message envoyé, merci.",
     successText: "Nous vous répondrons à l'adresse e-mail indiquée.",
     again: "Envoyer un autre message",
-    direct: "Vous préférez l'e-mail ?",
     errors: {
       name: "Veuillez indiquer votre nom.",
       email: "Veuillez indiquer une adresse e-mail valide.",
@@ -685,7 +733,6 @@ const fr: Dict = {
     terms: "Conditions générales",
     cookies: "Cookies",
     rights: "Tous droits réservés.",
-    language: "Langue",
     login: "Accéder à la plateforme",
   },
 };

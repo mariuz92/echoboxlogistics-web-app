@@ -43,11 +43,22 @@ const ADMIN = db.profiles.find((p) => p.full_name === "Giulia Ferri").id;
 const RIDER = db.profiles.find((p) => p.full_name === "Luca Bianchi").id;
 
 const desktop = { viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 };
-const phone = { ...devices["iPhone 13"] };
+// A phone screen without device chrome: the landing page shows it as a plain rounded screen.
+const phone = { ...devices["iPhone 13"], viewport: { width: 390, height: 760 } };
 
-/** @type {{ name: string, ctx: object, as: string | null, path: string, prepare?: (page) => Promise<void> }[]} */
+const dialog = (page) => page.getByRole("dialog").first();
+
+/**
+ * name:    output file (public/images/screens/<name>.jpg/.webp)
+ * target:  optional element to capture instead of the whole viewport
+ * clip:    optional viewport region (CSS pixels) to capture
+ * @type {{ name: string, ctx: object, as: string | null, path: string,
+ *          prepare?: (page) => Promise<void>, target?: (page) => import("@playwright/test").Locator,
+ *          clip?: { x: number, y: number, width: number, height: number } }[]}
+ */
 const shots = [
   {
+    // Landing hero: the whole Orders screen.
     name: "web-orders",
     ctx: desktop,
     as: ADMIN,
@@ -55,29 +66,43 @@ const shots = [
     prepare: (page) => page.getByText("Alessandro Greco").first().waitFor(),
   },
   {
-    name: "web-order-detail",
+    name: "crop-order-detail",
     ctx: desktop,
     as: ADMIN,
     path: "/",
     prepare: async (page) => {
       await page.getByText("James Whitfield").first().click();
-      await page.getByRole("dialog").first().waitFor();
+      await dialog(page).waitFor();
       await page.waitForTimeout(800);
     },
+    target: dialog,
   },
   {
-    name: "web-channels",
+    name: "crop-channels",
     ctx: desktop,
     as: ADMIN,
     path: "/",
     prepare: async (page) => {
       await page.getByRole("button", { name: /Canali radio/ }).click();
-      await page.getByRole("dialog").first().waitFor();
+      await dialog(page).waitFor();
       await page.waitForTimeout(800);
     },
+    target: (page) => page.locator(".ant-modal-container, .ant-modal-content").first(),
   },
   {
-    name: "web-dashboard",
+    name: "crop-pickups",
+    ctx: desktop,
+    as: ADMIN,
+    path: "/",
+    prepare: async (page) => {
+      await page.getByRole("button", { name: "Mostra" }).click();
+      await dialog(page).waitFor();
+      await page.waitForTimeout(800);
+    },
+    target: (page) => page.locator(".ant-modal-container, .ant-modal-content").first(),
+  },
+  {
+    name: "crop-dashboard",
     ctx: desktop,
     as: ADMIN,
     path: "/dashboard",
@@ -87,31 +112,22 @@ const shots = [
       await page.getByRole("button", { name: "Mese precedente" }).first().click();
       await page.waitForTimeout(1200);
     },
+    clip: { x: 252, y: 80, width: 1172, height: 700 },
   },
-  { name: "web-calendar", ctx: desktop, as: ADMIN, path: "/calendar" },
-  { name: "web-team", ctx: desktop, as: ADMIN, path: "/riders" },
   {
-    name: "mobile-rider",
+    name: "crop-rider",
     ctx: phone,
     as: RIDER,
     path: "/",
     prepare: (page) => page.getByText("Alessandro Greco").first().waitFor(),
   },
   {
-    name: "mobile-orders",
-    ctx: phone,
-    as: ADMIN,
-    path: "/",
-    prepare: (page) => page.getByText("Alessandro Greco").first().waitFor(),
-  },
-  {
-    name: "mobile-booking",
+    name: "crop-booking",
     ctx: phone,
     as: null,
     path: `/book/${db.tenant.slug}`,
     prepare: async (page) => {
-      const inputs = page.locator("input:visible");
-      await inputs.first().waitFor();
+      await page.locator("input:visible").first().waitFor();
       await page.getByPlaceholder(/Mario Rossi/).fill("Chiara Lombardi");
       await page.getByPlaceholder(/333 1234567/).fill("328 415 7720");
       await page.getByPlaceholder(/esempio/).fill("chiara.l@guidaroma.example");
@@ -184,9 +200,11 @@ async function main() {
       }
       await page.waitForTimeout(600);
       const png = join(tmpDir, `${shot.name}.png`);
-      await page.screenshot({ path: png, fullPage: false, animations: "disabled" });
       const jpg = join(outDir, `${shot.name}.jpg`);
-      await page.screenshot({ path: jpg, type: "jpeg", quality: 82, animations: "disabled" });
+      const opts = { animations: "disabled", ...(shot.clip ? { clip: shot.clip } : {}) };
+      const take = (o) => (shot.target ? shot.target(page).screenshot({ ...opts, ...o }) : page.screenshot({ ...opts, ...o }));
+      await take({ path: png });
+      await take({ path: jpg, type: "jpeg", quality: 84 });
       const webp = spawnSync("convert", [png, "-quality", "80", join(outDir, `${shot.name}.webp`)]);
       console.log(`✓ ${shot.name}${webp.status === 0 ? " (jpg + webp)" : " (jpg)"}`);
       await context.close();
