@@ -48,8 +48,9 @@ export async function listInvitations(): Promise<Invitation[]> {
 }
 
 export async function revokeInvitation(id: string): Promise<void> {
-  const { error } = await supabase.from("invitations").delete().eq("id", id);
+  const { data, error } = await supabase.from("invitations").delete().eq("id", id).select("id").maybeSingle();
   if (error) throw error;
+  if (!data) throw new Error("write_not_applied");
 }
 
 export interface InviteInput {

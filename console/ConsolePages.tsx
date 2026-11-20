@@ -334,9 +334,10 @@ export function IssueTable({ snapshot, edit }: { snapshot: Snapshot; edit?: Open
     { title: "Azienda", render: (_, row) => row.company_name ?? "—" },
     { title: "Occorrenze", dataIndex: "occurrences" },
     { title: "Ultima attività", render: (_, row) => date(row.last_seen_at) },
-    { title: "Stato", render: (_, row) => <Tag color={row.severity === "critical" ? "red" : "gold"}>
-      {ISSUE_STATES.find((item) => item.value === row.state)?.label}
+    { title: "Gravità", render: (_, row) => <Tag color={row.severity === "critical" ? "red" : row.severity === "warning" ? "gold" : "blue"}>
+      {ISSUE_SEVERITIES.find((item) => item.value === row.severity)?.label}
     </Tag> },
+    { title: "Stato", render: (_, row) => ISSUE_STATES.find((item) => item.value === row.state)?.label },
     ...(edit ? [{ title: "Azioni", render: (_: unknown, row: Snapshot["issues"][number]) => <Button size="small" onClick={() => edit({
       title: "Aggiorna problema", action: "update_issue",
       values: { issue_id: row.id, state: row.state, severity: row.severity },

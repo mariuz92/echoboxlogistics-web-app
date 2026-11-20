@@ -18,6 +18,7 @@ const MESSAGES: Record<string, string> = {
   company_exists:
     "Esiste già un'azienda con questo nome. Chiedi a un amministratore di invitarti.",
   company_suspended: "L’azienda è sospesa. Contatta il supporto EchoBox.",
+  write_not_applied: "L’operazione non è consentita o il record non è più disponibile.",
   company_access_restricted: "Questa operazione non è disponibile con l’accesso attuale dell’azienda.",
   invitation_required: "Per accedere a un’azienda è necessario un invito.",
   invitation_unavailable: "L’invito non è valido o è scaduto.",

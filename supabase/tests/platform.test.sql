@@ -1,7 +1,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
-select plan(18);
+select plan(24);
 
 insert into auth.users (id, email, email_confirmed_at, encrypted_password, raw_user_meta_data)
 values
@@ -45,6 +45,10 @@ select throws_ok($$select public.update_member('cccc0000-0000-4000-8000-00000000
   'P0001', 'last_admin', 'the owner cannot disable the only administrator');
 select ok(public.report_platform_issue('web','data','query_error') is not null,
   'a signed-in customer can submit a structured issue');
+select lives_ok($$insert into public.orders (id, tenant_id, guide_name, delivery_at, delivery_address)
+  select 'cccc0000-0000-4000-8000-000000000004', p.tenant_id, 'Platform Test Guide', now(), 'Test address'
+  from public.profiles p where p.id = 'cccc0000-0000-4000-8000-000000000002'$$,
+  'active companies can create orders');
 
 set local request.jwt.claim.sub = 'cccc0000-0000-4000-8000-000000000001';
 set local request.jwt.claims = '{"sub":"cccc0000-0000-4000-8000-000000000001","aal":"aal2"}';
@@ -59,6 +63,25 @@ set local request.jwt.claim.sub = 'cccc0000-0000-4000-8000-000000000002';
 set local request.jwt.claims = '{"sub":"cccc0000-0000-4000-8000-000000000002","aal":"aal1"}';
 select is(public.platform_company_access(), 'read_only');
 select is((select accepting_bookings from public.get_public_tenant('platform-test-company')), false);
+select is((select count(*) from public.orders where id = 'cccc0000-0000-4000-8000-000000000004'),
+  1::bigint, 'read-only companies retain order history');
+with changed as (
+  update public.orders set notes = 'restricted' where id = 'cccc0000-0000-4000-8000-000000000004' returning id
+)
+select is((select count(*) from changed), 0::bigint, 'read-only companies cannot edit orders directly');
+select throws_ok($$select public.admin_set_status('cccc0000-0000-4000-8000-000000000004', 'cancelled')$$,
+  '42501', 'company_access_restricted', 'read-only companies cannot bypass access via order RPCs');
+
+set local request.jwt.claim.sub = 'cccc0000-0000-4000-8000-000000000001';
+set local request.jwt.claims = '{"sub":"cccc0000-0000-4000-8000-000000000001","aal":"aal2"}';
+select lives_ok($$select public.platform_console_action('set_company_active', jsonb_build_object(
+  'tenant_id', public.platform_console_snapshot(null, 'Platform Test Company')->'companies'->0->>'id',
+  'active', false, 'reason', 'Review account access'))$$);
+
+set local request.jwt.claim.sub = 'cccc0000-0000-4000-8000-000000000002';
+set local request.jwt.claims = '{"sub":"cccc0000-0000-4000-8000-000000000002","aal":"aal1"}';
+select is((select count(*) from public.orders where id = 'cccc0000-0000-4000-8000-000000000004'),
+  0::bigint, 'suspension takes effect for an already-issued customer JWT');
 
 select * from finish();
 rollback;
