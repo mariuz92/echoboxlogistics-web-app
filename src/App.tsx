@@ -1,8 +1,10 @@
-import { Suspense, lazy, type ReactNode } from "react";
+import { Suspense, lazy, useEffect, type ReactNode } from "react";
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from "react-router";
 import { Authenticated, Refine } from "@refinedev/core";
 import routerProvider, { NavigateToResource } from "@refinedev/react-router";
 import { App as AntdApp, ConfigProvider } from "antd";
+import { MutationCache, QueryCache } from "@tanstack/react-query";
+import { reportWebIssue } from "./features/platform/runtime";
 import itIT from "antd/locale/it_IT";
 
 import { isSupabaseConfigured } from "./config/env";
@@ -183,7 +185,19 @@ function AppRoutes() {
   );
 }
 
+const queryCache = new QueryCache({
+  onError: (error) => void reportWebIssue("data", "query_error", error),
+});
+const mutationCache = new MutationCache({
+  onError: (error) => void reportWebIssue("data", "mutation_error", error),
+});
+
 function RefineApp() {
+  useEffect(() => {
+    const unhandled = () => void reportWebIssue("runtime", "unhandled_rejection");
+    window.addEventListener("unhandledrejection", unhandled);
+    return () => window.removeEventListener("unhandledrejection", unhandled);
+  }, []);
   const notificationProvider = useNotificationProvider();
 
   return (
@@ -199,6 +213,8 @@ function RefineApp() {
         disableTelemetry: true,
         reactQuery: {
           clientConfig: {
+            queryCache,
+            mutationCache,
             defaultOptions: {
               queries: { staleTime: 15_000, retry: 1, refetchOnWindowFocus: true },
             },

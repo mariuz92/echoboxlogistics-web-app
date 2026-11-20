@@ -1,0 +1,23 @@
+name: echobox-console
+
+services:
+  console:
+    build:
+      context: ..
+      args:
+        APP_KIND: console
+    image: echoboxlogistics-console:latest
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${CONSOLE_PORT:-18090}:8080/tcp"
+    environment:
+      VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:?Set the EchoBox Supabase URL in .env}
+      VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY:?Set the EchoBox public key in .env}
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/cache/nginx
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL

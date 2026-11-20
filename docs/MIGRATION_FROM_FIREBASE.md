@@ -32,7 +32,7 @@ Removed: `firebase`, `@refinedev/antd` (supports antd 5 only, and pulled in a vu
 |---|---|
 | `tenants/{id}` | `tenants` (`name` + unique `name_key`, `slug`, `timezone`, `channel_min`, `channel_max`, `disabled_channels`, `channels_exclusive`) |
 | `users/{uid}` with `role: ["admin","rider","guide"]` | `profiles` for **admin / rider** (1:1 with `auth.users`). Guides become rows in **`guides`** (contacts without a login) |
-| `invitations/{token}` | `invitations` (matched by verified email; the custom token + OTP are gone) |
+| `invitations/{token}` | Reissue outstanding invitations through the app. Supabase matches by verified email. |
 | `orders/{id}` (no `tenantId`!) | `orders` (with `tenant_id`) |
 | `rider_status/{uid}` | **view** `rider_activity`, derived from open orders |
 | tenant `iddleChannels` / localStorage `Iddlechannels` | derived from open orders and their times (`get_channel_board`) |
@@ -58,7 +58,8 @@ Removed: `firebase`, `@refinedev/antd` (supports antd 5 only, and pulled in a vu
 |---|---|
 | `Presa in Carico` | `received` |
 | `Assegnato` with `consegnatoDa` only | `delivery_assigned` |
-| `Assegnato` with `ritiratoDa` | `pickup_assigned` |
+| `Assegnato` with `ritiratoDa` only | `pickup_assigned` |
+| `Assegnato` with both rider IDs or neither | Review the actual active leg for that order before mapping |
 | `In Consegna` | `out_for_delivery` |
 | `Consegnato` | `delivered` (or `awaiting_pickup` if a pickup is planned and unassigned) |
 | `Attesa ritiro` | `awaiting_pickup` |
@@ -74,26 +75,19 @@ which removes the guesswork the old code did in `handleShare` and `updateRiderSt
 > **No automated Firestore → Postgres import is included.** If you have production data to keep, follow
 > this outline (ask for a script if you want one built and tested against an export).
 
-1. **Create the tenants** in Supabase and keep a map `firestore tenant id → uuid`. Names must be unique
-   ignoring case/whitespace (`name_key`).
-2. **Users.** Two options:
+1. **Create the tenants and keep an ID map.** Names must be unique ignoring case and surrounding whitespace. Preserve the company's real channel availability, `disabledChannels` and time zone. When the legacy devices use `0..channelsNum`, retain that inclusive range for that company.
+2. **Map the staff accounts before importing assigned orders.** Keep a `Firebase UID → Supabase Auth UUID` map. Copy display name, phone, avatar, account state and available dates to the matching profile. Two options exist.
    - *Re-invite* (simplest, supported out of the box): create the company's first admin by registering,
      then invite everyone else from **Team e rider**. Nobody keeps an old password.
    - *Import accounts and password hashes*: Supabase documents importing Firebase Auth users, including
      Firebase's scrypt password hashes (see "Migrate from Firebase Auth" in the Supabase docs; verify the
      current procedure). Then insert the matching `profiles` rows (`id` = the new `auth.users.id`).
    Users with only the `guide` role become `guides` rows (no account).
-3. **Orders.** Export `orders`, resolve each order's tenant (the old collection had no `tenantId`, so you have to
-   infer it from the rider/guide user or assign by hand), map fields and statuses with the tables above, and
-   insert with `set_config('app.order_actions','on', false)` in the session so statuses and riders can be written
-   directly (the guard trigger otherwise rejects them).
-4. **Clean up before inserting.** The database enforces rules the old data may violate:
-   - `pickup_at >= delivery_at`
-   - no two open orders on the same radio channel with overlapping times (delivery to pickup) per company
-   - a `*_assigned` / `out_for_*` status needs the matching rider id
-   Decide how to resolve violations (null the pickup, close old orders, drop a duplicate channel).
-5. `rider_status` and the tenant channel arrays are **not migrated**: they are derived.
-6. Run `supabase test db` and open the dashboard to sanity-check totals against Firestore.
+3. **Reconcile guide contacts.** Deduplicate normalized phones and emails within each company. Link orders to a guide only when the match is clear. Keep the guide name and available contact details on the order even when it lacks a guide row.
+4. **Resolve every order's company before loading it.** Legacy root `orders` did not store `tenantId`. Use reliable rider, guide or source business records to identify the company, and set unresolved or conflicting records aside for review. Use stable ID mappings for companies, staff, guides and orders so a retry cannot duplicate them. Preserve the original IDs in the import ledger.
+5. **Validate the transformed orders before a trial import.** Check delivery fields, pickup after delivery, status-to-rider requirements, and channel conflicts in exclusive companies. Retain trustworthy historical timestamps and review missing values. A privileged importer can use `select set_config('app.order_actions', 'on', true);` inside its import transaction to write verified historical statuses and rider IDs while constraints and triggers still run.
+6. **Reissue any still-needed invitations.** Preserve the intended roles and company when sending the replacement. Computed rider status and channel occupancy come from imported orders. The legacy `iddleChannels` flag is derived, while manual `disabledChannels` belongs in the company's settings.
+7. **Reconcile the result.** Compare company-by-company counts, statuses, radio totals and balances with the export. Run the [production record audit](DATABASE.md#production-records-and-cutover-audit), the staging database tests and a live booking/pickup test on staging before changing the frontend connection.
 
 ### The mobile app
 

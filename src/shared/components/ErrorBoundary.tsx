@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { Button, Flex, Result } from "antd";
+import { reportWebIssue } from "../../features/platform/runtime";
 
 interface State {
   error: Error | null;
@@ -15,6 +16,7 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, State> {
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.error("Unhandled UI error", error, info.componentStack);
+    void reportWebIssue("render", "render_error");
   }
 
   render() {

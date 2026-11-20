@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router";
 import { useLogout } from "@refinedev/core";
 import {
+  Alert,
   Avatar,
   Button,
   Drawer,
@@ -34,6 +35,7 @@ import {
 import { CONFIG } from "../config/configuration";
 import { brand } from "../config/theme";
 import { useCurrentUser } from "../providers/current-user";
+import { usePlatformSettings } from "../features/platform/runtime";
 import { useThemeMode } from "../providers/theme-mode";
 import { Brand } from "./Brand";
 
@@ -73,7 +75,9 @@ export function AppLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { mutate: logout } = useLogout();
-  const { profile, tenant, isAdmin } = useCurrentUser();
+  const { profile, tenant, isAdmin, result } = useCurrentUser();
+  const settings = usePlatformSettings();
+  const access = result?.kind === "ready" ? result.accessMode : undefined;
   const { mode, toggle } = useThemeMode();
 
   const [collapsed, setCollapsed] = useState(false);
@@ -236,6 +240,9 @@ export function AppLayout() {
 
         <Content style={{ padding: isMobile ? 16 : 28 }}>
           <div style={{ maxWidth: 1480, margin: "0 auto" }}>
+            {settings.notice && <Alert type="info" showIcon title={settings.notice} style={{ marginBottom: 16 }} />}
+            {access === "read_only" && <Alert type="warning" showIcon title="L’azienda ha accesso in sola lettura." style={{ marginBottom: 16 }} />}
+            {access === "closeout" && <Alert type="warning" showIcon title="Puoi completare gli incarichi già in corso." style={{ marginBottom: 16 }} />}
             <Outlet />
           </div>
         </Content>

@@ -299,8 +299,8 @@ max_enrolled_factors = 10
 
 # Control MFA via App Authenticator (TOTP)
 [auth.mfa.totp]
-enroll_enabled = false
-verify_enabled = false
+enroll_enabled = true
+verify_enabled = true
 
 # Configure MFA via Phone Messaging
 [auth.mfa.phone]
@@ -424,5 +424,10 @@ verify_jwt = true
 # contact: the marketing site's contact form. Public (no login), so the gateway's
 # JWT check is off; the function validates and rate-limits by itself.
 [functions.contact]
+enabled = true
+verify_jwt = false
+
+# The RPC in platform-invite authorizes the signed-in operator and requires MFA.
+[functions.platform-invite]
 enabled = true
 verify_jwt = false

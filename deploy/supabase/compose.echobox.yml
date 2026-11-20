@@ -1,0 +1,44 @@
+# Overlay for the official Supabase self-hosted/v0.8.4 docker-compose.yml.
+name: echobox-supabase
+
+services:
+  studio:
+    container_name: !reset null
+  api-gw:
+    container_name: !reset null
+    ports: !override
+      - "127.0.0.1:${ECHOBOX_API_PORT:-18000}:8000/tcp"
+  auth:
+    container_name: !reset null
+    environment:
+      GOTRUE_MFA_TOTP_ENROLL_ENABLED: "true"
+      GOTRUE_MFA_TOTP_VERIFY_ENABLED: "true"
+      GOTRUE_PASSWORD_MIN_LENGTH: "8"
+      GOTRUE_PASSWORD_REQUIRED_CHARACTERS: "abcdefghijklmnopqrstuvwxyz:ABCDEFGHIJKLMNOPQRSTUVWXYZ:0123456789"
+  rest:
+    container_name: !reset null
+  realtime:
+    container_name: realtime-dev.echobox-supabase-realtime
+    networks:
+      default:
+        aliases:
+          # Envoy uses this name for DNS and for the Realtime tenant hostname.
+          - realtime-dev.supabase-realtime
+  storage:
+    container_name: !reset null
+  imgproxy:
+    container_name: !reset null
+  meta:
+    container_name: !reset null
+  functions:
+    container_name: !reset null
+    env_file: .env.functions
+    environment:
+      SITE_URL: ${SITE_URL:?Set the public EchoBox app URL in .env}
+      # contact is public. invite-member verifies the caller and admin role itself.
+      VERIFY_JWT: "false"
+  db:
+    container_name: !reset null
+  supavisor:
+    container_name: !reset null
+    ports: !reset []

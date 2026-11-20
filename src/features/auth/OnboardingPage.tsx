@@ -20,6 +20,7 @@ export function OnboardingPage() {
 
   if (loading) return <FullPageSpinner />;
   if (result?.kind === "ready") return <Navigate to="/" replace />;
+  if (result?.kind === "pending_invite") return <Navigate to="/join" replace />;
   if (result?.kind !== "needs_company") return <Navigate to="/login" replace />;
 
   const onFinish = async ({ companyName }: { companyName: string }) => {

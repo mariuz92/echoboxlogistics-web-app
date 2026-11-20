@@ -4,6 +4,7 @@ import { GoogleOutlined, LockOutlined, MailOutlined } from "@ant-design/icons";
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { AuthShell } from "./AuthShell";
+import { usePlatformSettings } from "../platform/runtime";
 import { env } from "../../config/env";
 import type { LoginParams } from "../../providers/auth-provider";
 import { getErrorMessage } from "../../lib/errors";
@@ -14,6 +15,7 @@ const REASON_MESSAGES: Record<string, string> = {
 };
 
 export function LoginPage() {
+  const settings = usePlatformSettings();
   const { mutate: login, isPending } = useLogin<LoginParams>();
   // Set when a signed-in session could not be used (e.g. company name already taken):
   // either passed in the URL or left as a one-shot notice by the auth check.
@@ -25,7 +27,7 @@ export function LoginPage() {
       title="Accedi"
       subtitle="Gestisci ordini, rider e canali radio."
       footer={
-        <>
+        settings.operator_only_companies ? undefined : <>
           Non hai un account? <Link to="/register">Registra la tua azienda</Link>
         </>
       }

@@ -23,7 +23,8 @@ export function RequireUser({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (loading || !result || ready) return;
     if (result.kind === "blocked") setLoginNotice(result.code ?? "error");
-    window.location.replace(result.kind === "needs_company" ? "/onboarding" : "/login");
+    if (result.kind === "pending_invite") window.location.replace("/join");
+    else window.location.replace(result.kind === "needs_company" ? "/onboarding" : "/login");
   }, [loading, result, ready]);
 
   return ready ? <>{children}</> : <FullPageSpinner />;
