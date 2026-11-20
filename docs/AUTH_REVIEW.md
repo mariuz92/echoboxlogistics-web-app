@@ -45,6 +45,8 @@ One user belongs to exactly one company (`profiles.id` is the auth user id, with
 
 ## 3. Decisions needed
 
+> Answers received on 2026-11-20 and the resulting backlog are in [TODO.md](TODO.md): an operator panel is needed, riders can belong to several companies, roles for now are owner, admin and rider with a supervisor role later. The questions are kept below for reference.
+
 1. **How are companies created?** (a) By you: a demo leads to you creating the company and inviting its first admin (safest; closes F1–F3). (b) Self-service, with a captcha, approval or trial limits and invite quotas.
 2. **How do riders sign in?** E-mail and password as now, or a link or QR code from the admin plus passwordless sign-in (magic link or one-time code)?
 3. **Can one person belong to several companies?** (Decides whether F6 needs a schema change.)

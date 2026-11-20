@@ -132,6 +132,8 @@ Dependabot (`.github/dependabot.yml`) proposes weekly updates for npm, GitHub Ac
 - [Development](docs/DEVELOPMENT.md): day-to-day workflow, testing, conventions
 - [Migration from Firebase](docs/MIGRATION_FROM_FIREBASE.md): what changed, field mapping, bugs fixed
 - [Moving the Flutter app](docs/MOBILE_MIGRATION.md): guide for porting the mobile app from Firebase to Supabase
+- [Sign-in review](docs/AUTH_REVIEW.md): flaws in the current sign-in, invitation and company flow, with a plan
+- [TODO](docs/TODO.md): agreed backlog (superadmin panel, rider sign-in, several companies per rider, supervisor role)
 
 ## Renaming the repository
 
