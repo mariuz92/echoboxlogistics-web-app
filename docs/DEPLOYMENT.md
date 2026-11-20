@@ -97,16 +97,23 @@ About the image:
 Put a TLS-terminating reverse proxy / load balancer (Caddy, Traefik, nginx, a cloud LB) in front; the
 container speaks plain HTTP.
 
-### Marketing site + app on two hostnames
+### Marketing site and app are two separate deployments
 
-The landing page and legal pages are served by the same bundle. Run two containers from the same image:
+The landing page (and its legal pages) is a static site with **no login and no environment variables**; the app,
+with its login, lives on another domain. They are built separately from the same repository:
 
-| Host | `VITE_APP_MODE` |
-|---|---|
-| `www.example.com` | `landing` |
-| `platform.example.com` | `app` |
+| Site | Build command | Output | Needs env vars |
+|---|---|---|---|
+| App (e.g. `platform.example.com`) | `npm run build` | `dist/` | yes (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`) |
+| Landing (e.g. `www.example.com`) | `npm run build:landing` | `dist-landing/` | **no** |
 
-(or a single container with `VITE_APP_MODE=auto`, which serves the app only on hosts starting with `platform.`).
+For Cloudflare Pages create two projects on the same repository, one per row (build command and output directory).
+Unknown paths must fall back to `index.html` (the default on Cloudflare Pages) so `/privacy`, `/terms` and `/cookies` work.
+
+The only optional link between the two is the contact form: set `contactEndpoint` in
+`src/features/landing/config.ts` (or `window.__ECHOBOX_LANDING__` in `landing/index.html`) to the public URL of the
+`contact` function, and add the landing domain to the `ALLOWED_ORIGINS` secret. Without it the contact section shows
+the support e-mail address instead of the form.
 
 ### Public booking link
 

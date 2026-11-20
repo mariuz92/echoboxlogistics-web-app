@@ -33,7 +33,7 @@ interface ProductSection {
 
 export interface Dict {
   meta: { title: string; description: string };
-  nav: { product: string; start: string; faq: string; contact: string; login: string; demo: string; menu: string; language: string };
+  nav: { product: string; start: string; faq: string; contact: string; demo: string; menu: string; language: string };
   hero: {
     kicker: string;
     title: string;
@@ -64,6 +64,9 @@ export interface Dict {
     title: string;
     subtitle: string;
     direct: string;
+    mailTitle: string;
+    mailText: string;
+    mailCta: string;
     name: string;
     email: string;
     company: string;
@@ -81,7 +84,7 @@ export interface Dict {
     again: string;
     errors: { name: string; email: string; message: string; consent: string; rate: string; generic: string };
   };
-  footer: { tagline: string; product: string; legal: string; privacy: string; terms: string; cookies: string; rights: string; login: string };
+  footer: { tagline: string; product: string; legal: string; privacy: string; terms: string; cookies: string; rights: string };
 }
 
 const it: Dict = {
@@ -95,7 +98,6 @@ const it: Dict = {
     start: "Come si parte",
     faq: "Domande",
     contact: "Contatti",
-    login: "Accedi",
     demo: "Prenota una demo",
     menu: "Menu",
     language: "Lingua",
@@ -222,6 +224,9 @@ const it: Dict = {
     subtitle:
       "Scrivici quante radioguide gestisci, quanti rider avete e come vi organizzate oggi. Ti ricontattiamo per fissare una demo.",
     direct: "Oppure scrivi a",
+    mailTitle: "Scrivici un'email",
+    mailText: "Raccontaci quante radioguide gestisci, quanti rider avete e come vi organizzate oggi. Ti ricontattiamo per fissare una demo.",
+    mailCta: "Scrivi a EchoBox",
     name: "Nome e cognome",
     email: "Email",
     company: "Azienda",
@@ -254,7 +259,6 @@ const it: Dict = {
     terms: "Termini e condizioni",
     cookies: "Cookie",
     rights: "Tutti i diritti riservati.",
-    login: "Accedi alla piattaforma",
   },
 };
 
@@ -269,7 +273,6 @@ const en: Dict = {
     start: "Getting started",
     faq: "Questions",
     contact: "Contact",
-    login: "Log in",
     demo: "Book a demo",
     menu: "Menu",
     language: "Language",
@@ -396,6 +399,9 @@ const en: Dict = {
     subtitle:
       "Tell us how many radio sets you manage, how many riders you have and how you organise things today. We'll get back to you to set up a demo.",
     direct: "Or email",
+    mailTitle: "Send us an email",
+    mailText: "Tell us how many radio sets you manage, how many riders you have and how you organise things today. We will get back to you to set up a demo.",
+    mailCta: "Email EchoBox",
     name: "Full name",
     email: "Email",
     company: "Company",
@@ -428,7 +434,6 @@ const en: Dict = {
     terms: "Terms and conditions",
     cookies: "Cookies",
     rights: "All rights reserved.",
-    login: "Log in to the platform",
   },
 };
 
@@ -443,7 +448,6 @@ const de: Dict = {
     start: "Einstieg",
     faq: "Fragen",
     contact: "Kontakt",
-    login: "Anmelden",
     demo: "Demo vereinbaren",
     menu: "Menü",
     language: "Sprache",
@@ -570,6 +574,9 @@ const de: Dict = {
     subtitle:
       "Schreiben Sie uns, wie viele Geräte Sie verwalten, wie viele Fahrer Sie haben und wie Sie heute organisiert sind. Wir melden uns, um eine Demo zu vereinbaren.",
     direct: "Oder per E-Mail an",
+    mailTitle: "Schreiben Sie uns",
+    mailText: "Erzählen Sie uns, wie viele Geräte Sie verwalten, wie viele Fahrer Sie haben und wie Sie heute organisiert sind. Wir melden uns, um eine Demo zu vereinbaren.",
+    mailCta: "E-Mail an EchoBox",
     name: "Vor- und Nachname",
     email: "E-Mail",
     company: "Firma",
@@ -602,7 +609,6 @@ const de: Dict = {
     terms: "AGB",
     cookies: "Cookies",
     rights: "Alle Rechte vorbehalten.",
-    login: "Zur Plattform",
   },
 };
 
@@ -617,7 +623,6 @@ const fr: Dict = {
     start: "Démarrer",
     faq: "Questions",
     contact: "Contact",
-    login: "Connexion",
     demo: "Réserver une démo",
     menu: "Menu",
     language: "Langue",
@@ -744,6 +749,9 @@ const fr: Dict = {
     subtitle:
       "Dites-nous combien de récepteurs vous gérez, combien de livreurs vous avez et comment vous vous organisez aujourd'hui. Nous revenons vers vous pour fixer une démo.",
     direct: "Ou écrivez à",
+    mailTitle: "Écrivez-nous",
+    mailText: "Dites-nous combien de récepteurs vous gérez, combien de livreurs vous avez et comment vous vous organisez aujourd'hui. Nous revenons vers vous pour fixer une démo.",
+    mailCta: "Écrire à EchoBox",
     name: "Prénom et nom",
     email: "E-mail",
     company: "Entreprise",
@@ -776,7 +784,6 @@ const fr: Dict = {
     terms: "Conditions générales",
     cookies: "Cookies",
     rights: "Tous droits réservés.",
-    login: "Accéder à la plateforme",
   },
 };
 

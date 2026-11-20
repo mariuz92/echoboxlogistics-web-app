@@ -76,10 +76,9 @@ works for every environment.
 | `VITE_SUPABASE_URL` | yes | Supabase project URL |
 | `VITE_SUPABASE_ANON_KEY` | yes | Supabase anon / publishable key (safe to expose; RLS protects data) |
 | `VITE_GOOGLE_MAPS_API_KEY` | no | Address autocomplete; without it the address fields are plain text |
-| `VITE_APP_MODE` | no | `app`, `landing` or `auto` (app on `platform.*` hosts, marketing site elsewhere) |
 | `VITE_PUBLIC_BOOKING_SLUG` | no | Company served by the legacy `/OrdineGuida` URL |
 | `VITE_ENABLE_GOOGLE_AUTH` | no | Show "Continua con Google" (provider must be enabled in Supabase) |
-| `VITE_MARKETING_URL` | no | Target of the "back to the site" links |
+| `VITE_MARKETING_URL` | no | Target of the "back to the site" link on the public booking page (hidden when empty) |
 
 ## Docker
 

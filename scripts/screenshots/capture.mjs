@@ -173,7 +173,6 @@ async function main() {
       ...process.env,
       VITE_SUPABASE_URL: DEMO_SUPABASE_URL,
       VITE_SUPABASE_ANON_KEY: "demo-anon-key",
-      VITE_APP_MODE: "app",
       VITE_GOOGLE_MAPS_API_KEY: "",
       VITE_PUBLIC_BOOKING_SLUG: db.tenant.slug,
     },

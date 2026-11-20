@@ -21,11 +21,9 @@ services:
       VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:?Set VITE_SUPABASE_URL in .env}
       VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY:?Set VITE_SUPABASE_ANON_KEY in .env}
       VITE_GOOGLE_MAPS_API_KEY: ${VITE_GOOGLE_MAPS_API_KEY:-}
-      # "app" serves the dashboard on any host. Use "auto" behind a platform.<domain> split.
-      VITE_APP_MODE: ${VITE_APP_MODE:-app}
       VITE_PUBLIC_BOOKING_SLUG: ${VITE_PUBLIC_BOOKING_SLUG:-}
       VITE_ENABLE_GOOGLE_AUTH: ${VITE_ENABLE_GOOGLE_AUTH:-false}
-      VITE_MARKETING_URL: ${VITE_MARKETING_URL:-https://www.youngtour.it}
+      VITE_MARKETING_URL: ${VITE_MARKETING_URL:-}
     read_only: true
     tmpfs:
       - /tmp

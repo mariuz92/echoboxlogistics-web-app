@@ -259,25 +259,11 @@
   color: var(--ink);
 }
 
-.lp-only-menu {
-  display: none;
-}
-
 .lp-nav-end {
   display: flex;
   align-items: center;
   gap: 20px;
   margin-left: auto;
-}
-
-.lp-nav-login {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--ink);
-}
-
-.lp-nav-login:hover {
-  color: var(--brand);
 }
 
 .lp-lang select {
@@ -940,6 +926,28 @@
   align-self: flex-start;
 }
 
+.lp-form-mail {
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.lp-form-mail h3 {
+  font-size: 24px;
+  letter-spacing: -0.02em;
+}
+
+.lp-form-mail p {
+  color: var(--muted);
+  max-width: 34em;
+}
+
+.lp-form-mail .lp-mail-address {
+  font-family: var(--mono);
+  font-size: 14px;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
 .lp-form-done {
   min-height: 360px;
   justify-content: center;
@@ -1120,15 +1128,7 @@
     border-bottom: 0;
   }
 
-  .lp-only-menu {
-    display: block;
-  }
-
-  .lp-nav-login {
-    display: none;
-  }
-
-  .lp-burger {
+      .lp-burger {
     display: inline-flex;
   }
 }

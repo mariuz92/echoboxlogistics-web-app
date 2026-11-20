@@ -5,7 +5,7 @@ import routerProvider, { NavigateToResource } from "@refinedev/react-router";
 import { App as AntdApp, ConfigProvider } from "antd";
 import itIT from "antd/locale/it_IT";
 
-import { env, isSupabaseConfigured } from "./config/env";
+import { isSupabaseConfigured } from "./config/env";
 import { getTheme } from "./config/theme";
 import { AppLayout } from "./layout/AppLayout";
 import { RequireUser } from "./layout/RequireUser";
@@ -40,7 +40,6 @@ const GuidesPage = lazy(() => import("./features/guides/GuidesPage"));
 const SettingsPage = lazy(() => import("./features/settings/SettingsPage"));
 const ProfilePage = lazy(() => import("./features/settings/ProfilePage"));
 const BookingPage = lazy(() => import("./features/booking/BookingPage"));
-const LandingPage = lazy(() => import("./features/landing/landingPage"));
 const PrivacyPolicy = lazy(() => import("./features/landing/privacy"));
 const TermsAndConditions = lazy(() => import("./features/landing/terms"));
 const CookiePolicy = lazy(() => import("./features/landing/cookies"));
@@ -212,21 +211,6 @@ function RefineApp() {
   );
 }
 
-/** Marketing site: served on the apex domain (the app lives on platform.*). */
-function MarketingRoutes() {
-  return (
-    <Suspense fallback={<FullPageSpinner />}>
-      <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/privacy" element={<PrivacyPolicy />} />
-        <Route path="/terms" element={<TermsAndConditions />} />
-        <Route path="/cookies" element={<CookiePolicy />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Suspense>
-  );
-}
-
 function Themed({ children }: { children: ReactNode }) {
   const { mode } = useThemeMode();
   return (
@@ -244,8 +228,6 @@ export default function App() {
         <BrowserRouter>
           {!isSupabaseConfigured ? (
             <ConfigurationError />
-          ) : env.appMode === "landing" ? (
-            <MarketingRoutes />
           ) : (
             <CurrentUserProvider>
               <RefineApp />

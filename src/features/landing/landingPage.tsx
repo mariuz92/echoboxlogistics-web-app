@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { ArrowRightOutlined, CloseOutlined, MenuOutlined } from "@ant-design/icons";
-import { FunctionsHttpError } from "@supabase/supabase-js";
-import { supabase } from "../../lib/supabase";
 import { CONFIG } from "../../config/configuration";
+import { getLandingConfig } from "./config";
 import { DICTS, LANGS, LANG_NAMES, SECTION_IDS, detectLang, rememberLang, type Dict, type Lang, type SectionId } from "./i18n";
 import "./landing.css";
 
@@ -34,16 +33,6 @@ const SECTION_SHOTS: Record<SectionId, { shot: ShotId; kind: "tall" | "modal" | 
   booking: { shot: "crop-booking", kind: "phone" },
   stats: { shot: "crop-dashboard", kind: "bleed" },
 };
-
-/** The app lives on platform.<domain>; the marketing site on the apex domain. */
-function appUrl(path: string): string {
-  const { protocol, hostname, port } = window.location;
-  if (hostname === "localhost" || hostname === "127.0.0.1" || hostname.startsWith("platform.")) {
-    return path;
-  }
-  const apex = hostname.replace(/^www\./, "");
-  return `${protocol}//platform.${apex}${port ? `:${port}` : ""}${path}`;
-}
 
 function Shot({ id, alt, eager = false }: { id: ShotId; alt: string; eager?: boolean }) {
   return (
@@ -133,32 +122,37 @@ function ContactForm({ t, lang }: { t: Dict; lang: Lang }) {
     if (Object.keys(found).length) return;
 
     setStatus("sending");
-    const { error } = await supabase.functions.invoke("contact", {
-      body: {
-        name: form.name,
-        email: form.email,
-        company: form.company,
-        phone: form.phone,
-        message: form.message,
-        locale: lang,
-        website: form.website,
-      },
-    });
-    if (!error) {
-      setStatus("sent");
-      setForm(EMPTY);
-      return;
-    }
-    let code = "";
-    if (error instanceof FunctionsHttpError) {
+    try {
+      const res = await fetch(getLandingConfig().contactEndpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: form.name,
+          email: form.email,
+          company: form.company,
+          phone: form.phone,
+          message: form.message,
+          locale: lang,
+          website: form.website,
+        }),
+      });
+      if (res.ok) {
+        setStatus("sent");
+        setForm(EMPTY);
+        return;
+      }
+      let code = "";
       try {
-        code = ((await error.context.json()) as { error?: string }).error ?? "";
+        code = ((await res.json()) as { error?: string }).error ?? "";
       } catch {
         /* not json */
       }
+      setStatus("idle");
+      setFailure(code === "too_many_requests" || res.status === 429 ? c.errors.rate : c.errors.generic);
+    } catch {
+      setStatus("idle");
+      setFailure(c.errors.generic);
     }
-    setStatus("idle");
-    setFailure(code === "too_many_requests" ? c.errors.rate : c.errors.generic);
   };
 
   if (status === "sent") {
@@ -326,15 +320,9 @@ export default function LandingPage() {
                 {l.label}
               </a>
             ))}
-            <a className="lp-only-menu" href={appUrl("/login")}>
-              {t.nav.login}
-            </a>
           </nav>
           <div className="lp-nav-end">
             <LanguageSelect lang={lang} onChange={changeLang} label={t.nav.language} id="lp-lang-top" />
-            <a className="lp-nav-login" href={appUrl("/login")}>
-              {t.nav.login}
-            </a>
             <a className="lp-btn lp-btn-primary lp-btn-sm" href="#contact">
               {t.nav.demo}
             </a>
@@ -506,11 +494,24 @@ export default function LandingPage() {
               <Head label={t.contact.label} title={t.contact.title} light>
                 <p className="lp-lead">{t.contact.subtitle}</p>
               </Head>
-              <p className="lp-direct">
-                {t.contact.direct} <a href={`mailto:${CONFIG.supportEmail}`}>{CONFIG.supportEmail}</a>
-              </p>
+              {getLandingConfig().contactEndpoint && (
+                <p className="lp-direct">
+                  {t.contact.direct} <a href={`mailto:${CONFIG.supportEmail}`}>{CONFIG.supportEmail}</a>
+                </p>
+              )}
             </div>
-            <ContactForm t={t} lang={lang} />
+            {getLandingConfig().contactEndpoint ? (
+              <ContactForm t={t} lang={lang} />
+            ) : (
+              <div className="lp-form lp-form-mail">
+                <h3>{t.contact.mailTitle}</h3>
+                <p>{t.contact.mailText}</p>
+                <a className="lp-btn lp-btn-primary" href={`mailto:${CONFIG.supportEmail}`}>
+                  {t.contact.mailCta}
+                </a>
+                <p className="lp-mail-address">{CONFIG.supportEmail}</p>
+              </div>
+            )}
           </div>
         </section>
       </main>
@@ -530,7 +531,6 @@ export default function LandingPage() {
                 {l.label}
               </a>
             ))}
-            <a href={appUrl("/login")}>{t.footer.login}</a>
           </nav>
           <nav aria-label={t.footer.legal}>
             <h4>{t.footer.legal}</h4>
