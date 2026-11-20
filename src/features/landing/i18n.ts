@@ -200,7 +200,7 @@ const it: Dict = {
     label: "Come si parte",
     title: "Si parte in tre passi",
     steps: [
-      { title: "Registra l'azienda", text: "Crei l'account, dai un nome all'azienda e imposti i canali delle tue radioguide." },
+      { title: "Attiviamo la tua azienda", text: "Dopo la demo creiamo l'azienda e invitiamo l'amministratore. Tu imposti i canali delle tue radioguide." },
       { title: "Invita i rider", text: "Ricevono un'email, scelgono una password e lavorano dal telefono." },
       { title: "Condividi il link", text: "Manda alle guide il link di prenotazione: gli ordini iniziano ad arrivare da soli." },
     ],
@@ -375,7 +375,7 @@ const en: Dict = {
     label: "Getting started",
     title: "Up and running in three steps",
     steps: [
-      { title: "Create your company", text: "Sign up, name your company and set up the channels of your radioguides." },
+      { title: "We set up your company", text: "After the demo we create your company and invite its administrator. You set up the channels of your radioguides." },
       { title: "Invite your riders", text: "They get an email, choose a password and work from their phone." },
       { title: "Share your link", text: "Send guides your booking link and orders start arriving on their own." },
     ],
@@ -550,7 +550,7 @@ const de: Dict = {
     label: "Einstieg",
     title: "In drei Schritten startklar",
     steps: [
-      { title: "Firma anlegen", text: "Registrieren, Firmennamen eingeben und die Kanäle Ihrer Geräte festlegen." },
+      { title: "Wir richten Ihre Firma ein", text: "Nach der Demo legen wir Ihre Firma an und laden den Administrator ein. Sie legen die Kanäle Ihrer Geräte fest." },
       { title: "Fahrer einladen", text: "Sie bekommen eine E-Mail, wählen ein Passwort und arbeiten vom Handy aus." },
       { title: "Link teilen", text: "Schicken Sie den Gästeführern Ihren Buchungslink, und die Aufträge kommen von selbst." },
     ],
@@ -725,7 +725,7 @@ const fr: Dict = {
     label: "Démarrer",
     title: "Opérationnel en trois étapes",
     steps: [
-      { title: "Créez votre entreprise", text: "Inscrivez-vous, nommez votre entreprise et configurez les canaux de vos audioguides." },
+      { title: "Nous créons votre entreprise", text: "Après la démo, nous créons votre entreprise et invitons son administrateur. Vous configurez les canaux de vos audioguides." },
       { title: "Invitez vos livreurs", text: "Ils reçoivent un e-mail, choisissent un mot de passe et travaillent depuis leur téléphone." },
       { title: "Partagez votre lien", text: "Envoyez votre lien de réservation aux guides : les commandes arrivent toutes seules." },
     ],

@@ -8,11 +8,11 @@ Backlog agreed on 2026-11-20. Nothing here is built yet. The reasoning and the e
 | Topic | Decision |
 |---|---|
 | Who operates the platform | The owner, from a **superadmin panel** (below). |
-| How companies get created | By the operator from the panel, who invites the company's first admin. Self-service sign-up is closed. *(Inferred from "add new admins from a superadmin panel"; confirm before building.)* |
+| How companies get created | **Confirmed:** only by the owner (operator) from the panel, who invites the company's first admin. Self-service sign-up is **deprecated** (see section 2). |
 | People and companies | Usually one person per company, but **riders can work for two or more companies**. Needs memberships (below). |
 | Roles now | `owner`, `admin`, `rider`. |
 | Roles later | `supervisor`: like an admin for riders and orders, with limited access to everything else. |
-| Rider sign-in | The lowest-friction option, with no passwords and no sign-in errors. Recommendation in the next section; **confirm before building**. |
+| Rider sign-in | **Confirmed:** riders have an e-mail address. Invite link or QR code for the first entry, then a 6-digit code sent by e-mail when they need to sign in again. No passwords for riders and no SMS (so no sending cost). |
 
 ## 1. Superadmin panel (operator console)
 
@@ -30,7 +30,7 @@ that first checks the caller is a platform admin.
 
 ## 2. Accounts and invitations (phases 1 and 2 of AUTH_REVIEW.md)
 
-- [ ] Account first, company second: `/register` is replaced by the operator-created flow; no hidden company creation at first login (F1).
+- [ ] **Deprecate sign-up:** remove `/register` and the "create a company" step of `/onboarding`, stop reading `company_name` from user metadata in `bootstrap_profile()`, turn off sign-up in the hosted Auth settings (invitations keep working), and drop the Google "create a company" path. Companies come only from the operator panel (F1, F2).
 - [ ] `accept_invitation()` called only after the person has finished the join step; nobody is active before that (F4).
 - [ ] Keep an invitation when the person already has an account without a company (F5).
 - [ ] Invite quotas per company and a generic answer that does not reveal who has an account elsewhere (F3).
@@ -43,7 +43,7 @@ that first checks the caller is a platform admin.
 
 - [ ] **Invite by link or QR code** that the admin shares on WhatsApp (or sends by e-mail): opens the app, the rider is signed in, no password. Name and phone are pre-filled. The link is a long-lived invitation code exchanged by a function for a fresh session, so it does not depend on the e-mail OTP expiry (F5).
 - [ ] Stay signed in on the phone (long session, installable app). Note for iOS: the installed app has separate storage from Safari, so the first launch needs a sign-in too.
-- [ ] **Re-entry by a 6-digit code typed in the app** (SMS if budget allows, e-mail as the free option), never by a link, which is the usual source of "link opened in the wrong browser" errors. Admin can also re-issue the link.
+- [ ] **Re-entry by a 6-digit code sent by e-mail and typed in the app**, never by a link, which is the usual source of "link opened in the wrong browser" errors. The admin can also re-issue the invite link. (The e-mail template must show the code.)
 - [ ] **Memberships**: a global person (`profiles`) plus `memberships(tenant_id, roles, disabled)`. The active company is stored per user and read by `private.current_tenant_id()`, so existing row-level security keeps working (F6).
 - [ ] Inviting a rider who already has an account adds a pending membership instead of failing; the rider accepts in the app. The admin always sees "invitation sent", so nothing leaks about other companies.
 - [ ] Company switcher in the rider app; jobs and notifications are per company.
@@ -62,5 +62,5 @@ that first checks the caller is a platform admin.
 ## 6. Landing page follow-ups
 
 - [ ] Set `contactEndpoint` (`src/features/landing/config.ts`) and add the landing domain to `ALLOWED_ORIGINS`.
-- [ ] Reword "Come si parte", step 1, once the sign-up decision is final (it still says the customer creates the account).
+- [x] "Come si parte", step 1, reworded: after the demo the operator creates the company (done 2026-11-20). Step 2 still says riders choose a password; change it when the rider sign-in above is built.
 - [ ] Legal pages and the support address still use the echoboxlogistics name.
