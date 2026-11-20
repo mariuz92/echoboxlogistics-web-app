@@ -30,7 +30,8 @@ A separate web build uses the main app's visual style. Privileged SQL RPCs requi
 - [ ] Exercise production invitation retries, account recovery, and subscription closeout with two pilot companies before turning off public signup.
 - [ ] Account recovery queue, platform-wide Auth revocation, role delegation, tenant-scoped support detail and data exports.
 - [x] Flutter Auth, data and Realtime are on Supabase in [the mobile feature branch](https://github.com/mariuz92/echoboxlogistics_mobile/tree/03e673e790fbe385aaa1082b3e7ab02dadf5c19a). Firebase is used for push.
-- [ ] Align Flutter with the current channel schema and RPCs, verify operator invites and company access messages, then pilot both clients against the same EchoBox Supabase project.
+- [x] Align Flutter order forms with company channel ranges, disabled channels, and schedule-based availability. [Mobile channel update](https://github.com/mariuz92/echoboxlogistics_mobile/commit/0cbc65b6cac7f44891c8c3d607d0a37f46509ce5)
+- [ ] Pilot web and Flutter against the same EchoBox Supabase project. Verify channel bookings across both clients, operator invites, and company access messages.
 - [ ] Add Flutter diagnostics, the Supabase push backend and delivery history, and shared multi-company access.
 - [ ] Incident notifications, external uptime checks, backup status, error reports before sign-in, and raw log aggregation.
 - [ ] Plan quotas, company-facing billing, payment-provider integration, version policies and staged feature rollout.
