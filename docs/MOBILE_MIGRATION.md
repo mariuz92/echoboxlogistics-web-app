@@ -1,8 +1,6 @@
 # Moving the Flutter app from Firebase to Supabase
 
-This is a **guide**, not a change: nothing in `echoboxlogistics_mobile` (the Flutter project, package name
-`flutter_order`) was modified. It was only *read* to write this document. Everything below is based on what that code
-does today and on what was built and tested in this repository.
+> This guide describes the legacy mobile `main` branch. The current [Flutter Supabase branch](https://github.com/mariuz92/echoboxlogistics_mobile/tree/03e673e790fbe385aaa1082b3e7ab02dadf5c19a) already uses Supabase for Auth, data and Realtime, with Firebase Cloud Messaging for push. Use the [current compatibility checks](SUPERADMIN.md#flutter-and-the-shared-supabase-backend) when preparing a release.
 
 - [1. What was done in the web project](#1-what-was-done-in-the-web-project-and-why-it-matters-for-the-app)
 - [2. What the Flutter app uses today](#2-what-the-flutter-app-uses-today)

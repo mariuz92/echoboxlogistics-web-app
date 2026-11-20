@@ -91,10 +91,7 @@ which removes the guesswork the old code did in `handleShare` and `updateRiderSt
 
 ### The mobile app
 
-The code comments mention a **Flutter** client sharing the Firestore data (`User` / `fromJson`). It is not in
-this repository. **It keeps talking to Firestore until it is ported**, so it will not see orders created through
-this app. Port it to `supabase_flutter`: [API.md](API.md) documents the RPCs it needs
-(`rider_order_action`, `claim_pickup`, reading assigned orders, Realtime).
+The [Flutter Supabase branch](https://github.com/mariuz92/echoboxlogistics_mobile/tree/03e673e790fbe385aaa1082b3e7ab02dadf5c19a) already uses Supabase Auth, orders, and Realtime. Firebase remains for push notifications. Treat Firestore as a data source only for legacy builds or deployments that still write there. Verify the deployed build and its backend before selecting the data source for a cutover. [Compatibility checks](SUPERADMIN.md#flutter-and-the-shared-supabase-backend)
 
 ## Bugs and logic problems fixed
 
