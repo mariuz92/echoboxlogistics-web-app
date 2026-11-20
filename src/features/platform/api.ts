@@ -13,6 +13,7 @@ export type AccessMode = "full" | "closeout" | "read_only" | "suspended";
 export type SubscriptionState = "trial" | "active" | "past_due" | "expired" | "cancelled";
 export type IssueState = "open" | "investigating" | "resolved";
 export type IssueSeverity = "info" | "warning" | "critical";
+export type IssueSource = "web" | "flutter" | "backend";
 type Role = Database["public"]["Enums"]["app_role"];
 
 export interface Company {
@@ -58,7 +59,8 @@ export interface Payment { id: string; amount: number; currency: string; referen
 export interface Settings { operator_only_companies: boolean; booking_paused: boolean; notice: string }
 export interface Issue {
   id: string;
-  source: "web" | "flutter" | "backend";
+  tenant_id: string | null;
+  source: IssueSource;
   company_name: string | null;
   area: string;
   code: string;
@@ -66,8 +68,29 @@ export interface Issue {
   state: IssueState;
   severity: IssueSeverity;
   occurrences: number;
+  first_seen_at: string;
   last_seen_at: string;
 }
+export interface QueuedIssue extends Issue { assignee_email: string | null }
+interface IssueActivity {
+  id: number;
+  actor: string;
+  reason: string;
+  state: IssueState;
+  severity: IssueSeverity;
+  created_at: string;
+}
+interface IssueDetail {
+  issue: QueuedIssue & { assignee_id: string | null; triage_version: number };
+  activity: IssueActivity[];
+}
+export interface IssueFilters {
+  state: IssueState | "active" | "all";
+  source?: IssueSource;
+  severity?: IssueSeverity;
+  search?: string;
+}
+export const ISSUE_PAGE_SIZE = 25;
 export interface Contact {
   id: string;
   name: string;
@@ -100,6 +123,13 @@ export interface OperationalOrder {
   delivery_rider_id: string | null;
   pickup_rider_id: string | null;
 }
+interface OrderHistoryEvent {
+  id: number;
+  event_type: string;
+  from_status: OrderStatus | null;
+  to_status: OrderStatus | null;
+  created_at: string;
+}
 
 export interface Snapshot {
   companies: Company[];
@@ -126,10 +156,47 @@ export async function getSnapshot(tenantId?: string, search?: string) {
   return data as unknown as Snapshot;
 }
 
+export async function getIssueQueue(filters: IssueFilters, page: number, tenantId?: string) {
+  const { data, error } = await platformClient.rpc("platform_issue_queue", {
+    p_tenant_id: tenantId,
+    p_state: filters.state,
+    p_source: filters.source,
+    p_severity: filters.severity,
+    p_search: filters.search,
+    p_offset: (page - 1) * ISSUE_PAGE_SIZE,
+  });
+  if (error) throw error;
+  return data as unknown as { issues: QueuedIssue[]; total: number };
+}
+
+export async function getIssueDetail(issueId: string) {
+  const { data, error } = await platformClient.rpc("platform_issue_detail", { p_issue_id: issueId });
+  if (error) throw error;
+  return data as unknown as IssueDetail;
+}
+
+export async function updateIssue(issueId: string, version: number, fields: Record<string, Json | undefined>) {
+  const { error } = await platformClient.rpc("platform_issue_triage", {
+    p_issue_id: issueId,
+    p_version: version,
+    p_state: String(fields.state),
+    p_severity: String(fields.severity),
+    p_reason: typeof fields.reason === "string" ? fields.reason : "",
+    p_assignee_id: typeof fields.assignee_id === "string" ? fields.assignee_id : undefined,
+  });
+  if (error) throw error;
+}
+
+export async function getOrderHistory(tenantId: string, orderId: string) {
+  const { data, error } = await platformClient.rpc("platform_order_history", { p_tenant_id: tenantId, p_order_id: orderId });
+  if (error) throw error;
+  return data as unknown as OrderHistoryEvent[];
+}
+
 export type Action =
   | "create_company" | "invite_member" | "revoke_invitation" | "renew_invitation" | "set_company_active"
   | "set_member_enabled" | "transfer_owner" | "save_plan" | "save_subscription"
-  | "record_payment" | "save_settings" | "set_operator" | "update_issue" | "handle_contact";
+  | "record_payment" | "save_settings" | "set_operator" | "handle_contact";
 
 export async function submitAction(action: Action, values: Record<string, Json | undefined>) {
   const { data, error } = await platformClient.rpc("platform_console_action", {
@@ -170,6 +237,10 @@ const MESSAGES: Record<string, string> = {
   operator_verified_account_required: "L’indirizzo deve appartenere a un account verificato e attivo.",
   operator_cannot_disable_self: "Un altro operatore deve disabilitare il tuo accesso.",
   invalid_timezone: "Inserisci un fuso orario IANA valido, ad esempio Europe/Rome.",
+  issue_not_found: "La segnalazione non è più disponibile.",
+  issue_triage_changed: "La segnalazione è cambiata. Chiudi la modifica e riaprila per usare i dati aggiornati.",
+  issue_assignee_unavailable: "L’operatore selezionato non è disponibile. Aggiorna la pagina e scegli un altro operatore.",
+  order_not_found: "L’ordine non è disponibile per questa azienda.",
 };
 
 export function actionError(error: unknown) {

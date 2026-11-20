@@ -657,7 +657,34 @@ export type Database = {
         Args: { p_attempt_id: string; p_invitation_id: string; p_state: string }
         Returns: boolean
       }
+      platform_issue_detail: { Args: { p_issue_id: string }; Returns: Json }
+      platform_issue_queue: {
+        Args: {
+          p_offset?: number
+          p_search?: string
+          p_severity?: string
+          p_source?: string
+          p_state?: string
+          p_tenant_id?: string
+        }
+        Returns: Json
+      }
+      platform_issue_triage: {
+        Args: {
+          p_assignee_id?: string
+          p_issue_id: string
+          p_reason: string
+          p_severity: string
+          p_state: string
+          p_version: number
+        }
+        Returns: undefined
+      }
       platform_operator_status: { Args: never; Returns: string }
+      platform_order_history: {
+        Args: { p_order_id: string; p_tenant_id: string }
+        Returns: Json
+      }
       platform_pending_invitation: { Args: never; Returns: Json }
       platform_runtime_settings: { Args: never; Returns: Json }
       report_platform_issue: {

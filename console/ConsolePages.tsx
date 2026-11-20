@@ -11,18 +11,18 @@ import {
   actionError, sendInvite, submitAction, type AccessMode, type Action, type Company,
   type Snapshot, type SubscriptionState,
 } from "../src/features/platform/api";
+import { IssueQueue, IssueTable } from "./ConsoleSupport";
 
 type Values = Record<string, Json | undefined>;
 type Editor = {
   title: string;
-  action: Action;
   values?: Values;
   fields?: ReactNode;
   description?: string;
   dates?: string[];
-  send?: boolean;
-};
-type OpenEditor = (editor: Editor) => void;
+  reasonLabel?: string;
+} & ({ action: Action; send?: boolean } | { submit: (fields: Values) => Promise<void> });
+export type OpenEditor = (editor: Editor) => void;
 
 const REQUIRED = [{ required: true }];
 const DATE = "YYYY-MM-DDTHH:mm";
@@ -39,15 +39,6 @@ const ACCESS: Record<AccessMode, [string, string]> = {
 const SUBSCRIPTION: Record<SubscriptionState, string> = {
   trial: "Prova", active: "Attivo", past_due: "Pagamento in ritardo", expired: "Scaduto", cancelled: "Annullato",
 };
-const ISSUE_STATES = [
-  { value: "open", label: "Aperto" }, { value: "investigating", label: "In verifica" },
-  { value: "resolved", label: "Risolto" },
-];
-const ISSUE_SEVERITIES = [
-  { value: "info", label: "Informativo" }, { value: "warning", label: "Avviso" },
-  { value: "critical", label: "Critico" },
-];
-
 function accessTag(mode: AccessMode) {
   return <Tag color={ACCESS[mode][1]}>{ACCESS[mode][0]}</Tag>;
 }
@@ -64,9 +55,10 @@ export function ActionEditor({ editor, close, refresh }: { editor: Editor; close
       for (const key of editor.dates ?? []) {
         if (typeof fields[key] === "string" && fields[key]) fields[key] = new Date(fields[key]).toISOString();
       }
-      const result = await submitAction(editor.action, { ...editor.values, ...fields });
+      const values = { ...editor.values, ...fields };
+      const result = "submit" in editor ? await editor.submit(values) : await submitAction(editor.action, values);
       close();
-      if (editor.send && result.invitation_id) {
+      if ("send" in editor && editor.send && result?.invitation_id) {
         await notifyInvite(result.invitation_id, message);
       } else {
         void message.success("Modifica salvata");
@@ -84,7 +76,7 @@ export function ActionEditor({ editor, close, refresh }: { editor: Editor; close
       {editor.description && <Typography.Paragraph type="secondary">{editor.description}</Typography.Paragraph>}
       <Form layout="vertical" initialValues={editor.values} onFinish={submit}>
         {editor.fields}
-        <Form.Item name="reason" label="Motivo della modifica" rules={[{ required: true, whitespace: true, max: 500 }]}>
+        <Form.Item name="reason" label={editor.reasonLabel ?? "Motivo della modifica"} rules={[{ required: true, whitespace: true, max: 500 }]}>
           <Input.TextArea rows={2} maxLength={500} />
         </Form.Item>
         {failure && <Typography.Paragraph type="danger" role="alert">{failure}</Typography.Paragraph>}
@@ -108,7 +100,9 @@ async function notifyInvite(id: string, message: ReturnType<typeof App.useApp>["
   }
 }
 
-export function Overview({ snapshot }: { snapshot: Snapshot }) {
+export function Overview({ snapshot, openIssue, openQueue }: {
+  snapshot: Snapshot; openIssue: (id: string) => void; openQueue: () => void;
+}) {
   const { summary } = snapshot;
   return <>
     <PageHeader title="Panoramica" subtitle="Attività delle aziende e problemi da verificare." />
@@ -120,17 +114,18 @@ export function Overview({ snapshot }: { snapshot: Snapshot }) {
         <Col key={title} xs={12} xl={6}><Card><Statistic title={title} value={value} /></Card></Col>
       ))}
     </Row>
-    <Card title="Problemi recenti" style={{ marginTop: 16 }}>
-      <IssueTable snapshot={snapshot} />
+    <Card title="Problemi recenti" extra={<Button type="link" onClick={openQueue}>Apri coda</Button>} style={{ marginTop: 16 }}>
+      <IssueTable issues={snapshot.issues.slice(0, 5)} openIssue={openIssue} pagination={false} compact />
     </Card>
   </>;
 }
 
 export function Companies({
-  snapshot, company, onCompany, onSearch, openEditor, refresh,
+  userId, snapshot, company, onCompany, onSearch, openEditor, refresh, tab, onTab, openIssue, openOrderHistory,
 }: {
-  snapshot: Snapshot; company?: Company; onCompany: (id?: string) => void; onSearch: (value: string) => void;
+  userId: string; snapshot: Snapshot; company?: Company; onCompany: (id?: string) => void; onSearch: (value: string) => void;
   openEditor: OpenEditor; refresh: () => void;
+  tab: string; onTab: (tab: string) => void; openIssue: (id: string) => void; openOrderHistory: (orderId: string) => void;
 }) {
   const { message } = App.useApp();
   const [sending, setSending] = useState<string>();
@@ -176,7 +171,7 @@ export function Companies({
         })}>{company.is_active ? "Sospendi" : "Riattiva"}</Button>
       </>
     } />
-    <Tabs items={[
+    <Tabs key={company.id} activeKey={tab} onChange={onTab} destroyOnHidden items={[
       { key: "people", label: "Persone e inviti", children: <Flex vertical gap={16}>
         <Card title="Membri" extra={<Button type="primary" disabled={company.access_mode !== "full"} onClick={() => openEditor({
           title: "Invita membro", action: "invite_member", send: true, values: { tenant_id: company.id, role: "admin" },
@@ -236,15 +231,17 @@ export function Companies({
       </Flex> },
       { key: "billing", label: "Abbonamento", children: <CompanyBilling snapshot={snapshot} company={company} edit={openEditor} /> },
       { key: "operations", label: "Operazioni", children: <Card title="Incarichi aperti">
-        <Table rowKey="id" scroll={{ x: 720 }} dataSource={snapshot.orders} columns={[
+        <Table rowKey="id" scroll={{ x: 860 }} dataSource={snapshot.orders} columns={[
           { title: "Riferimento", render: (_, row) => <Typography.Text copyable={{ text: row.id }}>{row.id.slice(0, 8)}</Typography.Text> },
           { title: "Stato", render: (_, row) => <StatusTag status={row.status} /> },
           { title: "Consegna", render: (_, row) => date(row.delivery_at) },
           { title: "Ritiro", render: (_, row) => date(row.pickup_at) },
           { title: "Canale", render: (_, row) => row.radio_channel ?? "—" },
           { title: "Radioguide perse", dataIndex: "lost_radios" },
+          { title: "Cronologia", render: (_, row) => <Button size="small" onClick={() => openOrderHistory(row.id)}>Vedi eventi</Button> },
         ]} />
       </Card> },
+      { key: "issues", label: "Problemi", children: <IssueQueue userId={userId} tenantId={company.id} openIssue={openIssue} /> },
       { key: "audit", label: "Audit", children: <Card><AuditTable snapshot={snapshot} /></Card> },
     ]} />
   </>;
@@ -325,28 +322,6 @@ export function Plans({ snapshot, edit }: { snapshot: Snapshot; edit: OpenEditor
       { title: "Azioni", render: (_, row) => <Button size="small" onClick={() => open(row)}>Modifica</Button> },
     ]} /></Card>
   </>;
-}
-
-export function IssueTable({ snapshot, edit }: { snapshot: Snapshot; edit?: OpenEditor }) {
-  return <Table rowKey="id" scroll={{ x: 860 }} dataSource={snapshot.issues} columns={[
-    { title: "Problema", render: (_, row) => <Typography.Text code>{row.code}</Typography.Text> },
-    { title: "Origine", render: (_, row) => [row.source, row.area, row.build].filter(Boolean).join(" · ") },
-    { title: "Azienda", render: (_, row) => row.company_name ?? "—" },
-    { title: "Occorrenze", dataIndex: "occurrences" },
-    { title: "Ultima attività", render: (_, row) => date(row.last_seen_at) },
-    { title: "Gravità", render: (_, row) => <Tag color={row.severity === "critical" ? "red" : row.severity === "warning" ? "gold" : "blue"}>
-      {ISSUE_SEVERITIES.find((item) => item.value === row.severity)?.label}
-    </Tag> },
-    { title: "Stato", render: (_, row) => ISSUE_STATES.find((item) => item.value === row.state)?.label },
-    ...(edit ? [{ title: "Azioni", render: (_: unknown, row: Snapshot["issues"][number]) => <Button size="small" onClick={() => edit({
-      title: "Aggiorna problema", action: "update_issue",
-      values: { issue_id: row.id, state: row.state, severity: row.severity },
-      fields: <>
-        <Form.Item name="state" label="Stato" rules={REQUIRED}><Select options={ISSUE_STATES} /></Form.Item>
-        <Form.Item name="severity" label="Gravità" rules={REQUIRED}><Select options={ISSUE_SEVERITIES} /></Form.Item>
-      </>,
-    })}>Gestisci</Button> }] : []),
-  ]} />;
 }
 
 export function Contacts({ snapshot, edit }: { snapshot: Snapshot; edit: OpenEditor }) {

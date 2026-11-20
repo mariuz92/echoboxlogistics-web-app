@@ -238,7 +238,7 @@ Keep the upstream `main` dispatcher. The override lets `contact` receive signed-
 
 ### 3. Load and audit the EchoBox database
 
-For a fresh database, apply all nine application migrations from the app checkout with Supabase CLI `2.117.0` (the version in CI). Use the explicit EchoBox database URL. A runner on `echobox-supabase_default` can reach `db:5432`. On a standard Linux Docker host, the command below finds the container's private bridge IP for a CLI running on the host. This example uses the generated alphanumeric Postgres password and the upstream internal port `5432`. Percent-encode a custom password if it contains URI delimiters. Confirm that the dry run lists the nine EchoBox migrations, and leave `supabase/seed.sql` out of production.
+For a fresh database, apply the application migrations from the app checkout with Supabase CLI `2.117.0` (the version in CI). Use the explicit EchoBox database URL. A runner on `echobox-supabase_default` can reach `db:5432`. On a standard Linux Docker host, the command below finds the container's private bridge IP for a CLI running on the host. This example uses the generated alphanumeric Postgres password and the upstream internal port `5432`. Percent-encode a custom password if it contains URI delimiters. Compare the dry run with `supabase/migrations/` and leave `supabase/seed.sql` out of production.
 
 ```bash
 cd "$ECHOBOX_APP_DIR"
@@ -277,7 +277,7 @@ docker compose -p echobox-web -f docker-compose.yml -f deploy/compose.web-server
 
 ### 5. Deploy the Superadmin console
 
-Apply the database migrations before publishing the console. Deploy `platform-invite` alongside the other Edge Functions and route `/functions/v1/platform-invite` through the API proxy. Add the console origin to `ALLOWED_ORIGINS`. `SITE_URL` remains the customer web app origin for invitation links. The Supabase Compose override enables TOTP enrollment and verification.
+Apply the database migrations before publishing the console. The support queue and order journal require [`20261120010200_platform_support.sql`](../supabase/migrations/20261120010200_platform_support.sql). Deploy `platform-invite` alongside the other Edge Functions and route `/functions/v1/platform-invite` through the API proxy. Add the console origin to `ALLOWED_ORIGINS`. `SITE_URL` remains the customer web app origin for invitation links. The Supabase Compose override enables TOTP enrollment and verification.
 
 Create a dedicated, email-confirmed Supabase Auth account for the first operator with a password. Copy its user UUID from Auth. On the EchoBox database, provision it from a privileged SQL session. This operation grants platform-wide access.
 

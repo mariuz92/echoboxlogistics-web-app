@@ -57,6 +57,8 @@ Start with manual subscription control for the first customers. Record who set t
 
 The issue inbox should group repeats by error fingerprint and show first and last occurrence, affected companies or builds, frequency, owner and resolution. Use or propagate a request or event identifier so a support report can be traced from the client to the API, database action or worker. Capture expected validation outcomes such as `channel_busy` as counts for operations and trend detection. Page an operator for incidents such as failed sign-ins across companies, missed pickup reminders, or an unavailable API.
 
+The console's **Problemi** queue supports search, status, severity and source filters across all stored groups. Each company's **Problemi** tab scopes the same queue to that company. Operators can assign an issue, change its state or severity, and leave a note in its audit history. Another occurrence reopens a resolved issue and keeps its earlier notes and assignee. The **Operazioni** tab shows order events with timestamps and status changes. [Support migration](../supabase/migrations/20261120010200_platform_support.sql)
+
 | Signal | What to collect and check |
 |---|---|
 | Web and Flutter | Unhandled exceptions, failed API requests, login or join failures, and Realtime disconnects. Include platform, build, environment, route or operation, sanitized error code and optional company context. Upload release symbols or source maps where needed to make stack traces readable. |

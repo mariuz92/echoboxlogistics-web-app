@@ -25,10 +25,11 @@ A separate web build uses the main app's visual style. Privileged SQL RPCs requi
 - [x] Assign manual plans, set trial and renewal dates, grace and closeout states, and record manual payments. Enforce access in the Supabase app and public booking.
 - [x] Console controls for company creation, global booking pause and a web notice.
 - [x] Group signed-in web errors, review active orders and overdue pickups, handle landing inquiries, and inspect the platform audit trail.
+- [x] Search and filter the support queue, assign issues to operators, and record triage and resolutions. Open a company's issue queue and inspect the timeline of an open order.
 - [x] Add and disable platform operators from verified accounts and prevent self-disable.
 - [ ] Apply migrations and deploy to the EchoBox server. Provision the first production operator and verify TOTP, real email delivery, and custom DNS.
 - [ ] Exercise production invitation retries, account recovery, and subscription closeout with two pilot companies before turning off public signup.
-- [ ] Account recovery queue, platform-wide Auth revocation, role delegation, tenant-scoped support detail and data exports.
+- [ ] Account recovery queue, platform-wide Auth revocation, role delegation, time-limited case access and data exports.
 - [x] Flutter Auth, data and Realtime are on Supabase in [the mobile feature branch](https://github.com/mariuz92/echoboxlogistics_mobile/tree/03e673e790fbe385aaa1082b3e7ab02dadf5c19a). Firebase is used for push.
 - [x] Align Flutter order forms with company channel ranges, disabled channels, and schedule-based availability. [Mobile channel update](https://github.com/mariuz92/echoboxlogistics_mobile/commit/0cbc65b6cac7f44891c8c3d607d0a37f46509ce5)
 - [ ] Pilot web and Flutter against the same EchoBox Supabase project. Verify channel bookings across both clients, operator invites, and company access messages.

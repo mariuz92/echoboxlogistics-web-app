@@ -20,7 +20,8 @@ import { ThemeModeProvider, useThemeMode } from "../src/providers/theme-mode";
 import { AuthShell } from "../src/features/auth/AuthShell";
 import { actionError, getSnapshot, platformClient } from "../src/features/platform/api";
 import { OperatorAuth } from "./OperatorAuth";
-import { ActionEditor, AuditTable, Companies, Contacts, IssueTable, Operators, Overview, Plans, PlatformSettings } from "./ConsolePages";
+import { ActionEditor, AuditTable, Companies, Contacts, Operators, Overview, Plans, PlatformSettings } from "./ConsolePages";
+import { IssueDrawer, IssueQueue, OrderHistory } from "./ConsoleSupport";
 
 const menuItems = [
   { key: "overview", label: "Panoramica", icon: <BarChartOutlined /> },
@@ -36,6 +37,9 @@ const menuItems = [
 function ConsoleWorkspace({ userId, email }: { userId: string; email?: string }) {
   const [page, setPage] = useState("overview");
   const [tenantId, setTenantId] = useState<string>();
+  const [companyTab, setCompanyTab] = useState("people");
+  const [issueId, setIssueId] = useState<string>();
+  const [orderId, setOrderId] = useState<string>();
   const [search, setSearch] = useState("");
   const [drawer, setDrawer] = useState(false);
   const [editor, setEditor] = useState<ComponentProps<typeof ActionEditor>["editor"]>();
@@ -55,6 +59,14 @@ function ConsoleWorkspace({ userId, email }: { userId: string; email?: string })
   const refresh = () => { void queryClient.invalidateQueries({ queryKey: ["platform", userId] }); };
   const snapshot = result.data;
 
+  function openCompany(id?: string, tab = "people") {
+    setTenantId(id);
+    setCompanyTab(tab);
+    setIssueId(undefined);
+    setOrderId(undefined);
+    setPage("companies");
+  }
+
   async function logout() {
     const { error } = await platformClient.auth.signOut({ scope: "local" });
     if (error) { void message.error("Impossibile terminare la sessione."); return; }
@@ -65,7 +77,7 @@ function ConsoleWorkspace({ userId, email }: { userId: string; email?: string })
     <Flex align="center" style={{ height: 64, paddingInline: 20 }}><Brand to={false} onDark /></Flex>
     <Menu
       mode="inline" theme="dark" selectedKeys={[page]} items={menuItems}
-      onClick={({ key }) => { setPage(key); setDrawer(false); }}
+      onClick={({ key }) => { setPage(key); setDrawer(false); setIssueId(undefined); setOrderId(undefined); }}
       style={{ background: "transparent", borderInlineEnd: 0, paddingTop: 8 }}
     />
   </>;
@@ -98,13 +110,14 @@ function ConsoleWorkspace({ userId, email }: { userId: string; email?: string })
           {result.isError ? <Alert showIcon type="error" title={actionError(result.error)}
             action={<Button onClick={refresh}>Riprova</Button>} /> :
           !snapshot ? <Spin /> : <>
-            {page === "overview" && <Overview snapshot={snapshot} />}
-            {page === "companies" && <Companies snapshot={snapshot} company={scope ? snapshot.companies[0] : undefined}
-              onCompany={setTenantId} onSearch={setSearch} openEditor={setEditor} refresh={refresh} />}
+            {page === "overview" && <Overview snapshot={snapshot} openIssue={setIssueId} openQueue={() => setPage("issues")} />}
+            {page === "companies" && <Companies userId={userId} snapshot={snapshot} company={scope ? snapshot.companies[0] : undefined}
+              onCompany={openCompany} onSearch={setSearch} openEditor={setEditor} refresh={refresh} tab={companyTab}
+              onTab={setCompanyTab} openIssue={setIssueId} openOrderHistory={setOrderId} />}
             {page === "plans" && <Plans snapshot={snapshot} edit={setEditor} />}
             {page === "issues" && <>
               <PageHeader title="Problemi" subtitle="Segnalazioni raggruppate per origine, azienda e versione." />
-              <Card><IssueTable snapshot={snapshot} edit={setEditor} /></Card>
+              <IssueQueue userId={userId} openIssue={setIssueId} />
             </>}
             {page === "contacts" && <Contacts snapshot={snapshot} edit={setEditor} />}
             {page === "settings" && <PlatformSettings snapshot={snapshot} edit={setEditor} />}
@@ -116,6 +129,9 @@ function ConsoleWorkspace({ userId, email }: { userId: string; email?: string })
           </>}
         </Layout.Content>
       </Layout>
+      {issueId && snapshot && <IssueDrawer userId={userId} issueId={issueId} operators={snapshot.operators}
+        close={() => setIssueId(undefined)} edit={setEditor} openCompany={(id) => openCompany(id, "operations")} />}
+      {scope && orderId && <OrderHistory userId={userId} tenantId={scope} orderId={orderId} close={() => setOrderId(undefined)} />}
       {editor && <ActionEditor editor={editor} close={() => setEditor(undefined)} refresh={refresh} />}
     </Layout>
   );
