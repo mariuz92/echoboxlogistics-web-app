@@ -76,10 +76,9 @@ works for every environment.
 | `VITE_SUPABASE_URL` | yes | Supabase project URL |
 | `VITE_SUPABASE_ANON_KEY` | yes | Supabase anon / publishable key (safe to expose; RLS protects data) |
 | `VITE_GOOGLE_MAPS_API_KEY` | no | Address autocomplete; without it the address fields are plain text |
-| `VITE_APP_MODE` | no | `app`, `landing` or `auto` (app on `platform.*` hosts, marketing site elsewhere) |
 | `VITE_PUBLIC_BOOKING_SLUG` | no | Company served by the legacy `/OrdineGuida` URL |
 | `VITE_ENABLE_GOOGLE_AUTH` | no | Show "Continua con Google" (provider must be enabled in Supabase) |
-| `VITE_MARKETING_URL` | no | Target of the "back to the site" links |
+| `VITE_MARKETING_URL` | no | Target of the "back to the site" link on the public booking page (hidden when empty) |
 
 ## Docker
 
@@ -133,6 +132,8 @@ Dependabot (`.github/dependabot.yml`) proposes weekly updates for npm, GitHub Ac
 - [Development](docs/DEVELOPMENT.md): day-to-day workflow, testing, conventions
 - [Migration from Firebase](docs/MIGRATION_FROM_FIREBASE.md): what changed, field mapping, bugs fixed
 - [Moving the Flutter app](docs/MOBILE_MIGRATION.md): guide for porting the mobile app from Firebase to Supabase
+- [Sign-in review](docs/AUTH_REVIEW.md): flaws in the current sign-in, invitation and company flow, with a plan
+- [TODO](docs/TODO.md): agreed backlog (superadmin panel, rider sign-in, several companies per rider, supervisor role)
 
 ## Renaming the repository
 

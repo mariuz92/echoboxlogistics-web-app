@@ -106,8 +106,9 @@ Conventions:
 
 ## Landing page
 
-The marketing site (`src/features/landing/`) is shown when `VITE_APP_MODE=landing` (or `auto` on a host that is not
-`platform.*`). Its texts live in `src/features/landing/i18n.ts` in Italian, English, German and French; Italian is the
+The marketing site (`src/features/landing/`, entry in `landing/`) is a separate static build: `npm run dev:landing`
+(port 5174) and `npm run build:landing` (output `dist-landing/`). It has no login and reads no environment variables, so
+it builds and runs with nothing configured. Its texts live in `src/features/landing/i18n.ts` in Italian, English, German and French; Italian is the
 reference and TypeScript makes the other languages keep the same shape. The language comes from `?lang=`, then the
 visitor's last choice, then the browser.
 

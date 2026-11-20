@@ -17,7 +17,6 @@ type EnvKey =
   | "VITE_SUPABASE_URL"
   | "VITE_SUPABASE_ANON_KEY"
   | "VITE_GOOGLE_MAPS_API_KEY"
-  | "VITE_APP_MODE"
   | "VITE_PUBLIC_BOOKING_SLUG"
   | "VITE_ENABLE_GOOGLE_AUTH"
   | "VITE_MARKETING_URL";
@@ -28,17 +27,6 @@ function read(key: EnvKey): string | undefined {
   return value && value.trim() !== "" ? value.trim() : undefined;
 }
 
-export type AppMode = "app" | "landing";
-
-function resolveAppMode(): AppMode {
-  const explicit = read("VITE_APP_MODE");
-  if (explicit === "app" || explicit === "landing") return explicit;
-  // "auto": the app lives on platform.<domain>, the marketing site on the apex.
-  // In local development there is no such split, so always serve the app.
-  if (import.meta.env.DEV) return "app";
-  return window.location.hostname.startsWith("platform.") ? "app" : "landing";
-}
-
 export const env = {
   supabaseUrl: read("VITE_SUPABASE_URL"),
   supabaseAnonKey: read("VITE_SUPABASE_ANON_KEY"),
@@ -46,11 +34,8 @@ export const env = {
   /** Tenant slug served by the legacy /OrdineGuida public booking URL. */
   publicBookingSlug: read("VITE_PUBLIC_BOOKING_SLUG"),
   enableGoogleAuth: read("VITE_ENABLE_GOOGLE_AUTH") === "true",
-  /** Where "back to site" links point. */
-  marketingUrl: read("VITE_MARKETING_URL") ?? "https://www.youngtour.it",
-  get appMode(): AppMode {
-    return resolveAppMode();
-  },
+  /** Where "back to the site" links point. Optional: without it the link is not shown. */
+  marketingUrl: read("VITE_MARKETING_URL"),
 };
 
 export const isSupabaseConfigured = Boolean(env.supabaseUrl && env.supabaseAnonKey);

@@ -33,7 +33,6 @@ docker run -d --name "$NAME" -p "127.0.0.1:${PORT}:8080" \
   --cap-drop ALL --security-opt no-new-privileges:true \
   -e VITE_SUPABASE_URL="https://example-project.supabase.co" \
   -e VITE_SUPABASE_ANON_KEY='anon"key\with-special-chars' \
-  -e VITE_APP_MODE=app \
   "$IMAGE" >/dev/null
 
 for _ in $(seq 1 30); do

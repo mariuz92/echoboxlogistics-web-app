@@ -46,6 +46,10 @@ jobs:
       - name: Production build
         run: npm run build
 
+      # The marketing site must build and run with no environment variables at all.
+      - name: Landing build (no environment variables)
+        run: npm run build:landing
+
       - name: Audit runtime dependencies
         run: npm run audit:prod
 

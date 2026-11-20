@@ -89,8 +89,13 @@ export function BookingPage({ legacy = false }: { legacy?: boolean }) {
       <Brand to={false} onDark />
       <div style={{ width: "100%", maxWidth: 760 }}>{children}</div>
       <Typography.Text type="secondary" style={{ fontSize: 13 }}>
-        © {new Date().getFullYear()} {tenant?.name ?? CONFIG.appName} ·{" "}
-        <a href={env.marketingUrl}>Torna al sito</a>
+        © {new Date().getFullYear()} {tenant?.name ?? CONFIG.appName}
+        {env.marketingUrl && (
+          <>
+            {" "}
+            · <a href={env.marketingUrl}>Torna al sito</a>
+          </>
+        )}
       </Typography.Text>
     </Flex>
   );

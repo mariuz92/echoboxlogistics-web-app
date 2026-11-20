@@ -33,7 +33,7 @@ interface ProductSection {
 
 export interface Dict {
   meta: { title: string; description: string };
-  nav: { product: string; start: string; faq: string; contact: string; login: string; demo: string; menu: string; language: string };
+  nav: { product: string; start: string; faq: string; contact: string; demo: string; menu: string; language: string };
   hero: {
     kicker: string;
     title: string;
@@ -64,6 +64,9 @@ export interface Dict {
     title: string;
     subtitle: string;
     direct: string;
+    mailTitle: string;
+    mailText: string;
+    mailCta: string;
     name: string;
     email: string;
     company: string;
@@ -81,7 +84,7 @@ export interface Dict {
     again: string;
     errors: { name: string; email: string; message: string; consent: string; rate: string; generic: string };
   };
-  footer: { tagline: string; product: string; legal: string; privacy: string; terms: string; cookies: string; rights: string; login: string };
+  footer: { tagline: string; product: string; legal: string; privacy: string; terms: string; cookies: string; rights: string };
 }
 
 const it: Dict = {
@@ -95,7 +98,6 @@ const it: Dict = {
     start: "Come si parte",
     faq: "Domande",
     contact: "Contatti",
-    login: "Accedi",
     demo: "Prenota una demo",
     menu: "Menu",
     language: "Lingua",
@@ -198,7 +200,7 @@ const it: Dict = {
     label: "Come si parte",
     title: "Si parte in tre passi",
     steps: [
-      { title: "Registra l'azienda", text: "Crei l'account, dai un nome all'azienda e imposti i canali delle tue radioguide." },
+      { title: "Attiviamo la tua azienda", text: "Dopo la demo creiamo l'azienda e invitiamo l'amministratore. Tu imposti i canali delle tue radioguide." },
       { title: "Invita i rider", text: "Ricevono un'email, scelgono una password e lavorano dal telefono." },
       { title: "Condividi il link", text: "Manda alle guide il link di prenotazione: gli ordini iniziano ad arrivare da soli." },
     ],
@@ -222,6 +224,9 @@ const it: Dict = {
     subtitle:
       "Scrivici quante radioguide gestisci, quanti rider avete e come vi organizzate oggi. Ti ricontattiamo per fissare una demo.",
     direct: "Oppure scrivi a",
+    mailTitle: "Scrivici un'email",
+    mailText: "Raccontaci quante radioguide gestisci, quanti rider avete e come vi organizzate oggi. Ti ricontattiamo per fissare una demo.",
+    mailCta: "Scrivi a EchoBox",
     name: "Nome e cognome",
     email: "Email",
     company: "Azienda",
@@ -254,7 +259,6 @@ const it: Dict = {
     terms: "Termini e condizioni",
     cookies: "Cookie",
     rights: "Tutti i diritti riservati.",
-    login: "Accedi alla piattaforma",
   },
 };
 
@@ -269,7 +273,6 @@ const en: Dict = {
     start: "Getting started",
     faq: "Questions",
     contact: "Contact",
-    login: "Log in",
     demo: "Book a demo",
     menu: "Menu",
     language: "Language",
@@ -372,7 +375,7 @@ const en: Dict = {
     label: "Getting started",
     title: "Up and running in three steps",
     steps: [
-      { title: "Create your company", text: "Sign up, name your company and set up the channels of your radioguides." },
+      { title: "We set up your company", text: "After the demo we create your company and invite its administrator. You set up the channels of your radioguides." },
       { title: "Invite your riders", text: "They get an email, choose a password and work from their phone." },
       { title: "Share your link", text: "Send guides your booking link and orders start arriving on their own." },
     ],
@@ -396,6 +399,9 @@ const en: Dict = {
     subtitle:
       "Tell us how many radio sets you manage, how many riders you have and how you organise things today. We'll get back to you to set up a demo.",
     direct: "Or email",
+    mailTitle: "Send us an email",
+    mailText: "Tell us how many radio sets you manage, how many riders you have and how you organise things today. We will get back to you to set up a demo.",
+    mailCta: "Email EchoBox",
     name: "Full name",
     email: "Email",
     company: "Company",
@@ -428,7 +434,6 @@ const en: Dict = {
     terms: "Terms and conditions",
     cookies: "Cookies",
     rights: "All rights reserved.",
-    login: "Log in to the platform",
   },
 };
 
@@ -443,7 +448,6 @@ const de: Dict = {
     start: "Einstieg",
     faq: "Fragen",
     contact: "Kontakt",
-    login: "Anmelden",
     demo: "Demo vereinbaren",
     menu: "Menü",
     language: "Sprache",
@@ -546,7 +550,7 @@ const de: Dict = {
     label: "Einstieg",
     title: "In drei Schritten startklar",
     steps: [
-      { title: "Firma anlegen", text: "Registrieren, Firmennamen eingeben und die Kanäle Ihrer Geräte festlegen." },
+      { title: "Wir richten Ihre Firma ein", text: "Nach der Demo legen wir Ihre Firma an und laden den Administrator ein. Sie legen die Kanäle Ihrer Geräte fest." },
       { title: "Fahrer einladen", text: "Sie bekommen eine E-Mail, wählen ein Passwort und arbeiten vom Handy aus." },
       { title: "Link teilen", text: "Schicken Sie den Gästeführern Ihren Buchungslink, und die Aufträge kommen von selbst." },
     ],
@@ -570,6 +574,9 @@ const de: Dict = {
     subtitle:
       "Schreiben Sie uns, wie viele Geräte Sie verwalten, wie viele Fahrer Sie haben und wie Sie heute organisiert sind. Wir melden uns, um eine Demo zu vereinbaren.",
     direct: "Oder per E-Mail an",
+    mailTitle: "Schreiben Sie uns",
+    mailText: "Erzählen Sie uns, wie viele Geräte Sie verwalten, wie viele Fahrer Sie haben und wie Sie heute organisiert sind. Wir melden uns, um eine Demo zu vereinbaren.",
+    mailCta: "E-Mail an EchoBox",
     name: "Vor- und Nachname",
     email: "E-Mail",
     company: "Firma",
@@ -602,7 +609,6 @@ const de: Dict = {
     terms: "AGB",
     cookies: "Cookies",
     rights: "Alle Rechte vorbehalten.",
-    login: "Zur Plattform",
   },
 };
 
@@ -617,7 +623,6 @@ const fr: Dict = {
     start: "Démarrer",
     faq: "Questions",
     contact: "Contact",
-    login: "Connexion",
     demo: "Réserver une démo",
     menu: "Menu",
     language: "Langue",
@@ -720,7 +725,7 @@ const fr: Dict = {
     label: "Démarrer",
     title: "Opérationnel en trois étapes",
     steps: [
-      { title: "Créez votre entreprise", text: "Inscrivez-vous, nommez votre entreprise et configurez les canaux de vos audioguides." },
+      { title: "Nous créons votre entreprise", text: "Après la démo, nous créons votre entreprise et invitons son administrateur. Vous configurez les canaux de vos audioguides." },
       { title: "Invitez vos livreurs", text: "Ils reçoivent un e-mail, choisissent un mot de passe et travaillent depuis leur téléphone." },
       { title: "Partagez votre lien", text: "Envoyez votre lien de réservation aux guides : les commandes arrivent toutes seules." },
     ],
@@ -744,6 +749,9 @@ const fr: Dict = {
     subtitle:
       "Dites-nous combien de récepteurs vous gérez, combien de livreurs vous avez et comment vous vous organisez aujourd'hui. Nous revenons vers vous pour fixer une démo.",
     direct: "Ou écrivez à",
+    mailTitle: "Écrivez-nous",
+    mailText: "Dites-nous combien de récepteurs vous gérez, combien de livreurs vous avez et comment vous vous organisez aujourd'hui. Nous revenons vers vous pour fixer une démo.",
+    mailCta: "Écrire à EchoBox",
     name: "Prénom et nom",
     email: "E-mail",
     company: "Entreprise",
@@ -776,7 +784,6 @@ const fr: Dict = {
     terms: "Conditions générales",
     cookies: "Cookies",
     rights: "Tous droits réservés.",
-    login: "Accéder à la plateforme",
   },
 };
 
