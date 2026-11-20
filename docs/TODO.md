@@ -64,3 +64,21 @@ that first checks the caller is a platform admin.
 - [ ] Set `contactEndpoint` (`src/features/landing/config.ts`) and add the landing domain to `ALLOWED_ORIGINS`.
 - [x] "Come si parte", step 1, reworded: after the demo the operator creates the company (done 2026-11-20). Step 2 still says riders choose a password; change it when the rider sign-in above is built.
 - [ ] Legal pages and the support address still use the echoboxlogistics name.
+
+## 7. Public booking page (guides)
+
+Interpretation to confirm: the page a guide opens to book radios must belong to **the company that shared the link**. The
+booking is created for that company only, and the page shows that company's identity.
+
+- [ ] Each company has its own booking link (`/book/<company>`, already resolved by slug in `get_public_tenant` / `create_public_order`); every booking, and the guide record, is created inside that company and nowhere else.
+- [ ] The page shows the sharing company (name, and logo if the company has one) in the header and footer instead of only the EchoBox brand; the company's name appears in the confirmation and in the e-mail or message sent to the guide.
+- [ ] Remove the global `/OrdineGuida` route and `VITE_PUBLIC_BOOKING_SLUG` (one fixed company for everyone): old links redirect to the company's own link or show "link not valid".
+- [ ] Link safety: the slug is guessable (derived from the company name) and cannot be changed. Decide whether the link should carry an unguessable token that the company admin can regenerate or switch off (`public_booking_enabled` already switches it off). Let the admin copy the link and QR code from the settings.
+- [ ] Tests: two companies, a booking through company A's link never appears for company B, and vice versa.
+
+## 8. Host the web app on my own server
+
+- [ ] Run the app from the Docker image on your own server behind a TLS reverse proxy; point the app's hostname to it with a DNS record. The landing page stays on Cloudflare Pages.
+- [ ] Supabase **Site URL** and **Redirect URLs**: the app domain only. `ALLOWED_ORIGINS` (Edge Functions): app domain and landing domain.
+- [ ] Booking links and invitation e-mails must use the app's new domain (they are built from the app's public URL).
+- [ ] Reminder: change the Cloudflare Pages build command to `npm run build:landing` with output `dist-landing`.

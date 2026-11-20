@@ -107,8 +107,14 @@ with its login, lives on another domain. They are built separately from the same
 | App (e.g. `platform.example.com`) | `npm run build` | `dist/` | yes (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`) |
 | Landing (e.g. `www.example.com`) | `npm run build:landing` | `dist-landing/` | **no** |
 
-For Cloudflare Pages create two projects on the same repository, one per row (build command and output directory).
-Unknown paths must fall back to `index.html` (the default on Cloudflare Pages) so `/privacy`, `/terms` and `/cookies` work.
+**Landing:** keep the existing Cloudflare Pages project (`echobox-logistics`) and set its build command to
+`npm run build:landing` and its output directory to `dist-landing`. Unknown paths must fall back to `index.html` (the
+default on Cloudflare Pages) so `/privacy`, `/terms` and `/cookies` work.
+
+**App:** it is not deployed on Cloudflare. It will run on your own server from the Docker image (see above) behind a
+TLS reverse proxy, and the app's hostname is pointed at that server with a DNS record. When it moves, also update the
+Supabase **Site URL** and **Redirect URLs** to the app domain and add the app and landing domains to `ALLOWED_ORIGINS`
+(checklist in [TODO.md](TODO.md), section 7).
 
 The only optional link between the two is the contact form: set `contactEndpoint` in
 `src/features/landing/config.ts` (or `window.__ECHOBOX_LANDING__` in `landing/index.html`) to the public URL of the
