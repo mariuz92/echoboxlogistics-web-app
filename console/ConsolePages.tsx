@@ -46,6 +46,7 @@ export function ActionEditor({ editor, close, refresh }: { editor: Editor; close
   const { message } = App.useApp();
   const [saving, setSaving] = useState(false);
   const [failure, setFailure] = useState("");
+  const isCompanyCreation = "action" in editor && editor.action === "create_company";
 
   async function submit(fields: Values) {
     setSaving(true);
@@ -75,9 +76,9 @@ export function ActionEditor({ editor, close, refresh }: { editor: Editor; close
       {editor.description && <Typography.Paragraph type="secondary">{editor.description}</Typography.Paragraph>}
       <Form layout="vertical" initialValues={editor.values} onFinish={submit} scrollToFirstError>
         {editor.fields}
-        <Form.Item name="reason" label={editor.reasonLabel ?? "Motivo della modifica"} rules={[{ required: true, whitespace: true, max: 500 }]}>
+        {!isCompanyCreation && <Form.Item name="reason" label={editor.reasonLabel ?? "Motivo della modifica"} rules={[{ required: true, whitespace: true, max: 500 }]}>
           <Input.TextArea rows={2} maxLength={500} />
-        </Form.Item>
+        </Form.Item>}
         {failure && <Typography.Paragraph type="danger" role="alert">{failure}</Typography.Paragraph>}
         <Flex justify="end" gap={8}>
           <Button disabled={saving} onClick={close}>Annulla</Button>
@@ -132,7 +133,8 @@ export function Companies({
   if (!company) return <>
     <PageHeader title="Aziende" subtitle="Accesso, persone e attività per azienda." actions={
       <Button type="primary" onClick={() => openEditor({
-        title: "Crea azienda", action: "create_company", send: true, values: { timezone: "Europe/Rome" },
+        title: "Crea azienda", action: "create_company", send: true,
+        values: { timezone: "Europe/Rome", reason: "Azienda creata dalla console" },
         fields: <>
           <Form.Item name="name" label="Nome azienda" rules={[{ required: true, whitespace: true, min: 2, max: 120 }]}><Input /></Form.Item>
           <Form.Item name="email" label="Email del titolare" rules={[{ required: true, type: "email", max: 254 }]}><Input /></Form.Item>
