@@ -344,6 +344,15 @@ Run on the VPS. Enter the absolute path to the service account JSON when prompte
     fi
   done
 
+  ECHOBOX_PUSH_SCHEMA_READY=$(echobox_supabase exec -T db psql -X -v ON_ERROR_STOP=1 \
+    -U supabase_admin -d postgres -Atc \
+    "select to_regprocedure('public.claim_push_deliveries(integer)') is not null
+        and to_regprocedure('public.read_push_delivery(uuid,uuid)') is not null;")
+  if [ "$ECHOBOX_PUSH_SCHEMA_READY" != t ]; then
+    printf 'Apply the EchoBox rider push database migration before starting the worker.\n' >&2
+    exit 1
+  fi
+
   read -rp 'Firebase service account JSON path: ' ECHOBOX_FCM_KEY_FILE
   python3 "$ECHOBOX_PUSH_DEPLOY/configure-rider-push.py" "$ECHOBOX_FCM_KEY_FILE"
   install -d /opt/echobox/supabase/volumes/functions/notify-rider
@@ -361,6 +370,9 @@ Run on the VPS. Enter the absolute path to the service account JSON when prompte
 
 The timer calls the worker on the loopback gateway. Keep the public API allowlist unchanged so
 `/functions/v1/notify-rider` stays private. Pass `--api-port` to the configuration command if the local gateway
-uses a different port. The worker counts Firebase-accepted sends. Verify actual receipt and order navigation on
+uses a different port. If the initial service run fails, check `journalctl -u echobox-push.service -n 30 --no-pager`.
+When the database has the migration and PostgREST still reports a missing push RPC, run `NOTIFY pgrst, 'reload schema';`
+on the EchoBox database and restart the service before enabling the timer. The worker counts Firebase-accepted
+sends. Verify actual receipt and order navigation on
 an invited rider’s real iPhone and Android device. Assign a pilot delivery, then reschedule and reassign a pickup
 to confirm that only the currently assigned rider receives the reminder.
