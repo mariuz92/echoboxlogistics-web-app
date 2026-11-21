@@ -329,20 +329,34 @@ in the same Firebase project for the EchoBox bundle identifier. [FCM HTTP v1 set
 Run on the VPS. Enter the absolute path to the service account JSON when prompted.
 
 ```bash
-source /opt/echobox/deploy-env.sh
-cd /opt/echobox/app
-read -rp 'Firebase service account JSON path: ' ECHOBOX_FCM_KEY_FILE
-python3 deploy/supabase/configure-rider-push.py "$ECHOBOX_FCM_KEY_FILE"
-install -d /opt/echobox/supabase/volumes/functions/notify-rider
-install -m 644 supabase/functions/notify-rider/{index.ts,fcm.ts} \
-  /opt/echobox/supabase/volumes/functions/notify-rider/
-echobox_supabase up -d --no-deps --force-recreate --wait functions
-install -m 644 deploy/supabase/echobox-push.{service,timer} /etc/systemd/system/
-systemctl daemon-reload
-systemctl start echobox-push.service
-systemctl enable --now echobox-push.timer
-systemctl list-timers echobox-push.timer
-journalctl -u echobox-push.service -n 30 --no-pager
+(
+  set -e
+  source /opt/echobox/deploy-env.sh
+  ECHOBOX_PUSH_CHECKOUT=/opt/echobox/app
+  ECHOBOX_PUSH_DEPLOY="$ECHOBOX_PUSH_CHECKOUT/deploy/supabase"
+  ECHOBOX_PUSH_FUNCTION="$ECHOBOX_PUSH_CHECKOUT/supabase/functions/notify-rider"
+  for ECHOBOX_PUSH_FILE in "$ECHOBOX_PUSH_DEPLOY"/echobox-push.{service,timer} \
+    "$ECHOBOX_PUSH_DEPLOY"/{configure-rider-push.py,run-push-worker.py} \
+    "$ECHOBOX_PUSH_FUNCTION"/{index.ts,fcm.ts}; do
+    if [ ! -r "$ECHOBOX_PUSH_FILE" ]; then
+      printf 'Missing %s. Update the EchoBox deployment checkout first.\n' "$ECHOBOX_PUSH_FILE" >&2
+      exit 1
+    fi
+  done
+
+  read -rp 'Firebase service account JSON path: ' ECHOBOX_FCM_KEY_FILE
+  python3 "$ECHOBOX_PUSH_DEPLOY/configure-rider-push.py" "$ECHOBOX_FCM_KEY_FILE"
+  install -d /opt/echobox/supabase/volumes/functions/notify-rider
+  install -m 644 "$ECHOBOX_PUSH_FUNCTION"/{index.ts,fcm.ts} \
+    /opt/echobox/supabase/volumes/functions/notify-rider/
+  echobox_supabase up -d --no-deps --force-recreate --wait functions
+  install -m 644 "$ECHOBOX_PUSH_DEPLOY"/echobox-push.{service,timer} /etc/systemd/system/
+  systemctl daemon-reload
+  systemctl start echobox-push.service
+  systemctl enable --now echobox-push.timer
+  systemctl list-timers echobox-push.timer
+  journalctl -u echobox-push.service -n 30 --no-pager
+)
 ```
 
 The timer calls the worker on the loopback gateway. Keep the public API allowlist unchanged so
