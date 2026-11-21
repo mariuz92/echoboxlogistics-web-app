@@ -1,21 +1,21 @@
-import { useState, type ComponentProps } from "react";
+import { useEffect, useState, type ComponentProps } from "react";
 import { createRoot } from "react-dom/client";
-import { BrowserRouter } from "react-router";
-import {
-  Alert, App, Button, Card, ConfigProvider, Drawer, Flex, Grid, Layout, Menu, Spin, Typography, theme,
-} from "antd";
+import { BrowserRouter, matchPath, useLocation, useNavigate, useSearchParams } from "react-router";
+import { Alert, App, Button, Card, ConfigProvider, Tooltip } from "antd";
 import itIT from "antd/locale/it_IT";
 import {
   AlertOutlined, AuditOutlined, BarChartOutlined, CreditCardOutlined, LogoutOutlined, MailOutlined,
-  MenuOutlined, MoonOutlined, ReloadOutlined, SettingOutlined, SunOutlined, TeamOutlined, SafetyCertificateOutlined,
+  ReloadOutlined, SettingOutlined, TeamOutlined, SafetyCertificateOutlined,
 } from "@ant-design/icons";
 import { QueryClient, QueryClientProvider, useQuery, useQueryClient } from "@tanstack/react-query";
 import "@fontsource-variable/inter";
 import "../src/styles/global.css";
-import { brand, getTheme } from "../src/config/theme";
+import { getTheme } from "../src/config/theme";
 import { isSupabaseConfigured } from "../src/config/env";
-import { Brand } from "../src/layout/Brand";
+import { WorkspaceLayout } from "../src/layout/WorkspaceLayout";
 import { PageHeader } from "../src/shared/components/PageHeader";
+import { NotFoundPage, SectionSpinner } from "../src/shared/components/Screens";
+import { usePageTitle } from "../src/shared/hooks/usePageTitle";
 import { ThemeModeProvider, useThemeMode } from "../src/providers/theme-mode";
 import { AuthShell } from "../src/features/auth/AuthShell";
 import { actionError, getSnapshot, platformClient } from "../src/features/platform/api";
@@ -24,47 +24,70 @@ import { ActionEditor, AuditTable, Companies, Contacts, Operators, Overview, Pla
 import { IssueDrawer, IssueQueue, OrderHistory } from "./ConsoleSupport";
 
 const menuItems = [
-  { key: "overview", label: "Panoramica", icon: <BarChartOutlined /> },
-  { key: "companies", label: "Aziende", icon: <TeamOutlined /> },
-  { key: "plans", label: "Piani", icon: <CreditCardOutlined /> },
-  { key: "issues", label: "Problemi", icon: <AlertOutlined /> },
-  { key: "contacts", label: "Messaggi", icon: <MailOutlined /> },
-  { key: "settings", label: "Configurazione", icon: <SettingOutlined /> },
-  { key: "operators", label: "Operatori", icon: <SafetyCertificateOutlined /> },
-  { key: "audit", label: "Audit", icon: <AuditOutlined /> },
+  { key: "/", label: "Panoramica", icon: <BarChartOutlined /> },
+  { key: "/companies", label: "Aziende", icon: <TeamOutlined /> },
+  { key: "/plans", label: "Piani", icon: <CreditCardOutlined /> },
+  { key: "/issues", label: "Problemi", icon: <AlertOutlined /> },
+  { key: "/contacts", label: "Messaggi", icon: <MailOutlined /> },
+  { key: "/settings", label: "Configurazione", icon: <SettingOutlined /> },
+  { key: "/operators", label: "Operatori", icon: <SafetyCertificateOutlined /> },
+  { key: "/audit", label: "Audit", icon: <AuditOutlined /> },
 ];
 
+const companyTabs = ["people", "billing", "operations", "issues", "audit"];
+const recordId = (value?: string | null) =>
+  value && /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i.test(value) ? value.toLowerCase() : undefined;
+
 function ConsoleWorkspace({ userId, email }: { userId: string; email?: string }) {
-  const [page, setPage] = useState("overview");
-  const [tenantId, setTenantId] = useState<string>();
-  const [companyTab, setCompanyTab] = useState("people");
-  const [issueId, setIssueId] = useState<string>();
-  const [orderId, setOrderId] = useState<string>();
-  const [search, setSearch] = useState("");
-  const [drawer, setDrawer] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [params, setParams] = useSearchParams();
   const [editor, setEditor] = useState<ComponentProps<typeof ActionEditor>["editor"]>();
-  const { mode, toggle } = useThemeMode();
-  const { token } = theme.useToken();
   const { message } = App.useApp();
-  const mobile = !Grid.useBreakpoint().lg;
   const queryClient = useQueryClient();
-  const scope = page === "companies" ? tenantId : undefined;
-  const filter = page === "companies" && !scope ? search : undefined;
+  const companyRoute = matchPath("/companies/:tenantId/:tab?", location.pathname);
+  const page = menuItems.find((item) => item.key === (companyRoute ? "/companies" : location.pathname.replace(/\/$/, "") || "/"));
+  const scope = recordId(companyRoute?.params.tenantId);
+  const tab = companyRoute?.params.tab ?? "people";
+  const validPage = !!page && (!companyRoute || (scope !== undefined && companyTabs.includes(tab)));
+  const filter = page?.key === "/companies" && !scope ? params.get("q")?.trim().slice(0, 120) || undefined : undefined;
+  const issueId = recordId(params.get("issue"));
+  const orderId = scope && tab === "operations" && !issueId ? recordId(params.get("order")) : undefined;
   const result = useQuery({
-    queryKey: ["platform", userId, scope, filter],
+    queryKey: ["platform", userId, "snapshot", scope, filter],
     queryFn: () => getSnapshot(scope, filter),
+    enabled: validPage,
     refetchInterval: 60_000,
     retry: false,
   });
   const refresh = () => { void queryClient.invalidateQueries({ queryKey: ["platform", userId] }); };
   const snapshot = result.data;
+  const company = scope ? snapshot?.companies[0] : undefined;
+  usePageTitle(company?.name ?? page?.label ?? "Superadmin");
+  useEffect(() => setEditor(undefined), [location.key]);
 
-  function openCompany(id?: string, tab = "people") {
-    setTenantId(id);
-    setCompanyTab(tab);
-    setIssueId(undefined);
-    setOrderId(undefined);
-    setPage("companies");
+  function openCompany(id?: string, nextTab = "people") {
+    navigate(id ? `/companies/${id}/${nextTab}` : "/companies");
+  }
+
+  function searchCompanies(value: string) {
+    const search = value.trim();
+    setParams(search ? { q: search } : {}, { replace: true });
+  }
+
+  function openDetail(key: "issue" | "order", id: string) {
+    const next = new URLSearchParams(params);
+    next.set(key, id);
+    setParams(next, { state: { openedDetail: true } });
+  }
+
+  function closeDetail(key: "issue" | "order") {
+    if (location.state?.openedDetail) navigate(-1);
+    else {
+      const next = new URLSearchParams(params);
+      next.delete(key);
+      setParams(next, { replace: true });
+    }
   }
 
   async function logout() {
@@ -73,68 +96,40 @@ function ConsoleWorkspace({ userId, email }: { userId: string; email?: string })
     queryClient.removeQueries({ queryKey: ["platform", userId] });
   }
 
-  const navigation = <>
-    <Flex align="center" style={{ height: 64, paddingInline: 20 }}><Brand to={false} onDark /></Flex>
-    <Menu
-      mode="inline" theme="dark" selectedKeys={[page]} items={menuItems}
-      onClick={({ key }) => { setPage(key); setDrawer(false); setIssueId(undefined); setOrderId(undefined); }}
-      style={{ background: "transparent", borderInlineEnd: 0, paddingTop: 8 }}
-    />
-  </>;
+  const openIssue = (id: string) => openDetail("issue", id);
 
-  return (
-    <Layout style={{ minHeight: "100vh" }}>
-      {mobile ? <Drawer open={drawer} onClose={() => setDrawer(false)} placement="left" size={260} closable={false}
-        styles={{ body: { padding: 0, background: brand.navy }, header: { display: "none" } }} aria-label="Menu Superadmin">
-        {navigation}
-      </Drawer> : <Layout.Sider width={236} style={{ position: "sticky", top: 0, height: "100vh", overflow: "auto" }}>
-        {navigation}
-      </Layout.Sider>}
-      <Layout style={{ minWidth: 0 }}>
-        <Layout.Header style={{
-          position: "sticky", top: 0, zIndex: 20, display: "flex", alignItems: "center", justifyContent: "space-between",
-          gap: 8, borderBottom: `1px solid ${token.colorBorderSecondary}`, paddingInline: mobile ? 12 : 24,
-        }}>
-          <Flex align="center" gap={8}>
-            {mobile && <Button type="text" aria-label="Apri menu" icon={<MenuOutlined />} onClick={() => setDrawer(true)} />}
-            <Typography.Text strong>Superadmin</Typography.Text>
-          </Flex>
-          <Flex align="center" gap={4}>
-            {!mobile && <Typography.Text type="secondary" style={{ marginRight: 8 }}>{email}</Typography.Text>}
-            <Button type="text" aria-label="Aggiorna" loading={result.isFetching} icon={<ReloadOutlined />} onClick={refresh} />
-            <Button type="text" aria-label="Cambia tema" icon={mode === "dark" ? <SunOutlined /> : <MoonOutlined />} onClick={toggle} />
-            <Button type="text" aria-label="Esci" icon={<LogoutOutlined />} onClick={() => void logout()} />
-          </Flex>
-        </Layout.Header>
-        <Layout.Content style={{ padding: mobile ? 16 : 24, minWidth: 0 }}>
-          {result.isError ? <Alert showIcon type="error" title={actionError(result.error)}
-            action={<Button onClick={refresh}>Riprova</Button>} /> :
-          !snapshot ? <Spin /> : <>
-            {page === "overview" && <Overview snapshot={snapshot} openIssue={setIssueId} openQueue={() => setPage("issues")} />}
-            {page === "companies" && <Companies userId={userId} snapshot={snapshot} company={scope ? snapshot.companies[0] : undefined}
-              onCompany={openCompany} onSearch={setSearch} openEditor={setEditor} refresh={refresh} tab={companyTab}
-              onTab={setCompanyTab} openIssue={setIssueId} openOrderHistory={setOrderId} />}
-            {page === "plans" && <Plans snapshot={snapshot} edit={setEditor} />}
-            {page === "issues" && <>
-              <PageHeader title="Problemi" subtitle="Segnalazioni raggruppate per origine, azienda e versione." />
-              <IssueQueue userId={userId} openIssue={setIssueId} />
-            </>}
-            {page === "contacts" && <Contacts snapshot={snapshot} edit={setEditor} />}
-            {page === "settings" && <PlatformSettings snapshot={snapshot} edit={setEditor} />}
-            {page === "operators" && <Operators snapshot={snapshot} userId={userId} edit={setEditor} />}
-            {page === "audit" && <>
-              <PageHeader title="Audit" subtitle="Modifiche eseguite dagli operatori e accettazione degli inviti." />
-              <Card><AuditTable snapshot={snapshot} /></Card>
-            </>}
-          </>}
-        </Layout.Content>
-      </Layout>
-      {issueId && snapshot && <IssueDrawer userId={userId} issueId={issueId} operators={snapshot.operators}
-        close={() => setIssueId(undefined)} edit={setEditor} openCompany={(id) => openCompany(id, "operations")} />}
-      {scope && orderId && <OrderHistory userId={userId} tenantId={scope} orderId={orderId} close={() => setOrderId(undefined)} />}
-      {editor && <ActionEditor editor={editor} close={() => setEditor(undefined)} refresh={refresh} />}
-    </Layout>
-  );
+  return <WorkspaceLayout title="Superadmin" items={menuItems} selectedKey={page?.key ?? ""} onNavigate={navigate}
+    account={{ name: email, role: "Operatore", roleColor: "blue", menu: {
+      items: [{ key: "logout", label: "Esci", danger: true, icon: <LogoutOutlined /> }],
+      onClick: () => void logout(),
+    } }}
+    actions={<Tooltip title="Aggiorna"><Button type="text" aria-label="Aggiorna" loading={result.isFetching} icon={<ReloadOutlined />} onClick={refresh} /></Tooltip>}>
+    {!validPage ? <NotFoundPage returnLabel="Torna alla panoramica" /> :
+      result.isError ? <Alert showIcon type="error" title={actionError(result.error)}
+        action={<Button onClick={refresh}>Riprova</Button>} /> : !snapshot ? <SectionSpinner /> : <>
+        {page?.key === "/" && <Overview snapshot={snapshot} openIssue={openIssue} openQueue={() => navigate("/issues")} />}
+        {page?.key === "/companies" && <Companies userId={userId} snapshot={snapshot} company={company}
+          onCompany={openCompany} search={filter} onSearch={searchCompanies} openEditor={setEditor} refresh={refresh} tab={tab}
+          onTab={(nextTab) => openCompany(scope, nextTab)} openIssue={openIssue} openOrderHistory={(id) => openDetail("order", id)} />}
+        {page?.key === "/plans" && <Plans snapshot={snapshot} edit={setEditor} />}
+        {page?.key === "/issues" && <>
+          <PageHeader title="Problemi" subtitle="Segnalazioni raggruppate per origine, azienda e versione." />
+          <IssueQueue userId={userId} openIssue={openIssue} />
+        </>}
+        {page?.key === "/contacts" && <Contacts snapshot={snapshot} edit={setEditor} />}
+        {page?.key === "/settings" && <PlatformSettings snapshot={snapshot} edit={setEditor} />}
+        {page?.key === "/operators" && <Operators snapshot={snapshot} userId={userId} edit={setEditor} />}
+        {page?.key === "/audit" && <>
+          <PageHeader title="Audit" subtitle="Modifiche eseguite dagli operatori e accettazione degli inviti." />
+          <Card><AuditTable snapshot={snapshot} /></Card>
+        </>}
+        {issueId && <IssueDrawer userId={userId} issueId={issueId} operators={snapshot.operators}
+          close={() => closeDetail("issue")} edit={setEditor} openCompany={(id) => openCompany(id, "operations")} />}
+        {company && orderId && <OrderHistory userId={userId} tenantId={company.id} timezone={company.timezone}
+          orderId={orderId} close={() => closeDetail("order")} />}
+      </>}
+    {editor && <ActionEditor editor={editor} close={() => setEditor(undefined)} refresh={refresh} />}
+  </WorkspaceLayout>;
 }
 
 const queryClient = new QueryClient();

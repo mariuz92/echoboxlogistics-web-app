@@ -1,21 +1,28 @@
 import { useEffect, useState } from "react";
-import { Alert, Button, Card, Descriptions, Drawer, Empty, Flex, Form, Input, Select, Spin, Table, Tag, Typography } from "antd";
+import { useSearchParams } from "react-router";
+import { Alert, Button, Card, Descriptions, Drawer, Empty, Flex, Form, Input, Segmented, Select, Space, Table, Tag, Timeline, Typography } from "antd";
 import type { TableProps } from "antd";
 import { useQuery } from "@tanstack/react-query";
-import dayjs from "dayjs";
-import { ORDER_STATUS_META } from "../src/types/domain";
+import { fmtDateTime } from "../src/lib/dates";
+import { StatusTag } from "../src/shared/components/StatusTag";
+import { SectionSpinner } from "../src/shared/components/Screens";
+import { isPickupOverdue, needsAssignment } from "../src/features/orders/orderActions";
 import {
   actionError, getIssueDetail, getIssueQueue, getOrderHistory, ISSUE_PAGE_SIZE, updateIssue,
-  type Issue, type IssueFilters, type IssueSeverity, type Snapshot,
+  type Company, type Issue, type IssueFilters, type IssueSeverity, type IssueSource, type OperationalOrder, type Snapshot,
 } from "../src/features/platform/api";
 import type { OpenEditor } from "./ConsolePages";
 
 const STATES = { open: "Aperto", investigating: "In verifica", resolved: "Risolto" };
 const SEVERITIES = { info: "Informativo", warning: "Avviso", critical: "Critico" };
 const SOURCES = { web: "Web", flutter: "Flutter", backend: "Backend" };
+const FILTER_STATES = { active: "Da gestire", ...STATES, all: "Tutti gli stati" };
+const stateColors = { open: "gold", investigating: "blue", resolved: "green" };
 const severityColors: Record<IssueSeverity, string> = { info: "blue", warning: "gold", critical: "red" };
+const maxIssuePage = Math.floor(2_147_483_647 / ISSUE_PAGE_SIZE) + 1;
 const options = (labels: Record<string, string>) => Object.entries(labels).map(([value, label]) => ({ value, label }));
-const date = (value: string) => dayjs(value).format("DD/MM/YYYY HH:mm");
+const validFilter = <T extends string>(labels: Record<T, string>, value: string | null): T | undefined =>
+  value && Object.hasOwn(labels, value) ? value as T : undefined;
 
 type IssueRow = Issue & { assignee_email?: string | null };
 
@@ -34,17 +41,25 @@ export function IssueTable({ issues, openIssue, pagination, loading, compact }: 
       { title: "Azienda", render: (_, row) => row.company_name ?? "—" },
       ...(!compact ? [{ title: "Assegnato a", dataIndex: "assignee_email", render: (value: string | null) => value ?? "—" }] : []),
       { title: "Occorrenze", dataIndex: "occurrences" },
-      { title: "Ultima attività", render: (_, row) => date(row.last_seen_at) },
+      { title: "Ultima attività", render: (_, row) => fmtDateTime(row.last_seen_at) },
       { title: "Gravità", render: (_, row) => <Tag color={severityColors[row.severity]}>{SEVERITIES[row.severity]}</Tag> },
-      { title: "Stato", render: (_, row) => STATES[row.state] },
+      { title: "Stato", render: (_, row) => <Tag color={stateColors[row.state]}>{STATES[row.state]}</Tag> },
     ]} />;
 }
 
 export function IssueQueue({ userId, tenantId, openIssue }: {
   userId: string; tenantId?: string; openIssue: (id: string) => void;
 }) {
-  const [filters, setFilters] = useState<IssueFilters>({ state: "active" });
-  const [page, setPage] = useState(1);
+  const [params, setParams] = useSearchParams();
+  const filters: IssueFilters = {
+    state: validFilter(FILTER_STATES, params.get("state")) ?? "active",
+    source: validFilter(SOURCES, params.get("source")),
+    severity: validFilter(SEVERITIES, params.get("severity")),
+    search: params.get("q")?.trim().slice(0, 120) || undefined,
+  };
+  const [draft, setDraft] = useState(filters.search ?? "");
+  const pageValue = Number(params.get("page"));
+  const page = Number.isInteger(pageValue) && pageValue > 0 && pageValue <= maxIssuePage ? pageValue : 1;
   const query = useQuery({
     queryKey: ["platform", userId, "issues", tenantId, filters, page],
     queryFn: () => getIssueQueue(filters, page, tenantId),
@@ -53,30 +68,47 @@ export function IssueQueue({ userId, tenantId, openIssue }: {
   });
   const total = query.data?.total;
 
+  useEffect(() => setDraft(filters.search ?? ""), [filters.search]);
   useEffect(() => {
-    if (total !== undefined) setPage((current) => Math.min(current, Math.max(1, Math.ceil(total / ISSUE_PAGE_SIZE))));
-  }, [total]);
+    if (total === undefined || params.has("issue")) return;
+    const lastPage = Math.max(1, Math.ceil(total / ISSUE_PAGE_SIZE));
+    if (page <= lastPage) return;
+    const next = new URLSearchParams(params);
+    if (lastPage === 1) next.delete("page");
+    else next.set("page", String(lastPage));
+    setParams(next, { replace: true });
+  }, [page, params, setParams, total]);
 
-  function changeFilters(change: Partial<IssueFilters>) {
-    setFilters((previous) => ({ ...previous, ...change }));
-    setPage(1);
+  function changeFilter(key: "q" | "state" | "source" | "severity", value?: string) {
+    const next = new URLSearchParams(params);
+    if (value) next.set(key, value);
+    else next.delete(key);
+    next.delete("page");
+    setParams(next);
   }
 
-  return <Card>
-    <Flex gap={8} wrap style={{ marginBottom: 16 }}>
-      <Input.Search allowClear aria-label="Cerca problemi" placeholder="Codice, azienda o riferimento" maxLength={120}
-        onSearch={(search) => changeFilters({ search: search.trim() || undefined })} style={{ width: 288, maxWidth: "100%" }} />
-      <Select aria-label="Stato dei problemi" value={filters.state} style={{ minWidth: 150 }}
-        options={options({ active: "Da gestire", ...STATES, all: "Tutti gli stati" })}
-        onChange={(state: IssueFilters["state"]) => changeFilters({ state })} />
-      <Select allowClear aria-label="Origine dei problemi" placeholder="Tutte le origini" value={filters.source} style={{ minWidth: 150 }}
-        options={options(SOURCES)} onChange={(source: IssueFilters["source"]) => changeFilters({ source })} />
-      <Select allowClear aria-label="Gravità dei problemi" placeholder="Tutte le gravità" value={filters.severity} style={{ minWidth: 150 }}
-        options={options(SEVERITIES)} onChange={(severity: IssueFilters["severity"]) => changeFilters({ severity })} />
+  function changePage(value: number) {
+    const next = new URLSearchParams(params);
+    if (value === 1) next.delete("page");
+    else next.set("page", String(value));
+    setParams(next);
+  }
+
+  return <Card styles={{ body: { padding: 16 } }}>
+    <Flex gap={12} align="center" wrap style={{ marginBottom: 16 }}>
+      <Input.Search allowClear aria-label="Cerca problemi" placeholder="Codice, azienda o riferimento" maxLength={120} value={draft}
+        onChange={(event) => setDraft(event.target.value)} onSearch={(search) => changeFilter("q", search.trim())}
+        style={{ width: 280, maxWidth: "100%" }} />
+      <Select<IssueFilters["state"]> aria-label="Stato dei problemi" value={filters.state} style={{ minWidth: 150 }}
+        options={options(FILTER_STATES)} onChange={(state) => changeFilter("state", state === "active" ? undefined : state)} />
+      <Select<IssueSource> allowClear aria-label="Origine dei problemi" placeholder="Tutte le origini" value={filters.source} style={{ minWidth: 150 }}
+        options={options(SOURCES)} onChange={(source) => changeFilter("source", source)} />
+      <Select<IssueSeverity> allowClear aria-label="Gravità dei problemi" placeholder="Tutte le gravità" value={filters.severity} style={{ minWidth: 150 }}
+        options={options(SEVERITIES)} onChange={(severity) => changeFilter("severity", severity)} />
     </Flex>
     {query.isError ? <LoadError error={query.error} retry={() => void query.refetch()} /> :
-      <IssueTable issues={query.data?.issues ?? []} openIssue={openIssue} loading={query.isFetching}
-        pagination={{ current: page, total, pageSize: ISSUE_PAGE_SIZE, showSizeChanger: false, onChange: setPage }} />}
+      <IssueTable issues={query.data?.issues ?? []} openIssue={openIssue} loading={query.isPending}
+        pagination={{ current: page, total, pageSize: ISSUE_PAGE_SIZE, showSizeChanger: false, onChange: changePage }} />}
   </Card>;
 }
 
@@ -91,16 +123,16 @@ export function IssueDrawer({ userId, issueId, operators, close, openCompany, ed
   const issue = query.data?.issue;
   const tenantId = issue?.tenant_id;
   return <Drawer open onClose={close} title={issue ? `Problema ${issue.code}` : "Dettaglio problema"} size={560}>
-    {query.isError ? <LoadError error={query.error} retry={() => void query.refetch()} /> : !issue ? <Spin /> :
+    {query.isError ? <LoadError error={query.error} retry={() => void query.refetch()} /> : !issue ? <SectionSpinner /> :
       <Flex vertical gap={20}>
         <Descriptions column={{ xs: 1, sm: 2 }} items={[
           { key: "id", label: "Riferimento", children: <Typography.Text copyable={{ text: issue.id }}>{issue.id.slice(0, 8)}</Typography.Text> },
           { key: "tenant", label: "Azienda", children: issue.company_name ?? "—" },
           { key: "source", label: "Origine", children: `${SOURCES[issue.source]} · ${issue.area}` },
           { key: "build", label: "Versione", children: issue.build ?? "—" },
-          { key: "first", label: "Prima occorrenza", children: date(issue.first_seen_at) },
-          { key: "last", label: "Ultima occorrenza", children: date(issue.last_seen_at) },
-          { key: "state", label: "Stato", children: STATES[issue.state] },
+          { key: "first", label: "Prima occorrenza", children: fmtDateTime(issue.first_seen_at) },
+          { key: "last", label: "Ultima occorrenza", children: fmtDateTime(issue.last_seen_at) },
+          { key: "state", label: "Stato", children: <Tag color={stateColors[issue.state]}>{STATES[issue.state]}</Tag> },
           { key: "severity", label: "Gravità", children: <Tag color={severityColors[issue.severity]}>{SEVERITIES[issue.severity]}</Tag> },
           { key: "occurrences", label: "Occorrenze", children: issue.occurrences },
           { key: "assignee", label: "Assegnato a", children: issue.assignee_email ?? "Nessuno" },
@@ -123,15 +155,15 @@ export function IssueDrawer({ userId, issueId, operators, close, openCompany, ed
           {tenantId && <Button onClick={() => openCompany(tenantId)}>Operazioni azienda</Button>}
         </Flex>
         <Card title="Attività degli operatori" size="small">
-          {query.data?.activity.length ? <Flex vertical gap={16}>
-            {query.data.activity.map((entry) => <div key={entry.id}>
+          {query.data?.activity.length ? <Timeline items={query.data.activity.map((entry) => ({
+            key: entry.id,
+            title: fmtDateTime(entry.created_at),
+            content: <Space orientation="vertical" size={2}>
               <Typography.Text strong>{entry.actor}</Typography.Text>
-              <Typography.Text type="secondary" style={{ display: "block" }}>
-                {date(entry.created_at)} · {STATES[entry.state]} · {SEVERITIES[entry.severity]}
-              </Typography.Text>
+              <Typography.Text type="secondary">{STATES[entry.state]} · {SEVERITIES[entry.severity]}</Typography.Text>
               <Typography.Paragraph style={{ margin: 0, whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{entry.reason}</Typography.Paragraph>
-            </div>)}
-          </Flex> : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Nessuna modifica registrata" />}
+            </Space>,
+          }))} /> : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Nessuna modifica registrata" />}
         </Card>
       </Flex>}
   </Drawer>;
@@ -142,8 +174,8 @@ const ORDER_EVENTS: Record<string, string> = {
   updated: "Ordine aggiornato", deleted: "Ordine eliminato",
 };
 
-export function OrderHistory({ userId, tenantId, orderId, close }: {
-  userId: string; tenantId: string; orderId: string; close: () => void;
+export function OrderHistory({ userId, tenantId, timezone, orderId, close }: {
+  userId: string; tenantId: string; timezone: string; orderId: string; close: () => void;
 }) {
   const query = useQuery({
     queryKey: ["platform", userId, "order-history", tenantId, orderId],
@@ -151,19 +183,57 @@ export function OrderHistory({ userId, tenantId, orderId, close }: {
   });
 
   return <Drawer open onClose={close} title={`Cronologia ordine ${orderId.slice(0, 8)}`} size={480}>
-    {query.isError ? <LoadError error={query.error} retry={() => void query.refetch()} /> : !query.data ? <Spin /> :
+    {query.isError ? <LoadError error={query.error} retry={() => void query.refetch()} /> : !query.data ? <SectionSpinner /> :
       query.data.length === 0 ? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Nessun evento registrato" /> :
-        <Flex vertical gap={16}>
-          {query.data.map((event) => <div key={event.id}>
-            <Typography.Text strong>{ORDER_EVENTS[event.event_type] ?? "Modifica ordine"}</Typography.Text>
-            <Typography.Text type="secondary" style={{ display: "block" }}>{date(event.created_at)}</Typography.Text>
-            {event.from_status && event.from_status !== event.to_status &&
-              <div>Da {ORDER_STATUS_META[event.from_status].label}</div>}
-            {event.to_status && event.from_status !== event.to_status &&
-              <div>Stato risultante · {ORDER_STATUS_META[event.to_status].label}</div>}
-          </div>)}
-        </Flex>}
+        <Timeline items={query.data.map((event) => ({
+          key: event.id,
+          title: fmtDateTime(event.created_at, timezone),
+          content: <Space orientation="vertical" size={2}>
+            <Typography.Text>{ORDER_EVENTS[event.event_type] ?? "Modifica ordine"}</Typography.Text>
+            {event.to_status && event.from_status !== event.to_status && <Flex gap={4} align="center" wrap>
+              {event.from_status && <><StatusTag status={event.from_status} /><Typography.Text type="secondary">a</Typography.Text></>}
+              <StatusTag status={event.to_status} />
+            </Flex>}
+          </Space>,
+        }))} />}
   </Drawer>;
+}
+
+type OperationsFilter = "all" | "unassigned" | "overdue";
+
+export function CompanyOperations({ orders, company, openOrder }: {
+  orders: OperationalOrder[]; company: Company; openOrder: (id: string) => void;
+}) {
+  const [filter, setFilter] = useState<OperationsFilter>("all");
+  const [search, setSearch] = useState("");
+  const text = search.trim().toLowerCase();
+  const visible = orders.filter((order) => {
+    if (filter === "unassigned" && !needsAssignment(order)) return false;
+    if (filter === "overdue" && !isPickupOverdue(order)) return false;
+    return !text || order.id.includes(text) || String(order.radio_channel ?? "") === text;
+  });
+
+  return <Card title="Incarichi aperti" styles={{ body: { padding: 16 } }}>
+    <Flex gap={12} align="center" wrap style={{ marginBottom: 16 }}>
+      <Segmented<OperationsFilter> aria-label="Filtra incarichi" value={filter} onChange={setFilter} options={[
+        { label: "Tutti", value: "all" }, { label: "Da assegnare", value: "unassigned" }, { label: "Ritiri in ritardo", value: "overdue" },
+      ]} />
+      <Input.Search allowClear aria-label="Cerca incarichi" placeholder="Riferimento o canale" value={search}
+        onChange={(event) => setSearch(event.target.value)} style={{ width: 280, maxWidth: "100%" }} />
+    </Flex>
+    <Table rowKey="id" scroll={{ x: 860 }} dataSource={visible} locale={{ emptyText: "Nessun incarico aperto" }}
+      rowClassName={(row) => needsAssignment(row) || isPickupOverdue(row) ? "row-attention" : ""} columns={[
+        { title: "Riferimento", render: (_, row) => <Typography.Text copyable={{ text: row.id }}>{row.id.slice(0, 8)}</Typography.Text> },
+        { title: "Stato", render: (_, row) => <StatusTag status={row.status} /> },
+        { title: "Consegna", render: (_, row) => fmtDateTime(row.delivery_at, company.timezone) },
+        { title: "Ritiro", render: (_, row) => <Flex gap={4} wrap>
+          {fmtDateTime(row.pickup_at, company.timezone)}{isPickupOverdue(row) && <Tag color="gold">In ritardo</Tag>}
+        </Flex> },
+        { title: "Canale", render: (_, row) => row.radio_channel ?? "—" },
+        { title: "Radioguide perse", dataIndex: "lost_radios" },
+        { title: "Cronologia", render: (_, row) => <Button size="small" onClick={() => openOrder(row.id)}>Vedi eventi</Button> },
+      ]} />
+  </Card>;
 }
 
 function LoadError({ error, retry }: { error: unknown; retry: () => void }) {

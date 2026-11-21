@@ -5,13 +5,12 @@ import {
 } from "antd";
 import dayjs from "dayjs";
 import type { Json } from "../src/types/database.types";
-import { StatusTag } from "../src/shared/components/StatusTag";
 import { PageHeader } from "../src/shared/components/PageHeader";
 import {
   actionError, sendInvite, submitAction, type AccessMode, type Action, type Company,
   type Snapshot, type SubscriptionState,
 } from "../src/features/platform/api";
-import { IssueQueue, IssueTable } from "./ConsoleSupport";
+import { CompanyOperations, IssueQueue, IssueTable } from "./ConsoleSupport";
 
 type Values = Record<string, Json | undefined>;
 type Editor = {
@@ -74,7 +73,7 @@ export function ActionEditor({ editor, close, refresh }: { editor: Editor; close
   return (
     <Modal title={editor.title} open footer={null} onCancel={saving ? undefined : close} maskClosable={!saving}>
       {editor.description && <Typography.Paragraph type="secondary">{editor.description}</Typography.Paragraph>}
-      <Form layout="vertical" initialValues={editor.values} onFinish={submit}>
+      <Form layout="vertical" initialValues={editor.values} onFinish={submit} scrollToFirstError>
         {editor.fields}
         <Form.Item name="reason" label={editor.reasonLabel ?? "Motivo della modifica"} rules={[{ required: true, whitespace: true, max: 500 }]}>
           <Input.TextArea rows={2} maxLength={500} />
@@ -111,7 +110,7 @@ export function Overview({ snapshot, openIssue, openQueue }: {
         ["Aziende", summary.companies], ["Inviti in attesa", summary.pending_invites],
         ["Ritiri in ritardo", summary.overdue_pickups], ["Problemi aperti", summary.issues],
       ].map(([title, value]) => (
-        <Col key={title} xs={12} xl={6}><Card><Statistic title={title} value={value} /></Card></Col>
+        <Col key={title} xs={12} xl={6}><Card size="small"><Statistic title={title} value={value} /></Card></Col>
       ))}
     </Row>
     <Card title="Problemi recenti" extra={<Button type="link" onClick={openQueue}>Apri coda</Button>} style={{ marginTop: 16 }}>
@@ -121,9 +120,10 @@ export function Overview({ snapshot, openIssue, openQueue }: {
 }
 
 export function Companies({
-  userId, snapshot, company, onCompany, onSearch, openEditor, refresh, tab, onTab, openIssue, openOrderHistory,
+  userId, snapshot, company, onCompany, search, onSearch, openEditor, refresh, tab, onTab, openIssue, openOrderHistory,
 }: {
-  userId: string; snapshot: Snapshot; company?: Company; onCompany: (id?: string) => void; onSearch: (value: string) => void;
+  userId: string; snapshot: Snapshot; company?: Company; onCompany: (id?: string) => void;
+  search?: string; onSearch: (value: string) => void;
   openEditor: OpenEditor; refresh: () => void;
   tab: string; onTab: (tab: string) => void; openIssue: (id: string) => void; openOrderHistory: (orderId: string) => void;
 }) {
@@ -141,7 +141,8 @@ export function Companies({
       })}>Crea azienda</Button>
     } />
     <Card>
-      <Input.Search allowClear aria-label="Cerca azienda" placeholder="Cerca per nome o slug" onSearch={onSearch} style={{ maxWidth: 360, marginBottom: 16 }} />
+      <Input.Search key={search} allowClear aria-label="Cerca azienda" placeholder="Cerca per nome o slug"
+        defaultValue={search} maxLength={120} onSearch={onSearch} style={{ maxWidth: 360, marginBottom: 16 }} />
       <Table rowKey="id" scroll={{ x: 640 }} dataSource={snapshot.companies} columns={[
         { title: "Azienda", render: (_, row) => <Button type="link" onClick={() => onCompany(row.id)}>{row.name}</Button> },
         { title: "Slug", dataIndex: "slug" },
@@ -230,17 +231,7 @@ export function Companies({
         </Card>
       </Flex> },
       { key: "billing", label: "Abbonamento", children: <CompanyBilling snapshot={snapshot} company={company} edit={openEditor} /> },
-      { key: "operations", label: "Operazioni", children: <Card title="Incarichi aperti">
-        <Table rowKey="id" scroll={{ x: 860 }} dataSource={snapshot.orders} columns={[
-          { title: "Riferimento", render: (_, row) => <Typography.Text copyable={{ text: row.id }}>{row.id.slice(0, 8)}</Typography.Text> },
-          { title: "Stato", render: (_, row) => <StatusTag status={row.status} /> },
-          { title: "Consegna", render: (_, row) => date(row.delivery_at) },
-          { title: "Ritiro", render: (_, row) => date(row.pickup_at) },
-          { title: "Canale", render: (_, row) => row.radio_channel ?? "—" },
-          { title: "Radioguide perse", dataIndex: "lost_radios" },
-          { title: "Cronologia", render: (_, row) => <Button size="small" onClick={() => openOrderHistory(row.id)}>Vedi eventi</Button> },
-        ]} />
-      </Card> },
+      { key: "operations", label: "Operazioni", children: <CompanyOperations orders={snapshot.orders} company={company} openOrder={openOrderHistory} /> },
       { key: "issues", label: "Problemi", children: <IssueQueue userId={userId} tenantId={company.id} openIssue={openIssue} /> },
       { key: "audit", label: "Audit", children: <Card><AuditTable snapshot={snapshot} /></Card> },
     ]} />

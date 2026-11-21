@@ -26,6 +26,7 @@ A separate web build uses the main app's visual style. Privileged SQL RPCs requi
 - [x] Console controls for company creation, global booking pause and a web notice.
 - [x] Group signed-in web errors, review active orders and overdue pickups, handle landing inquiries, and inspect the platform audit trail.
 - [x] Search and filter the support queue, assign issues to operators, and record triage and resolutions. Open a company's issue queue and inspect the timeline of an open order.
+- [x] Share the main app's navigation shell and order display across both builds. Preserve support links and issue filters across reloads and browser history.
 - [x] Add and disable platform operators from verified accounts and prevent self-disable.
 - [ ] Apply migrations and deploy to the EchoBox server. Provision the first production operator and verify TOTP, real email delivery, and custom DNS.
 - [ ] Exercise production invitation retries, account recovery, and subscription closeout with two pilot companies before turning off public signup.
