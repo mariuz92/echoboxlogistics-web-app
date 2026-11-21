@@ -78,25 +78,43 @@ export function ChannelPicker({ orderId }: ChannelPickerProps) {
 
   return (
     <>
-      <Flex align="baseline" gap={12} wrap>
-        <Form.Item
-          label="Canale"
-          name="radio_channel"
-          getValueFromEvent={({ target }: ChangeEvent<HTMLInputElement>) =>
-            target.value === "" ? null : target.valueAsNumber
-          }
-          rules={[{ validator: () => (problem.current ? Promise.reject(new Error(problem.current)) : Promise.resolve()) }]}
-          help={<Typography.Text type={status.type}>{status.text}</Typography.Text>}
-        >
-          <Input type="number" inputMode="numeric" min={min} max={max} step={1} placeholder="Numero" style={{ width: 160 }} />
-        </Form.Item>
-        <Button onClick={() => setOccupiedOpen(true)} disabled={!slot}>
-          Canali occupati
-        </Button>
-        {!slot && channel == null && (
-          <Typography.Text type="secondary">Indica gli orari dell’ordine per vedere i canali occupati.</Typography.Text>
-        )}
-      </Flex>
+      <Form.Item
+        label="Canale"
+        htmlFor="radio_channel"
+        help={
+          <Flex id="radio_channel_status" vertical gap={2} style={{ paddingBottom: 12 }}>
+            <Typography.Text type={status.type}>{status.text}</Typography.Text>
+            {!slot && channel == null && (
+              <Typography.Text type="secondary">Indica gli orari dell’ordine per vedere i canali occupati.</Typography.Text>
+            )}
+          </Flex>
+        }
+      >
+        <Flex align="center" gap={8} wrap>
+          <Form.Item
+            name="radio_channel"
+            noStyle
+            getValueFromEvent={({ target }: ChangeEvent<HTMLInputElement>) =>
+              target.value === "" ? null : target.valueAsNumber
+            }
+            rules={[{ validator: () => (problem.current ? Promise.reject(new Error(problem.current)) : Promise.resolve()) }]}
+          >
+            <Input
+              type="number"
+              inputMode="numeric"
+              min={min}
+              max={max}
+              step={1}
+              placeholder="Numero"
+              aria-describedby="radio_channel_status"
+              style={{ width: 144, maxWidth: "100%" }}
+            />
+          </Form.Item>
+          <Button onClick={() => setOccupiedOpen(true)} disabled={!slot}>
+            Canali occupati
+          </Button>
+        </Flex>
+      </Form.Item>
       {slot && (
         <OccupiedChannels
           open={occupiedOpen}
