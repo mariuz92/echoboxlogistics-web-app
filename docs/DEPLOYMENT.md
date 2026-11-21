@@ -156,6 +156,7 @@ Run a dedicated Supabase stack for EchoBox and deploy the web app with the Compo
 | Supabase | Compose project `echobox-supabase` in `/opt/echobox/supabase`, with its own network, database, storage directory and credentials |
 | Supabase API | `https://api.example.com` → `127.0.0.1:18000` → gateway port `8000` |
 | Web app | Compose project `echobox-web` → `https://platform.example.com` via `127.0.0.1:18080` |
+| Superadmin | Compose project `echobox-console` → `https://admin.example.com` via `127.0.0.1:18090` |
 | Studio | Private access to the EchoBox gateway through an SSH tunnel or VPN |
 | Postgres and Supavisor | Internal Docker ports only during normal operation |
 
@@ -200,7 +201,7 @@ Use a private terminal for the key scripts because they display credentials. Kee
 
 ```dotenv
 SUPABASE_PUBLIC_URL=https://api.example.com
-API_EXTERNAL_URL=https://api.example.com
+API_EXTERNAL_URL=https://api.example.com/auth/v1
 SITE_URL=https://platform.example.com
 ADDITIONAL_REDIRECT_URLS=https://platform.example.com,https://platform.example.com/join,https://platform.example.com/update-password
 STUDIO_DEFAULT_PROJECT=EchoBox
@@ -209,6 +210,8 @@ ENABLE_EMAIL_SIGNUP=true
 ENABLE_EMAIL_AUTOCONFIRM=false
 DISABLE_SIGNUP=false
 ```
+
+The pinned Supabase release uses the `/auth/v1` suffix in `API_EXTERNAL_URL`. `SUPABASE_PUBLIC_URL` and the clients' Supabase URL use the API origin. [Supabase Auth URL change](https://supabase.com/changelog/47093-self-hosted-supabase-api-external-url-to-include-auth-v1)
 
 Replace the `SMTP_*` settings with your mail provider's settings before testing signup, invitations and resets. The current `/register` flow uses signup to create the first company after email confirmation. [Supabase Auth configuration](https://github.com/supabase/auth#configuration)
 
