@@ -319,7 +319,9 @@ In the production console, turn on **Creazione aziende solo dalla console** unde
 
 ### 6. Enable rider push notifications
 
-Apply the EchoBox database migrations through `20261121000000_rider_push.sql` using the migration command in section 3.
+Update the EchoBox checkout and apply the database migrations through `20261121000000_rider_push.sql` using the
+migration command in section 3. Rebuild the customer web container with the command in section 4 so Flutter can
+open the recovery form even when the browser already has an EchoBox session.
 Enable the Firebase Cloud Messaging API in the Firebase project used by the Android and iOS builds. Give a service
 account permission to send FCM messages and place its JSON key on the VPS with mode `0600`. For iOS, configure APNs
 in the same Firebase project for the EchoBox bundle identifier. [FCM HTTP v1 setup](https://firebase.google.com/docs/cloud-messaging/send/v1-api) · [Firebase Apple client setup](https://firebase.google.com/docs/cloud-messaging/ios/client)
@@ -331,8 +333,10 @@ source /opt/echobox/deploy-env.sh
 cd /opt/echobox/app
 read -rp 'Firebase service account JSON path: ' ECHOBOX_FCM_KEY_FILE
 python3 deploy/supabase/configure-rider-push.py "$ECHOBOX_FCM_KEY_FILE"
-cp -R supabase/functions/notify-rider /opt/echobox/supabase/volumes/functions/
-echobox_supabase up -d --force-recreate --wait functions
+install -d /opt/echobox/supabase/volumes/functions/notify-rider
+install -m 644 supabase/functions/notify-rider/{index.ts,fcm.ts} \
+  /opt/echobox/supabase/volumes/functions/notify-rider/
+echobox_supabase up -d --no-deps --force-recreate --wait functions
 install -m 644 deploy/supabase/echobox-push.{service,timer} /etc/systemd/system/
 systemctl daemon-reload
 systemctl start echobox-push.service
