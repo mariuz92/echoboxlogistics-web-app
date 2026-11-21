@@ -42,7 +42,7 @@ export function AppLayout() {
   const location = useLocation();
   const { mutate: logout } = useLogout();
   const { profile, tenant, isAdmin, result } = useCurrentUser();
-  const settings = usePlatformSettings();
+  const { settings } = usePlatformSettings();
   const access = result?.kind === "ready" ? result.accessMode : undefined;
 
   const nav = isAdmin ? ADMIN_NAV : RIDER_NAV;

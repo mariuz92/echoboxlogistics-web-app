@@ -2,10 +2,10 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "../../lib/supabase";
 import type { Settings } from "./api";
 
-const DEFAULTS: Settings = { operator_only_companies: false, booking_paused: false, notice: "" };
+const DEFAULTS: Settings = { operator_only_companies: true, booking_paused: false, notice: "" };
 
 export function usePlatformSettings() {
-  return useQuery({
+  const { data, isPending } = useQuery({
     queryKey: ["platform-runtime-settings"],
     queryFn: async () => {
       const { data, error } = await supabase.rpc("platform_runtime_settings");
@@ -14,7 +14,8 @@ export function usePlatformSettings() {
     },
     retry: false,
     refetchInterval: 60_000,
-  }).data ?? DEFAULTS;
+  });
+  return { settings: data ?? DEFAULTS, isPending };
 }
 
 export async function reportWebIssue(area: string, fallback: string, error?: unknown) {

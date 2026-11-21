@@ -24,6 +24,8 @@ A separate web build uses the main app's visual style. Privileged SQL RPCs requi
 - [x] Create and suspend companies in Supabase, invite the first owner, invite and disable staff, resend, renew or revoke operator invitations, and transfer ownership to an active admin.
 - [x] Assign manual plans, set trial and renewal dates, grace and closeout states, and record manual payments. Enforce access in the Supabase app and public booking.
 - [x] Console controls for company creation, global booking pause and a web notice.
+- [x] Hide company creation on customer registration and onboarding pages when the console-only setting is active.
+- [ ] Enable **Creazione aziende solo dalla console** in production and verify owner invitation acceptance.
 - [x] Group signed-in web errors, review active orders and overdue pickups, handle landing inquiries, and inspect the platform audit trail.
 - [x] Search and filter the support queue, assign issues to operators, and record triage and resolutions. Open a company's issue queue and inspect the timeline of an open order.
 - [x] Share the main app's navigation shell and order display across both builds. Preserve support links and issue filters across reloads and browser history.
