@@ -168,12 +168,12 @@ The hostnames and loopback ports are examples. This layout assumes the TLS proxy
 docker compose version
 docker compose ls
 docker ps --format 'table {{.Names}}\t{{.Ports}}\t{{.Status}}'
-sudo ss -lntp
+ss -ltn '( sport = :18000 or sport = :18080 or sport = :18090 )'
 df -h
 free -h
 ```
 
-Record the current stack's project name, bindings, data locations and health. Confirm that the proposed ports are free and the host has room for a second stack. Use the official `self-hosted/v0.8.4` snapshot with Postgres 17 and Envoy. The commands below assume a Linux server, a user who can run Docker and write under `/opt/echobox`, and an EchoBox checkout that includes this repo's `deploy/` directory. Run the one-time setup from the EchoBox checkout. [Supabase Docker setup](https://supabase.com/docs/guides/self-hosting/docker)
+Record the current stack's project name, bindings, data locations and health. An `ss` header with no rows means it found no TCP listeners on the proposed ports. Check the Docker bindings too and confirm the host has room for a second stack. Use the official `self-hosted/v0.8.4` snapshot with Postgres 17 and Envoy. The commands below assume a Linux server, a user who can run Docker and write under `/opt/echobox`, and an EchoBox checkout that includes this repo's `deploy/` directory. Run the one-time setup from the EchoBox checkout. [Supabase Docker setup](https://supabase.com/docs/guides/self-hosting/docker)
 
 ```bash
 export ECHOBOX_APP_DIR="$PWD"

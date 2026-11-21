@@ -36,7 +36,9 @@ A separate web build uses the main app's visual style. Privileged SQL RPCs requi
 - [ ] Pilot web and Flutter against the same EchoBox Supabase project. Verify channel bookings across both clients, operator invites, and company access messages.
 - [ ] Add Flutter diagnostics, the Supabase push backend and delivery history, and shared multi-company access.
 - [ ] Incident notifications, external uptime checks, backup status, error reports before sign-in, and raw log aggregation.
-- [ ] Plan quotas, company-facing billing, payment-provider integration, version policies and staged feature rollout.
+- [ ] Pick a provider for automated company subscription payments. Compare Stripe Billing and Mollie for EUR card and SEPA payments. Keep manual bank transfer available for annual and pilot invoices.
+- [ ] Give company owners a billing screen and show payment method, last payment, next charge, invoices and failed payments in Superadmin. Reconcile provider events with the subscription and keep the existing grace and closeout rules.
+- [ ] Plan quotas, version policies and staged feature rollout.
 
 ## 2. Accounts and invitations (phases 1 and 2 of AUTH_REVIEW.md)
 
