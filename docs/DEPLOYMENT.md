@@ -237,6 +237,8 @@ echobox_supabase up -d --wait
 echobox_supabase ps
 ```
 
+To reuse a locally cached `kong/kong:3.9.3` image, add `-f "$ECHOBOX_SUPABASE_DIR/docker-compose.kong.yml"` immediately after the base Compose file in `echobox_supabase()`. Use the Kong file from the same pinned Supabase download. The final EchoBox override gives the gateway a project-scoped container name and keeps its only published port on `127.0.0.1:18000` by default. [Pinned Kong override](https://github.com/supabase/supabase/blob/self-hosted/v0.8.4/docker/docker-compose.kong.yml)
+
 Keep the upstream `main` dispatcher. The override lets `contact` receive signed-out requests. `invite-member` verifies the caller's user token with Auth and checks for an active admin in its own handler. [Pinned Edge Runtime dispatcher](https://github.com/supabase/supabase/blob/self-hosted/v0.8.4/docker/volumes/functions/main/index.ts)
 
 ### 3. Load and audit the EchoBox database
