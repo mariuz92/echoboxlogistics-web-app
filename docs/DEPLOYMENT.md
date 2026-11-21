@@ -215,6 +215,14 @@ The pinned Supabase release uses the `/auth/v1` suffix in `API_EXTERNAL_URL`. `S
 
 Replace the `SMTP_*` settings with your mail provider's settings before testing signup, invitations and resets. The current `/register` flow uses signup to create the first company after email confirmation. [Supabase Auth configuration](https://github.com/supabase/auth#configuration)
 
+For Resend, verify `echoboxlogistics.com` in Resend by adding its DNS records to Cloudflare, then create a sending API key for that domain. The script below uses `admin@echoboxlogistics.com` as the sender and prompts for the key in the server terminal. It updates the email settings in the existing `.env` file. [Verify your sending domain](https://resend.com/docs/dashboard/domains/introduction) · [Resend SMTP](https://resend.com/docs/send-with-smtp)
+
+```bash
+python3 "$ECHOBOX_APP_DIR/deploy/supabase/configure-resend-auth.py" "$ECHOBOX_SUPABASE_DIR/.env"
+```
+
+If EchoBox is already running, apply the settings with `echobox_supabase up -d --no-deps --wait auth`. Test an owner invitation from Superadmin and verify that the email links to the web app's `/join` page.
+
 ### 2. Start the separate Compose project
 
 The [EchoBox Supabase Compose override](../deploy/supabase/compose.echobox.yml) removes the upstream global container names and pooler bindings and publishes the gateway on loopback. Realtime retains Envoy's expected hostname as an alias on the private network. Use Docker Compose 2.24.4 or later and recheck the merged config with each upstream upgrade. [Upstream Compose file](https://github.com/supabase/supabase/blob/self-hosted/v0.8.4/docker/docker-compose.yml), [Compose merge rules](https://docs.docker.com/reference/compose-file/merge/)
