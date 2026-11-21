@@ -35,6 +35,7 @@ A separate web build uses the main app's visual style. Privileged SQL RPCs requi
 - [ ] Account recovery queue, platform-wide Auth revocation, role delegation, time-limited case access and data exports.
 - [x] Flutter Auth, data and Realtime are on Supabase in [the mobile feature branch](https://github.com/mariuz92/echoboxlogistics_mobile/tree/03e673e790fbe385aaa1082b3e7ab02dadf5c19a). Firebase is used for push.
 - [x] Align Flutter order forms with company channel ranges, disabled channels, and schedule-based availability. [Mobile channel update](https://github.com/mariuz92/echoboxlogistics_mobile/commit/0cbc65b6cac7f44891c8c3d607d0a37f46509ce5)
+- [x] Enforce the company’s channel range in the web order form and show occupied channels for the order’s schedule.
 - [ ] Pilot web and Flutter against the same EchoBox Supabase project. Verify channel bookings across both clients, operator invites, and company access messages.
 - [ ] Add Flutter diagnostics, the Supabase push backend and delivery history, and shared multi-company access.
 - [ ] Incident notifications, external uptime checks, backup status, error reports before sign-in, and raw log aggregation.
