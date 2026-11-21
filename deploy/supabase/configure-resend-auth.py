@@ -25,7 +25,7 @@ def main():
     settings = {
         "ENABLE_EMAIL_SIGNUP": "true",
         "ENABLE_EMAIL_AUTOCONFIRM": "false",
-        "SMTP_ADMIN_EMAIL": "admin@echoboxlogistics.com",
+        "SMTP_ADMIN_EMAIL": "no-reply@echoboxlogistics.com",
         "SMTP_HOST": "smtp.resend.com",
         "SMTP_PORT": "587",
         "SMTP_USER": "resend",

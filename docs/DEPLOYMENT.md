@@ -215,7 +215,7 @@ The pinned Supabase release uses the `/auth/v1` suffix in `API_EXTERNAL_URL`. `S
 
 Replace the `SMTP_*` settings with your mail provider's settings before testing signup, invitations and resets. The current `/register` flow uses signup to create the first company after email confirmation. [Supabase Auth configuration](https://github.com/supabase/auth#configuration)
 
-For Resend, verify `echoboxlogistics.com` in Resend by adding its DNS records to Cloudflare, then create a sending API key for that domain. The script below uses `admin@echoboxlogistics.com` as the sender and prompts for the key in the server terminal. It updates the email settings in the existing `.env` file. [Verify your sending domain](https://resend.com/docs/dashboard/domains/introduction) · [Resend SMTP](https://resend.com/docs/send-with-smtp)
+For Resend, verify `echoboxlogistics.com` by adding its DNS records to Cloudflare, then create a sending API key for that domain. The script sets the outbound sender to `no-reply@echoboxlogistics.com` and prompts for the key in the server terminal. Domain verification authorizes this sender address. Create the first Superadmin account with an inbox you can access. [Verify your sending domain](https://resend.com/docs/dashboard/domains/introduction) · [Resend SMTP](https://resend.com/docs/send-with-smtp)
 
 ```bash
 python3 "$ECHOBOX_APP_DIR/deploy/supabase/configure-resend-auth.py" "$ECHOBOX_SUPABASE_DIR/.env"
