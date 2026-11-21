@@ -37,7 +37,9 @@ A separate web build uses the main app's visual style. Privileged SQL RPCs requi
 - [x] Align Flutter order forms with company channel ranges, disabled channels, and schedule-based availability. [Mobile channel update](https://github.com/mariuz92/echoboxlogistics_mobile/commit/0cbc65b6cac7f44891c8c3d607d0a37f46509ce5)
 - [x] Enforce the company’s channel range in the web order form and show occupied channels for the order’s schedule.
 - [ ] Pilot web and Flutter against the same EchoBox Supabase project. Verify channel bookings across both clients, operator invites, and company access messages.
-- [ ] Add Flutter diagnostics, the Supabase push backend and delivery history, and shared multi-company access.
+- [x] Add the Supabase queue and Firebase sender for rider assignments and reminders.
+- [ ] Deploy rider push and verify receipt on an iPhone and an Android phone.
+- [ ] Add Flutter diagnostics, a notification history in Superadmin, and shared multi-company access.
 - [ ] Incident notifications, external uptime checks, backup status, error reports before sign-in, and raw log aggregation.
 - [ ] Pick a provider for automated company subscription payments. Compare Stripe Billing and Mollie for EUR card and SEPA payments. Keep manual bank transfer available for annual and pilot invoices.
 - [ ] Give company owners a billing screen and show payment method, last payment, next charge, invoices and failed payments in Superadmin. Reconcile provider events with the subscription and keep the existing grace and closeout rules.

@@ -81,10 +81,10 @@ function AppRoutes() {
         >
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
-          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         </Route>
 
         {/* Reachable with or without a session (links from emails) */}
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/update-password" element={<UpdatePasswordPage />} />
         <Route path="/join" element={<JoinPage />} />
         <Route path="/onboarding" element={<OnboardingPage />} />

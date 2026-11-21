@@ -431,3 +431,8 @@ verify_jwt = false
 [functions.platform-invite]
 enabled = true
 verify_jwt = false
+
+# The local scheduler authenticates with PUSH_WORKER_TOKEN.
+[functions.notify-rider]
+enabled = true
+verify_jwt = false

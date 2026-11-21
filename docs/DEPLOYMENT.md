@@ -316,3 +316,33 @@ docker compose --env-file .env -f deploy/compose.console-server.yml up -d --buil
 Route `https://admin.example.com` to `127.0.0.1:18090` in the TLS reverse proxy. The console requires a platform operator and MFA at the database API. Keep developer accounts and production credentials separate.
 
 In the production console, turn on **Creazione aziende solo dalla console** under **Configurazione → Modifica** before opening the customer platform. Verify that the login page hides the company registration link and that a direct visit to `/register` displays invitation instructions. Confirm that an owner can accept an invitation and access a test company. Existing companies keep full access until you assign a subscription or suspend them. The [Flutter Supabase branch](https://github.com/mariuz92/echoboxlogistics_mobile/tree/03e673e790fbe385aaa1082b3e7ab02dadf5c19a) uses Firebase for push. Point the deployed Flutter build at the same EchoBox Supabase project and complete the [mobile compatibility checks](SUPERADMIN.md#flutter-and-the-shared-supabase-backend) before the shared rollout.
+
+### 6. Enable rider push notifications
+
+Apply the EchoBox database migrations through `20261121000000_rider_push.sql` using the migration command in section 3.
+Enable the Firebase Cloud Messaging API in the Firebase project used by the Android and iOS builds. Give a service
+account permission to send FCM messages and place its JSON key on the VPS with mode `0600`. For iOS, configure APNs
+in the same Firebase project for the EchoBox bundle identifier. [FCM HTTP v1 setup](https://firebase.google.com/docs/cloud-messaging/send/v1-api) · [Firebase Apple client setup](https://firebase.google.com/docs/cloud-messaging/ios/client)
+
+Run on the VPS. Enter the absolute path to the service account JSON when prompted.
+
+```bash
+source /opt/echobox/deploy-env.sh
+cd /opt/echobox/app
+read -rp 'Firebase service account JSON path: ' ECHOBOX_FCM_KEY_FILE
+python3 deploy/supabase/configure-rider-push.py "$ECHOBOX_FCM_KEY_FILE"
+cp -R supabase/functions/notify-rider /opt/echobox/supabase/volumes/functions/
+echobox_supabase up -d --force-recreate --wait functions
+install -m 644 deploy/supabase/echobox-push.{service,timer} /etc/systemd/system/
+systemctl daemon-reload
+systemctl start echobox-push.service
+systemctl enable --now echobox-push.timer
+systemctl list-timers echobox-push.timer
+journalctl -u echobox-push.service -n 30 --no-pager
+```
+
+The timer calls the worker on the loopback gateway. Keep the public API allowlist unchanged so
+`/functions/v1/notify-rider` stays private. Pass `--api-port` to the configuration command if the local gateway
+uses a different port. The worker counts Firebase-accepted sends. Verify actual receipt and order navigation on
+an invited rider’s real iPhone and Android device. Assign a pilot delivery, then reschedule and reassign a pickup
+to confirm that only the currently assigned rider receives the reminder.

@@ -1,0 +1,12 @@
+[Unit]
+Description=Send EchoBox rider push notifications
+After=docker.service
+
+[Service]
+Type=oneshot
+EnvironmentFile=/opt/echobox/push-worker.env
+ExecStart=/usr/bin/python3 /opt/echobox/app/deploy/supabase/run-push-worker.py
+TimeoutStartSec=50
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true

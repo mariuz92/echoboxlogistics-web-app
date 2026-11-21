@@ -88,7 +88,7 @@ Mobile `feat/supabase-migration` at `03e673e` already uses Supabase for Auth, co
 
 - The Flutter channel update reads `channel_min`, `channel_max`, `channels_exclusive` and `disabled_channels` and uses `get_channel_board` for the order's proposed schedule. Apply the channel migration before using the updated build. Pilot adjacent bookings, exclusive overlaps, and shared channels across both clients. [Mobile channel update](https://github.com/mariuz92/echoboxlogistics_mobile/commit/0cbc65b6cac7f44891c8c3d607d0a37f46509ce5) · [Channel migration](../supabase/migrations/20261120000000_channels_any_range.sql)
 - Verify that operator-issued invites complete on the web `/join` before Flutter sign-in. Give Flutter explicit UI for `invitation_pending` and company access states, and report sanitized client errors via `report_platform_issue`.
-- Implement the push backend expected by Flutter. It upserts into `device_tokens`, and the web repository still needs that table and a sender for FCM assignment and reminder jobs. Test an assignment, reassignment and pickup reschedule on iOS and Android. Confirm that notifications arrive, open the correct order and cannot go to an inactive company membership. [Push backend contract](https://github.com/mariuz92/echoboxlogistics_mobile/blob/03e673e790fbe385aaa1082b3e7ab02dadf5c19a/docs/BACKEND_PUSH.md)
+- Deploy the private push tables, device registration RPCs, and FCM worker. Test an assignment, reassignment and pickup reschedule on iOS and Android. Confirm that notifications arrive and open the correct order. [Push setup](DEPLOYMENT.md#6-enable-rider-push-notifications)
 
 ## Build order and acceptance checks
 
