@@ -91,6 +91,7 @@ booking is created for that company only, and the page shows that company's iden
 
 ## 8. Host the web app on my own server
 
+- [x] Provide full and lean Compose configurations for a separate EchoBox stack on the shared Docker server.
 - [ ] Provision an independent EchoBox Supabase stack and verify it alongside the existing Docker instance using the [self-hosting plan](DEPLOYMENT.md#5-self-hosted-supabase-on-a-shared-docker-server).
 - [ ] Run the app from the Docker image on your own server behind a TLS reverse proxy; point the app's hostname to it with a DNS record. The landing page stays on Cloudflare Pages.
 - [ ] Supabase **Site URL** and **Redirect URLs**: the app domain only. `ALLOWED_ORIGINS` (Edge Functions): app domain and landing domain.

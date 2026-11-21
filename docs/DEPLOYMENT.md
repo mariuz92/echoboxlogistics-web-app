@@ -239,6 +239,10 @@ echobox_supabase ps
 
 To reuse a locally cached `kong/kong:3.9.3` image, add `-f "$ECHOBOX_SUPABASE_DIR/docker-compose.kong.yml"` immediately after the base Compose file in `echobox_supabase()`. Use the Kong file from the same pinned Supabase download. The final EchoBox override gives the gateway a project-scoped container name and keeps its only published port on `127.0.0.1:18000` by default. [Pinned Kong override](https://github.com/supabase/supabase/blob/self-hosted/v0.8.4/docker/docker-compose.kong.yml)
 
+For a smaller initial deployment, add `-f "$ECHOBOX_APP_DIR/deploy/supabase/compose.lean.yml"` after `compose.echobox.yml` and before `"$@"` in `echobox_supabase()`. The default services are Postgres, Auth, PostgREST, Realtime, the gateway and Edge Functions. EchoBox currently stores its application records in Postgres. Enable Studio and Postgres Meta when needed with `echobox_supabase --profile studio up -d --wait`. The `storage` and `pooler` profiles enable Supabase Storage with imgproxy and Supavisor respectively. Run database migrations directly as in the next section. [Supabase optional services](https://supabase.com/docs/guides/self-hosting/docker#system-requirements)
+
+An existing Supabase `self-hosted/v0.8.1` deployment with Kong can share the locally cached Postgres and Kong images with this recipe. Use the pinned bundle for the new EchoBox project to include the later Realtime and Storage fixes. Keep the original project's `.env`, network overrides, database initialization files and data paths with that project. [Supabase release notes](https://github.com/supabase/supabase/blob/self-hosted/v0.8.4/docker/CHANGELOG.md)
+
 Keep the upstream `main` dispatcher. The override lets `contact` receive signed-out requests. `invite-member` verifies the caller's user token with Auth and checks for an active admin in its own handler. [Pinned Edge Runtime dispatcher](https://github.com/supabase/supabase/blob/self-hosted/v0.8.4/docker/volumes/functions/main/index.ts)
 
 ### 3. Load and audit the EchoBox database
