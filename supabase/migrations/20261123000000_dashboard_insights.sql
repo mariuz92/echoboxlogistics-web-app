@@ -1,8 +1,10 @@
 -- =============================================================================
 -- Dashboard insights
 --
--- Replaces get_dashboard_stats (volumes and charts that did not answer a
--- decision) with get_dashboard_insights: figures an admin can act on.
+-- Adds get_dashboard_insights: figures an admin can act on, instead of the volumes
+-- and charts of get_dashboard_stats. The old function is deliberately kept for now:
+-- an older build of the app still calls it, and this migration must be safe to apply
+-- before every app build has moved. Drop it in a later migration once none does.
 --
 --   * snapshot   month vs previous month: revenue, orders, group size, losses,
 --                cancellations, punctuality
@@ -20,8 +22,6 @@
 -- Everything is computed in the company's timezone and only for the caller's
 -- company (admins only), like the function it replaces.
 -- =============================================================================
-
-drop function public.get_dashboard_stats(date);
 
 -- -----------------------------------------------------------------------------
 -- Per day: the most groups (orders) and radios out *at the same time* in any hour
