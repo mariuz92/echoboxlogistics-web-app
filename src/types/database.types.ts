@@ -612,7 +612,7 @@ export type Database = {
           status: Database["public"]["Enums"]["order_status"]
         }[]
       }
-      get_dashboard_stats: { Args: { p_month?: string }; Returns: Json }
+      get_dashboard_insights: { Args: { p_month?: string }; Returns: Json }
       get_public_tenant: {
         Args: { p_slug: string }
         Returns: {

@@ -187,7 +187,7 @@ authorisation failures use SQLSTATE `42501`. See [API.md](API.md) for request ex
 | `admin_set_status(order, status)` | admin | Cancel, re-open, or move an order forward manually |
 | `rider_order_action(order, action, lost)` | rider | `claim_pickup`, `start_delivery`, `complete_delivery`, `start_pickup`, `complete_pickup` |
 | `get_channel_board(from, to)` | admin | Open orders holding a channel during the period, with `busy_until` |
-| `get_dashboard_stats(month)` | admin | All dashboard figures for a month, in the tenant time zone |
+| `get_dashboard_insights(month)` | admin | The dashboard's figures for a month (and the 12 months around it), in the tenant time zone: revenue and quality against the previous period, capacity, alerts, rider workload, guides, lead time, locations |
 | `get_public_tenant(slug)` | anon | Company name, time zone and whether bookings are open |
 | `create_public_order(...)` | anon | Public booking: validates, throttles, upserts the guide, creates the order |
 

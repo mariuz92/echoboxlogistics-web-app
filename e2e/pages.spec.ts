@@ -104,18 +104,27 @@ test.describe("calendar", () => {
 });
 
 test.describe("dashboard", () => {
-  test("renders KPIs, charts and tables, and navigates between months", async ({ page }) => {
+  test("renders the insights, charts and tables, and navigates between months", async ({ page }) => {
     const browserErrors = failOnBrowserErrors(page);
     await loginAsAdmin(page);
     await page.goto("/dashboard");
 
-    for (const kpi of ["Incasso", "Ordini", "Valore medio ordine", "Radioguide consegnate", "Radioguide perse"]) {
+    for (const kpi of ["Incasso", "Ordini", "Valore medio ordine", "Incasso per radio", "Consegne puntuali", "Radio perse"]) {
       await expect(page.getByText(kpi, { exact: true }).first()).toBeVisible();
     }
+    // the month in progress says what it is measured against
+    await expect(page.getByText("Mese in corso", { exact: false }).first()).toBeVisible();
+    await expect(page.getByText("In breve", { exact: true })).toBeVisible();
+    await expect(page.getByText("Gli ultimi 12 mesi")).toBeVisible();
+    await expect(page.getByText("Radio fuori nello stesso momento")).toBeVisible();
+    await expect(page.getByText("Quando servono i rider")).toBeVisible();
+    await expect(page.getByText("Chi porta l'incasso")).toBeVisible();
+    await expect(page.getByText("Dove si consegna")).toBeVisible();
     await expect(page.locator(".recharts-surface").first()).toBeVisible();
-    expect(await page.locator(".recharts-surface").count()).toBeGreaterThanOrEqual(4);
-    await expect(page.getByText("Top guide")).toBeVisible();
-    await expect(page.getByText("Quando si consegna (giorno × ora)")).toBeVisible();
+
+    // the trend can show another measure
+    await page.getByText("Ordini", { exact: true }).last().click();
+    await expect(page.locator(".recharts-surface").first()).toBeVisible();
 
     await page.getByRole("button", { name: "Mese precedente" }).click();
     await expect(page.getByText("vs mese precedente").first()).toBeVisible();

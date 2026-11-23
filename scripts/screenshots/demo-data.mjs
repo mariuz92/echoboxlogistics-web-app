@@ -199,6 +199,30 @@ export function buildDemo(now) {
     "Gruppo tedesco, tour in lingua",
   ];
 
+  const RIDER_LATE = { Luca: 0.05, Marco: 0.12, Sara: 0.07, Davide: 0.2, Elena: 0.08 };
+
+  // Who orders when: a few busy guides, some who started recently, some who stopped.
+  // [guide index, first active day offset, last active day offset, weight]
+  const GUIDE_PROFILE = {
+    0: [-400, 99, 3.2], 1: [-400, 99, 2.4], 2: [-400, 99, 2.0], 3: [-400, 99, 1.5], 4: [-400, 99, 1.3],
+    5: [-400, 99, 1.1], 6: [-400, 99, 1.0], 7: [-400, 99, 0.9], 8: [-360, 99, 0.8], 9: [-330, 99, 0.7],
+    10: [-300, 99, 0.6], 11: [-280, 99, 0.6], 12: [-400, -75, 0.7], 13: [-150, 99, 0.7], 14: [-200, 99, 0.6],
+    15: [-400, -120, 0.7], 16: [-380, -52, 0.6], 17: [-40, 99, 1.2], 18: [-12, 99, 0.8], 19: [-6, 99, 0.7],
+  };
+  const pickGuide = (offset) => {
+    const live = guides.filter((_, i) => offset >= GUIDE_PROFILE[i][0] && offset <= GUIDE_PROFILE[i][1]);
+    const w = (g) => GUIDE_PROFILE[guides.indexOf(g)][2];
+    let r = rnd() * live.reduce((t, g) => t + w(g), 0);
+    for (const g of live) {
+      r -= w(g);
+      if (r <= 0) return g;
+    }
+    return live[live.length - 1];
+  };
+  // Rome tourism through the year (relative to November = 1) and a business that grew over the year.
+  const SEASON = [0.55, 0.68, 1.0, 1.45, 1.6, 1.5, 1.25, 0.85, 1.55, 1.5, 1.0, 0.85];
+  const LOSS_PROB = { 3: 0.12, 5: 0.09 };
+
   const orders = [];
   let seq = 0;
   const price = (radios) => Math.round(radios * (rnd() < 0.5 ? 2.5 : 3));
@@ -210,7 +234,11 @@ export function buildDemo(now) {
     const extra = o.extra ?? (rnd() < 0.25 ? between(1, 3) : 0);
     const delivery_at = o.delivery;
     const pickup_at = o.pickup === undefined ? new Date(delivery_at.getTime() + between(3, 7) * 3600e3) : o.pickup;
-    const createdAt = new Date(delivery_at.getTime() - between(2, 20) * 86400e3 - between(0, 600) * 60e3);
+    // about one booking in five is last minute (the day before or the same day)
+    const createdAt =
+      rnd() < 0.22
+        ? new Date(delivery_at.getTime() - between(1, 20) * 3600e3)
+        : new Date(delivery_at.getTime() - between(2, 20) * 86400e3 - between(0, 600) * 60e3);
     const row = {
       id: id("order", seq),
       tenant_id: TENANT_ID,
@@ -241,7 +269,11 @@ export function buildDemo(now) {
     };
     const doneDelivery = ["delivered", "awaiting_pickup", "pickup_assigned", "out_for_pickup", "picked_up"];
     if (doneDelivery.includes(row.status)) {
-      row.delivered_at = iso(new Date(delivery_at.getTime() - between(2, 12) * 60e3));
+      // riders are not equally punctual
+      const late = rnd() < (o.deliveryRider ? (RIDER_LATE[o.deliveryRider.full_name.split(" ")[0]] ?? 0.1) : 0.1);
+      row.delivered_at = iso(
+        new Date(delivery_at.getTime() + (late ? between(11, 35) : -between(2, 12)) * 60e3),
+      );
     }
     if (row.status === "picked_up") {
       row.picked_up_at = iso(new Date((pickup_at ?? delivery_at).getTime() + between(0, 25) * 60e3));
@@ -251,21 +283,25 @@ export function buildDemo(now) {
     return row;
   }
 
-  // --- history: last 6 weeks, almost everything closed --------------------------
+  // --- history: the last 13 months, almost everything closed -------------------
   const usedPlaces = places.slice(0, 15);
-  for (let off = -110; off <= -1; off++) {
+  for (let off = -400; off <= -1; off++) {
     const date = dayAt(off, 12, 0);
-    const dow = ISO_DOW[romeParts(date).weekday];
-    // Autumn: the further back, the busier (September > October > November).
-    const season = 1 + -off / 160;
-    const n = Math.round((dow >= 6 ? between(11, 17) : between(7, 13)) * season);
+    const parts = romeParts(date);
+    const dow = ISO_DOW[parts.weekday];
+    const growth = 0.75 + 0.25 * (1 - -off / 400);
+    const n = Math.round((dow >= 6 ? between(11, 17) : between(7, 13)) * SEASON[parts.m - 1] * growth);
     for (let i = 0; i < n; i++) {
       const h = between(7, 15);
       const delivery = dayAt(off, h, pick([0, 15, 30, 45]));
-      const cancelled = rnd() < 0.04;
+      const source = rnd() < 0.3 ? "public_form" : "dashboard";
+      const cancelled = rnd() < (source === "public_form" ? 0.07 : 0.03);
       const rider = pick(riders);
+      const guide = pickGuide(off);
       add({
         delivery,
+        guide,
+        source,
         where: pick(usedPlaces),
         status: cancelled ? "cancelled" : "picked_up",
         channel: (() => {
@@ -274,7 +310,7 @@ export function buildDemo(now) {
         })(),
         deliveryRider: cancelled ? null : rider,
         pickupRider: cancelled ? null : rnd() < 0.6 ? rider : pick(riders),
-        lost: !cancelled && rnd() < 0.05 ? 1 : 0,
+        lost: !cancelled && rnd() < (LOSS_PROB[guides.indexOf(guide)] ?? 0.02) ? between(1, 2) : 0,
         notes: null,
       });
     }
@@ -356,6 +392,7 @@ export function buildDemo(now) {
       const assigned = off === 1 && rnd() < 0.6;
       add({
         delivery,
+        guide: pickGuide(off),
         where: pick(usedPlaces),
         status: assigned ? "delivery_assigned" : "received",
         deliveryRider: assigned ? pick(riders) : null,
@@ -512,111 +549,300 @@ export function channelBoard(db, from, to) {
     .sort((x, y) => x.channel - y.channel || x.delivery_at.localeCompare(y.delivery_at));
 }
 
-export function dashboardStats(db, monthStr) {
+export function dashboardInsights(db, monthStr) {
   const [y, m] = monthStr.split("-").map(Number);
-  const start = rome(y, m, 1);
-  const end = rome(m === 12 ? y + 1 : y, m === 12 ? 1 : m + 1, 1);
-  const pStart = rome(m === 1 ? y - 1 : y, m === 1 ? 12 : m - 1, 1);
-  const inRange = (o, a, b) => new Date(o.delivery_at) >= a && new Date(o.delivery_at) < b;
-  const cur = db.orders.filter((o) => inRange(o, start, end));
-  const live = cur.filter((o) => o.status !== "cancelled");
-  const prev = db.orders.filter((o) => inRange(o, pStart, start) && o.status !== "cancelled");
-  const pickups = db.orders.filter(
-    (o) => o.pickup_at && new Date(o.pickup_at) >= start && new Date(o.pickup_at) < end && o.status !== "cancelled",
-  );
-  const sum = (rows, f) => rows.reduce((s, r) => s + Number(r[f]), 0);
-  const hour = (iso) => romeParts(new Date(iso)).h;
-  const groupCount = (rows, keyFn) => {
+  const now = db.now;
+  const tz = db.tenant;
+  const monthStart = (yy, mm) => rome(yy, mm, 1);
+  const addMonths = (n) => {
+    const t = new Date(Date.UTC(y, m - 1 + n, 1));
+    return [t.getUTCFullYear(), t.getUTCMonth() + 1];
+  };
+  const start = monthStart(y, m);
+  const end = monthStart(...addMonths(1));
+  const pStart = monthStart(...addMonths(-1));
+  // a month in progress is measured up to the end of today (see the SQL)
+  const todayP0 = romeParts(db.now);
+  const tomorrow = rome(todayP0.y, todayP0.m, todayP0.d + 1);
+  const cut = new Date(Math.min(end.getTime(), Math.max(start.getTime(), tomorrow.getTime())));
+  const prevCut = new Date(Math.min(start.getTime(), pStart.getTime() + (cut.getTime() - start.getTime())));
+  const t = (iso) => new Date(iso).getTime();
+  const MIN = 60e3;
+  const DAY = 86400e3;
+  const sum = (rows, f) => rows.reduce((acc, r) => acc + Number(r[f]), 0);
+  const radiosOf = (o) => o.radios_count + o.extra_radios;
+  const key = (o) => o.guide_id ?? o.guide_name.trim().toLowerCase();
+  const group = (rows, keyFn) => {
     const map = new Map();
     for (const r of rows) {
       const k = keyFn(r);
-      const e = map.get(k) ?? { rows: [] };
-      e.rows.push(r);
-      map.set(k, e);
+      if (!map.has(k)) map.set(k, []);
+      map.get(k).push(r);
     }
     return map;
   };
+  const inRange = (o, a, b) => t(o.delivery_at) >= a.getTime() && t(o.delivery_at) < b.getTime();
 
-  const status = [...groupCount(cur, (o) => o.status)].map(([status, e]) => ({ status, count: e.rows.length }));
-  status.sort((a, b) => b.count - a.count);
+  const all = db.orders;
+  const nonCancelled = all.filter((o) => o.status !== "cancelled");
+  const cur = all.filter((o) => inRange(o, start, cut));
+  const live = cur.filter((o) => o.status !== "cancelled");
+  const prevAll = all.filter((o) => inRange(o, pStart, prevCut));
+  const prev = prevAll.filter((o) => o.status !== "cancelled");
+  const pickups = nonCancelled.filter((o) => o.pickup_at && t(o.pickup_at) >= start.getTime() && t(o.pickup_at) < cut.getTime());
 
-  const daily = new Map();
-  for (const o of live) {
-    const d = romeDay(new Date(o.delivery_at));
-    const e = daily.get(d) ?? { date: d, deliveries: 0, pickups: 0, revenue: 0 };
-    e.deliveries += 1;
-    e.revenue += Number(o.balance);
-    daily.set(d, e);
+  const onTime = (o) => o.delivered_at && t(o.delivered_at) <= t(o.delivery_at) + 10 * MIN;
+  const snapshot = (rows, allRows) => ({
+    orders: rows.length,
+    revenue: sum(rows, "balance"),
+    radios: rows.reduce((acc, o) => acc + radiosOf(o), 0),
+    lost: sum(rows, "lost_radios"),
+    delivered: rows.filter((o) => o.delivered_at).length,
+    on_time: rows.filter(onTime).length,
+    cancelled: allRows.filter((o) => o.status === "cancelled").length,
+    booked: allRows.length,
+  });
+
+  // trend: the selected month and the 11 before
+  const trend = [];
+  for (let n = 11; n >= 0; n--) {
+    const [yy, mm] = addMonths(-n);
+    const a = monthStart(yy, mm);
+    const b = monthStart(...(mm === 12 ? [yy + 1, 1] : [yy, mm + 1]));
+    const rows = nonCancelled.filter((o) => inRange(o, a, new Date(Math.min(b.getTime(), cut.getTime()))));
+    trend.push({
+      month: `${yy}-${pad(mm)}`,
+      orders: rows.length,
+      revenue: sum(rows, "balance"),
+      radios: rows.reduce((acc, o) => acc + radiosOf(o), 0),
+    });
   }
-  for (const o of pickups) {
-    const d = romeDay(new Date(o.pickup_at));
-    const e = daily.get(d) ?? { date: d, deliveries: 0, pickups: 0, revenue: 0 };
-    e.pickups += 1;
-    daily.set(d, e);
-  }
 
-  const weekStart = (iso) => {
-    const p = romeParts(new Date(iso));
-    const dt = new Date(Date.UTC(p.y, p.m - 1, p.d - (ISO_DOW[p.weekday] - 1)));
-    return dt.toISOString().slice(0, 10);
-  };
-  const weekly = [...groupCount(live, (o) => weekStart(o.delivery_at))]
-    .map(([week_start, e]) => ({ week_start, orders: e.rows.length, revenue: sum(e.rows, "balance") }))
-    .sort((a, b) => a.week_start.localeCompare(b.week_start));
-
-  const hourly = Array.from({ length: 24 }, (_, h) => ({
-    hour: h,
-    deliveries: live.filter((o) => hour(o.delivery_at) === h).length,
-    pickups: pickups.filter((o) => hour(o.pickup_at) === h).length,
+  // capacity: most groups / radios out in any hour of the day
+  const spans = nonCancelled.map((o) => ({
+    s: t(o.delivery_at),
+    e: Math.max(
+      o.picked_up_at ? t(o.picked_up_at) : o.pickup_at ? t(o.pickup_at) : t(o.delivery_at) + 6 * 3600e3,
+      t(o.delivery_at) + MIN,
+    ),
+    radios: radiosOf(o),
+    dDel: romeDay(new Date(o.delivery_at)),
+    dPick: o.pickup_at ? romeDay(new Date(o.pickup_at)) : null,
   }));
+  const concurrency = (from, days) => {
+    const out = [];
+    for (let i = 0; i < days; i++) {
+      const dt = new Date(Date.UTC(from.y, from.m - 1, from.d + i));
+      const [yy, mm, dd] = [dt.getUTCFullYear(), dt.getUTCMonth() + 1, dt.getUTCDate()];
+      const day = `${yy}-${pad(mm)}-${pad(dd)}`;
+      const dayStart = rome(yy, mm, dd).getTime();
+      const near = spans.filter((sp) => sp.s < dayStart + 25 * 3600e3 && sp.e > dayStart);
+      let groups = 0;
+      let radios = 0;
+      for (let h = 0; h < 24; h++) {
+        const hs = rome(yy, mm, dd, h).getTime();
+        let g = 0;
+        let r = 0;
+        for (const sp of near) {
+          if (sp.s < hs + 3600e3 && sp.e > hs) {
+            g += 1;
+            r += sp.radios;
+          }
+        }
+        groups = Math.max(groups, g);
+        radios = Math.max(radios, r);
+      }
+      out.push({
+        date: day,
+        groups,
+        radios,
+        deliveries: spans.filter((sp) => sp.dDel === day).length,
+        pickups: spans.filter((sp) => sp.dPick === day).length,
+      });
+    }
+    return out;
+  };
+  const daysInMonth = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  const todayP = romeParts(now);
 
-  const heatmap = [...groupCount(live, (o) => `${ISO_DOW[romeParts(new Date(o.delivery_at)).weekday]}|${hour(o.delivery_at)}`)].map(
-    ([k, e]) => {
-      const [weekday, h] = k.split("|").map(Number);
-      return { weekday, hour: h, count: e.rows.length };
-    },
+  // alerts
+  const open = all.filter((o) => ["delivered", "awaiting_pickup", "pickup_assigned", "out_for_pickup"].includes(o.status));
+  const overdue = open.filter((o) =>
+    o.pickup_at ? t(o.pickup_at) < now.getTime() : t(o.delivery_at) < now.getTime() - DAY,
   );
+  const week = now.getTime() + 7 * DAY;
+  const alerts = {
+    overdue_pickups: {
+      orders: overdue.length,
+      radios: overdue.reduce((acc, o) => acc + radiosOf(o), 0),
+      oldest_days: overdue.length
+        ? Math.max(...overdue.map((o) => Math.floor((now.getTime() - t(o.pickup_at ?? o.delivery_at)) / DAY)))
+        : 0,
+    },
+    unassigned_deliveries: all.filter(
+      (o) => o.status === "received" && !o.delivery_rider_id && t(o.delivery_at) >= now.getTime() && t(o.delivery_at) < week,
+    ).length,
+    unassigned_pickups: all.filter(
+      (o) =>
+        !o.pickup_rider_id &&
+        o.pickup_at &&
+        t(o.pickup_at) >= now.getTime() &&
+        t(o.pickup_at) < week &&
+        !["picked_up", "cancelled"].includes(o.status),
+    ).length,
+  };
 
-  const top_guides = [...groupCount(live, (o) => o.guide_name.toLowerCase())]
-    .map(([, e]) => ({
-      name: e.rows[0].guide_name,
-      orders: e.rows.length,
-      revenue: sum(e.rows, "balance"),
-      radios: sum(e.rows, "radios_count"),
+  // stops by weekday and hour
+  const stops = new Map();
+  const bump = (iso) => {
+    const p = romeParts(new Date(iso));
+    const k = `${ISO_DOW[p.weekday]}|${p.h}`;
+    stops.set(k, (stops.get(k) ?? 0) + 1);
+  };
+  live.forEach((o) => bump(o.delivery_at));
+  pickups.forEach((o) => bump(o.pickup_at));
+
+  // guides
+  const firstAt = new Map();
+  for (const o of nonCancelled) {
+    const k = key(o);
+    if (!firstAt.has(k) || t(o.delivery_at) < firstAt.get(k)) firstAt.set(k, t(o.delivery_at));
+  }
+  const liveByGuide = group(live, key);
+  const guidesTop = [...liveByGuide.values()]
+    .map((rows) => ({
+      name: rows[0].guide_name,
+      orders: rows.length,
+      revenue: sum(rows, "balance"),
+      radios: rows.reduce((acc, o) => acc + radiosOf(o), 0),
+    }))
+    .sort((a, b) => b.revenue - a.revenue || b.orders - a.orders)
+    .slice(0, 8);
+  const newKeys = [...liveByGuide.keys()].filter((k) => firstAt.get(k) >= start.getTime());
+  const life = [...group(nonCancelled, key).values()].map((rows) => {
+    const past = rows.filter((o) => t(o.delivery_at) < now.getTime());
+    const lastAt = past.length ? Math.max(...past.map((o) => t(o.delivery_at))) : null;
+    return {
+      name: rows[0].guide_name,
+      orders: rows.length,
+      revenue: sum(rows, "balance"),
+      lastAt,
+      hasFuture: rows.some((o) => t(o.delivery_at) >= now.getTime()),
+    };
+  });
+  const dayNum = (isoDay) => Date.UTC(+isoDay.slice(0, 4), +isoDay.slice(5, 7) - 1, +isoDay.slice(8, 10)) / DAY;
+  const winBack = life
+    .filter(
+      (g) =>
+        g.orders >= 2 && !g.hasFuture && g.lastAt !== null && g.lastAt < now.getTime() - 45 * DAY && g.lastAt >= now.getTime() - 540 * DAY,
+    )
+    .sort((a, b) => b.revenue - a.revenue)
+    .slice(0, 8)
+    .map((g) => ({
+      name: g.name,
+      orders: g.orders,
+      revenue: g.revenue,
+      last_order: romeDay(new Date(g.lastAt)),
+      days_since: dayNum(romeDay(now)) - dayNum(romeDay(new Date(g.lastAt))),
+    }));
+  const losses = [...liveByGuide.values()]
+    .map((rows) => ({ name: rows[0].guide_name, lost: sum(rows, "lost_radios"), radios: rows.reduce((acc, o) => acc + radiosOf(o), 0) }))
+    .filter((g) => g.lost > 0)
+    .sort((a, b) => b.lost - a.lost || b.radios - a.radios || (a.name < b.name ? -1 : 1))
+    .slice(0, 5);
+
+  // operations
+  const lead = live.map((o) => Math.max(0, t(o.delivery_at) - t(o.created_at)));
+  const lead_time = {
+    same_day: lead.filter((l) => l < DAY).length,
+    days_1_2: lead.filter((l) => l >= DAY && l < 3 * DAY).length,
+    days_3_7: lead.filter((l) => l >= 3 * DAY && l < 8 * DAY).length,
+    days_8_30: lead.filter((l) => l >= 8 * DAY && l < 31 * DAY).length,
+    over_30: lead.filter((l) => l >= 31 * DAY).length,
+  };
+  const sources = [...group(cur, (o) => o.source)]
+    .map(([source, rows]) => {
+      const ok = rows.filter((o) => o.status !== "cancelled");
+      return { source, orders: ok.length, revenue: sum(ok, "balance"), cancelled: rows.length - ok.length };
+    })
+    .sort((a, b) => b.orders - a.orders);
+  const withPickup = live.filter((o) => o.picked_up_at ?? o.pickup_at);
+  const avg_days_out = withPickup.length
+    ? Math.round(
+        (withPickup.reduce((acc, o) => acc + (t(o.picked_up_at ?? o.pickup_at) - t(o.delivery_at)) / DAY, 0) / withPickup.length) * 10,
+      ) / 10
+    : null;
+  const riders = db.profiles
+    .map((p) => {
+      const rows = nonCancelled.filter(
+        (o) =>
+          (o.delivery_rider_id === p.id || o.pickup_rider_id === p.id) &&
+          (inRange(o, start, cut) || (o.pickup_at && t(o.pickup_at) >= start.getTime() && t(o.pickup_at) < cut.getTime())),
+      );
+      const deliveries = rows.filter((o) => o.delivery_rider_id === p.id);
+      const pickupLegs = rows.filter(
+        (o) => o.pickup_rider_id === p.id && o.pickup_at && t(o.pickup_at) >= start.getTime() && t(o.pickup_at) < cut.getTime(),
+      );
+      return {
+        name: p.full_name,
+        stops: deliveries.length + pickupLegs.length,
+        deliveries: deliveries.length,
+        delivered: deliveries.filter((o) => o.delivered_at).length,
+        on_time: deliveries.filter(onTime).length,
+        any: rows.length,
+      };
+    })
+    .filter((r) => r.any > 0)
+    .sort((a, b) => b.stops - a.stops)
+    .slice(0, 10)
+    .map(({ any, ...r }) => r);
+
+  const locations = [...group(live, (o) => o.delivery_address.trim().toLowerCase()).values()]
+    .map((rows) => ({
+      location: rows[0].delivery_address,
+      orders: rows.length,
+      revenue: sum(rows, "balance"),
+      radios: rows.reduce((acc, o) => acc + radiosOf(o), 0),
     }))
     .sort((a, b) => b.orders - a.orders || b.revenue - a.revenue)
-    .slice(0, 10);
+    .slice(0, 8);
 
-  const channels = [...groupCount(live.filter((o) => o.radio_channel !== null), (o) => o.radio_channel)]
-    .map(([channel, e]) => ({ channel, orders: e.rows.length }))
-    .sort((a, b) => b.orders - a.orders || a.channel - b.channel)
-    .slice(0, 20);
-
-  const top_locations = [...groupCount(live, (o) => o.delivery_address)]
-    .map(([location, e]) => ({ location, orders: e.rows.length }))
-    .sort((a, b) => b.orders - a.orders)
-    .slice(0, 10);
-
+  const ahead = nonCancelled.filter((o) => inRange(o, cut, end));
   return {
     month: monthStr,
     timezone: db.tenant.timezone,
-    current: {
-      orders: live.length,
-      revenue: sum(live, "balance"),
-      radios: sum(live, "radios_count"),
-      extras: sum(live, "extra_radios"),
-      lost: sum(live, "lost_radios"),
-      avg_order_value: live.length ? Math.round((sum(live, "balance") / live.length) * 100) / 100 : 0,
-      cancelled: cur.filter((o) => o.status === "cancelled").length,
+    in_progress: cut.getTime() < end.getTime(),
+    through: romeDay(new Date(cut.getTime() - 1000)),
+    booked_ahead: {
+      orders: ahead.length,
+      revenue: sum(ahead, "balance"),
+      radios: ahead.reduce((acc, o) => acc + radiosOf(o), 0),
     },
-    previous: { orders: prev.length, revenue: sum(prev, "balance") },
-    status_distribution: status,
-    daily: [...daily.values()].sort((a, b) => a.date.localeCompare(b.date)),
-    weekly,
-    hourly,
-    heatmap,
-    top_guides,
-    channels,
-    top_locations,
+    current: snapshot(live, cur),
+    previous: snapshot(prev, prevAll),
+    trend,
+    capacity: {
+      channels: Math.max(0, tz.channel_max - tz.channel_min + 1 - tz.disabled_channels.length),
+      exclusive: tz.channels_exclusive,
+      days: concurrency({ y, m, d: 1 }, daysInMonth),
+      upcoming: concurrency(todayP, 14),
+    },
+    alerts,
+    stops: [...stops]
+      .map(([k, count]) => {
+        const [weekday, hour] = k.split("|").map(Number);
+        return { weekday, hour, count };
+      })
+      .sort((a, b) => a.weekday - b.weekday || a.hour - b.hour),
+    guides: {
+      top: guidesTop,
+      active: liveByGuide.size,
+      new: newKeys.length,
+      new_revenue: newKeys.reduce((acc, k) => acc + sum(liveByGuide.get(k), "balance"), 0),
+      win_back: winBack,
+      losses,
+    },
+    operations: { lead_time, sources, avg_days_out, riders },
+    locations,
   };
 }

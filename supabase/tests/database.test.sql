@@ -105,7 +105,7 @@ select throws_ok($$select * from public.tenants$$, '42501', null,
   'anon cannot read tenants');
 select throws_ok($$select * from public.profiles$$, '42501', null,
   'anon cannot read profiles');
-select throws_ok($$select * from public.get_dashboard_stats(current_date)$$, '42501', null,
+select throws_ok($$select * from public.get_dashboard_insights(current_date)$$, '42501', null,
   'anon cannot call dashboard stats');
 
 select is((select accepting_bookings from public.get_public_tenant('echobox-demo')), true,
@@ -314,7 +314,7 @@ select throws_ok($$insert into public.orders (tenant_id, guide_name, delivery_at
 select throws_ok($$select public.assign_order('c0000000-0000-4000-8000-000000000002', 'pickup',
                      '33333333-3333-4333-8333-333333333333')$$,
   '42501', null, 'riders cannot assign orders');
-select throws_ok($$select * from public.get_dashboard_stats(current_date)$$, '42501', null,
+select throws_ok($$select * from public.get_dashboard_insights(current_date)$$, '42501', null,
   'riders cannot read dashboard stats');
 select is((select count(*)::int from public.get_channel_board(now() - interval '1 year', now() + interval '1 year')), 0,
   'riders get no channel map');
@@ -475,12 +475,20 @@ select ok((select accepted_at is not null from public.invitations where email_ke
 -- 7. Dashboard stats
 -- =============================================================================
 select tests.login_as((select admin1 from ids));
-select ok((public.get_dashboard_stats(current_date) -> 'current' ->> 'orders')::int > 0,
-  'dashboard stats count orders for the current month');
-select is(jsonb_typeof(public.get_dashboard_stats(current_date) -> 'daily'), 'array',
-  'dashboard stats include a daily series');
-select is(jsonb_array_length(public.get_dashboard_stats(current_date) -> 'hourly'), 24,
-  'dashboard stats include 24 hourly buckets');
+select ok((public.get_dashboard_insights(current_date) -> 'current' ->> 'orders')::int > 0,
+  'dashboard insights count orders for the current month');
+select is(jsonb_array_length(public.get_dashboard_insights(current_date) -> 'trend'), 12,
+  'dashboard insights include the last 12 months, empty months included');
+select ok(jsonb_array_length(public.get_dashboard_insights(current_date) -> 'capacity' -> 'days') between 28 and 31,
+  'dashboard insights include one capacity row per day of the month');
+select is(jsonb_array_length(public.get_dashboard_insights(current_date) -> 'capacity' -> 'upcoming'), 14,
+  'dashboard insights include the next 14 days');
+select ok((public.get_dashboard_insights(current_date) -> 'capacity' ->> 'channels')::int > 0,
+  'dashboard insights report how many channels are available');
+select is(jsonb_typeof(public.get_dashboard_insights(current_date) -> 'guides' -> 'win_back'), 'array',
+  'dashboard insights include the guides to win back');
+select ok((public.get_dashboard_insights(current_date) -> 'alerts' -> 'overdue_pickups' ->> 'orders') is not null,
+  'dashboard insights include the overdue pickups alert');
 select tests.logout();
 
 -- =============================================================================
