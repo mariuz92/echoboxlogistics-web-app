@@ -114,13 +114,19 @@ test.describe("dashboard", () => {
     }
     // the month in progress says what it is measured against
     await expect(page.getByText("Mese in corso", { exact: false }).first()).toBeVisible();
-    await expect(page.getByText("In breve", { exact: true })).toBeVisible();
+    await expect(page.getByText("In breve", { exact: true }).first()).toBeVisible();
     await expect(page.getByText("Gli ultimi 12 mesi")).toBeVisible();
     await expect(page.getByText("Radio fuori nello stesso momento")).toBeVisible();
     await expect(page.getByText("Quando servono i rider")).toBeVisible();
     await expect(page.getByText("Chi porta l'incasso")).toBeVisible();
     await expect(page.getByText("Dove si consegna")).toBeVisible();
     await expect(page.locator(".recharts-surface").first()).toBeVisible();
+
+    // the explanatory panels can be hidden and brought back
+    await page.getByRole("button", { name: "Nascondi In breve" }).click();
+    await expect(page.getByRole("button", { name: "Nascondi In breve" })).toHaveCount(0);
+    await page.getByRole("button", { name: "In breve", exact: true }).click();
+    await expect(page.getByRole("button", { name: "Nascondi In breve" })).toBeVisible();
 
     // the trend can show another measure
     await page.getByText("Ordini", { exact: true }).last().click();

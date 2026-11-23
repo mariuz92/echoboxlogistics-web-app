@@ -120,12 +120,18 @@ const shots = [
     as: ADMIN,
     path: "/dashboard",
     prepare: async (page) => {
-      // Last month is complete, so its totals and charts look like a real month.
+      // Last month is complete, so its totals and findings look like a real month.
       await page.locator(".recharts-surface").first().waitFor();
       await page.getByRole("button", { name: "Mese precedente" }).first().click();
+      await page.locator(".ant-card", { hasText: "In breve" }).first().waitFor();
       await page.waitForTimeout(1200);
     },
-    clip: { x: 252, y: 80, width: 1172, height: 700 },
+    // From the "In breve" findings down through the figures (taller than the viewport).
+    fullPage: true,
+    clipFn: async (page) => {
+      const box = await page.locator(".ant-card", { hasText: "In breve" }).first().boundingBox();
+      return { x: 252, y: box.y - 10, width: 1172, height: 700 };
+    },
   },
   {
     name: "crop-rider",
@@ -214,7 +220,7 @@ async function main() {
       const png = join(tmpDir, `${shot.name}.png`);
       const jpg = join(outDir, `${shot.name}.jpg`);
       const clip = shot.clipFn ? await shot.clipFn(page) : shot.clip;
-      const opts = { animations: "disabled", ...(clip ? { clip } : {}) };
+      const opts = { animations: "disabled", ...(shot.fullPage ? { fullPage: true } : {}), ...(clip ? { clip } : {}) };
       const take = (o) => (shot.target ? shot.target(page).screenshot({ ...opts, ...o }) : page.screenshot({ ...opts, ...o }));
       await take({ path: png });
       await take({ path: jpg, type: "jpeg", quality: 84 });

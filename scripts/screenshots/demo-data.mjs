@@ -220,7 +220,7 @@ export function buildDemo(now) {
     return live[live.length - 1];
   };
   // Rome tourism through the year (relative to November = 1) and a business that grew over the year.
-  const SEASON = [0.55, 0.68, 1.0, 1.45, 1.6, 1.5, 1.25, 0.85, 1.55, 1.5, 1.0, 0.85];
+  const SEASON = [0.55, 0.68, 1.0, 1.45, 1.6, 1.5, 1.25, 0.85, 1.5, 1.68, 1.0, 0.85];
   const LOSS_PROB = { 3: 0.12, 5: 0.09 };
 
   const orders = [];
@@ -670,7 +670,8 @@ export function dashboardInsights(db, monthStr) {
   const overdue = open.filter((o) =>
     o.pickup_at ? t(o.pickup_at) < now.getTime() : t(o.delivery_at) < now.getTime() - DAY,
   );
-  const week = now.getTime() + 7 * DAY;
+  const in48h = now.getTime() + 48 * 3600e3;
+  const in24h = now.getTime() + 24 * 3600e3;
   const alerts = {
     overdue_pickups: {
       orders: overdue.length,
@@ -680,14 +681,14 @@ export function dashboardInsights(db, monthStr) {
         : 0,
     },
     unassigned_deliveries: all.filter(
-      (o) => o.status === "received" && !o.delivery_rider_id && t(o.delivery_at) >= now.getTime() && t(o.delivery_at) < week,
+      (o) => o.status === "received" && !o.delivery_rider_id && t(o.delivery_at) >= now.getTime() && t(o.delivery_at) < in48h,
     ).length,
     unassigned_pickups: all.filter(
       (o) =>
         !o.pickup_rider_id &&
         o.pickup_at &&
         t(o.pickup_at) >= now.getTime() &&
-        t(o.pickup_at) < week &&
+        t(o.pickup_at) < in24h &&
         !["picked_up", "cancelled"].includes(o.status),
     ).length,
   };

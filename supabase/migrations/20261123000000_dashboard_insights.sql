@@ -9,7 +9,8 @@
 --   * trend      the last 12 months (seasonality, growth)
 --   * capacity   the most groups and radios out at the same time each day, against
 --                the channels available, and the same for the next 14 days
---   * alerts     overdue pickups, deliveries and pickups without a rider
+--   * alerts     overdue pickups, deliveries due in 48 hours and pickups due in 24
+--                hours that have no rider yet
 --   * stops      deliveries + pickups by weekday and hour (how many riders, when)
 --   * guides     revenue concentration, new vs returning, guides to win back,
 --                guides who lose radios
@@ -229,10 +230,10 @@ begin
       'unassigned_deliveries', (
         select count(*) from base
         where status = 'received' and delivery_rider_id is null
-          and delivery_at >= now() and delivery_at < now() + interval '7 days'),
+          and delivery_at >= now() and delivery_at < now() + interval '48 hours'),
       'unassigned_pickups', (
         select count(*) from base
-        where pickup_rider_id is null and pickup_at >= now() and pickup_at < now() + interval '7 days'
+        where pickup_rider_id is null and pickup_at >= now() and pickup_at < now() + interval '24 hours'
           and status not in ('picked_up', 'cancelled'))),
 
     -- 5. deliveries + pickups by weekday and hour (rider workload) ----------

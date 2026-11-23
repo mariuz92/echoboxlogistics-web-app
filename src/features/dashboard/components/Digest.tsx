@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
-import { Card, Flex, Typography } from "antd";
-import { BulbOutlined, CheckCircleFilled, ExclamationCircleFilled, InfoCircleFilled } from "@ant-design/icons";
+import { Button, Card, Flex, Typography } from "antd";
+import { BulbOutlined, CheckCircleFilled, CloseOutlined, ExclamationCircleFilled, InfoCircleFilled } from "@ant-design/icons";
 import type { Insight, Tone } from "../utils";
 
 const ICON: Record<Tone, { icon: ReactNode; color: string; label: string }> = {
@@ -10,7 +10,7 @@ const ICON: Record<Tone, { icon: ReactNode; color: string; label: string }> = {
 };
 
 /** The findings in plain words: what changed and what to do about it. */
-export function Digest({ insights }: { insights: Insight[] }) {
+export function Digest({ insights, onClose }: { insights: Insight[]; onClose: () => void }) {
   return (
     <Card
       size="small"
@@ -19,6 +19,7 @@ export function Digest({ insights }: { insights: Insight[] }) {
           <BulbOutlined /> In breve
         </span>
       }
+      extra={<Button type="text" size="small" icon={<CloseOutlined />} aria-label="Nascondi In breve" onClick={onClose} />}
     >
       {insights.length === 0 ? (
         <Typography.Text type="secondary">
