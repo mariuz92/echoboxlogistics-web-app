@@ -82,3 +82,14 @@ booking is created for that company only, and the page shows that company's iden
 - [ ] Supabase **Site URL** and **Redirect URLs**: the app domain only. `ALLOWED_ORIGINS` (Edge Functions): app domain and landing domain.
 - [ ] Booking links and invitation e-mails must use the app's new domain (they are built from the app's public URL).
 - [ ] Reminder: change the Cloudflare Pages build command to `npm run build:landing` with output `dist-landing`.
+
+## 9. Account deletion (Google Play, GDPR)
+
+The public page `/delete-account` (landing site, four languages) is the URL for the Play Console "Delete account URL". It promises
+deletion within 30 days after an e-mail request. Until the in-app flow exists the operator does it by hand, so:
+
+- [ ] **Runbook** for a manual deletion: set `orders.delivery_rider_id` and `pickup_rider_id` to null for that person (the foreign keys are `on delete restrict`), null `order_events.actor_id` (no foreign key), then delete the Auth user (the profile goes with it). For a guide or customer: clear name, phone and e-mail on `guides` and on the matching `orders` rows. For a company: delete the `tenants` row (everything cascades).
+- [ ] **In-app "Delete my account"** (Profile screen, web and mobile): Play expects it in the app as well as on the web. Edge Function `delete-account` that re-checks the password, does the steps above, and signs out. An owner cannot delete the account while the company has no other admin.
+- [ ] Claims on the page, checked 2026-11-23: deletion within 30 days matches GDPR Art. 12(3) (one month, extendable by two with notice). Backups: Supabase keeps 7 days of daily backups on Pro, 14 on Team, and point-in-time recovery up to 28 days as a paid add-on, so the page says "within 30 days"; confirm the plan and that the Free plan has no backups. Accounting retention of 10 years is the Italian rule (art. 2220 c.c.); Germany and France use other periods (6 to 10 years), so the page says "in Italy". Confirm both with your accountant.
+- [ ] The page uses `support@echoboxlogistics.com`: switch to the real support address when the domain is final (also in the legal pages).
+- [ ] Play Console: fill the Data safety form to match (account data, name, phone, e-mail collected; deletion request link = the page URL) and keep the listing name equal to "EchoBox Logistics".
