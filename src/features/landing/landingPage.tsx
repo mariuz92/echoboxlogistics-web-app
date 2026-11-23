@@ -36,17 +36,24 @@ const SECTION_SHOTS: Record<SectionId, { shot: ShotId; kind: "tall" | "modal" | 
 };
 
 /** "?v=<fingerprint>" so a changed screenshot is not served from a cache that holds the old one. */
-const version = (id: ShotId) => {
-  const v = typeof __SHOT_VERSIONS__ === "undefined" ? undefined : __SHOT_VERSIONS__[id];
+const version = (file: string) => {
+  const v = typeof __SHOT_VERSIONS__ === "undefined" ? undefined : __SHOT_VERSIONS__[file];
   return v ? `?v=${v}` : "";
 };
 
-function Shot({ id, alt, eager = false }: { id: ShotId; alt: string; eager?: boolean }) {
+/**
+ * The screenshots come from the real app in each language: Italian visitors see the Italian screens
+ * (<id>.webp), everyone else the English ones (<id>-en.webp). Both are made by scripts/screenshots.
+ */
+const shotFile = (id: ShotId, lang: Lang) => (lang === "it" ? id : `${id}-en`);
+
+function Shot({ id, alt, lang, eager = false }: { id: ShotId; alt: string; lang: Lang; eager?: boolean }) {
+  const file = shotFile(id, lang);
   return (
     <picture>
-      <source type="image/webp" srcSet={`/images/screens/${id}.webp${version(id)}`} />
+      <source type="image/webp" srcSet={`/images/screens/${file}.webp${version(file)}`} />
       <img
-        src={`/images/screens/${id}.jpg${version(id)}`}
+        src={`/images/screens/${file}.jpg${version(file)}`}
         alt={alt}
         width={SHOTS[id].w}
         height={SHOTS[id].h}
@@ -74,7 +81,7 @@ export function LanguageSelect({ lang, onChange, label, id }: { lang: Lang; onCh
   );
 }
 
-function Lightbox({ shot, alt, close, closeLabel }: { shot: ShotId; alt: string; close: () => void; closeLabel: string }) {
+function Lightbox({ shot, alt, lang, close, closeLabel }: { shot: ShotId; alt: string; lang: Lang; close: () => void; closeLabel: string }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && close();
     window.addEventListener("keydown", onKey);
@@ -87,7 +94,7 @@ function Lightbox({ shot, alt, close, closeLabel }: { shot: ShotId; alt: string;
         <CloseOutlined />
       </button>
       <div className={`lp-lightbox-img${narrow ? " is-narrow" : ""}`}>
-        <Shot id={shot} alt={alt} eager />
+        <Shot id={shot} alt={alt} lang={lang} eager />
       </div>
     </div>
   );
@@ -372,7 +379,7 @@ export default function LandingPage() {
                   onClick={() => setZoom({ shot: "web-orders", alt: t.hero.imageAlt })}
                   aria-label={`${t.product.enlarge}: ${t.hero.imageAlt}`}
                 >
-                  <Shot id="web-orders" alt={t.hero.imageAlt} eager />
+                  <Shot id="web-orders" alt={t.hero.imageAlt} lang={lang} eager />
                 </button>
                 <figcaption className="lp-cap">{t.hero.webLabel}</figcaption>
               </figure>
@@ -383,7 +390,7 @@ export default function LandingPage() {
                   onClick={() => setZoom({ shot: "crop-rider", alt: t.hero.phoneAlt })}
                   aria-label={`${t.product.enlarge}: ${t.hero.phoneAlt}`}
                 >
-                  <Shot id="crop-rider" alt={t.hero.phoneAlt} eager />
+                  <Shot id="crop-rider" alt={t.hero.phoneAlt} lang={lang} eager />
                 </button>
                 <figcaption className="lp-cap">{t.hero.mobileLabel}</figcaption>
               </figure>
@@ -439,7 +446,7 @@ export default function LandingPage() {
                       onClick={() => setZoom({ shot, alt: s.title })}
                       aria-label={`${t.product.enlarge}: ${s.title}`}
                     >
-                      <Shot id={shot} alt={s.title} />
+                      <Shot id={shot} alt={s.title} lang={lang} />
                     </button>
                   </article>
                 );
@@ -559,7 +566,7 @@ export default function LandingPage() {
         </div>
       </footer>
 
-      {zoom && <Lightbox shot={zoom.shot} alt={zoom.alt} close={() => setZoom(null)} closeLabel={t.product.close} />}
+      {zoom && <Lightbox shot={zoom.shot} alt={zoom.alt} lang={lang} close={() => setZoom(null)} closeLabel={t.product.close} />}
     </div>
   );
 }

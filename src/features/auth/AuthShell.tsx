@@ -30,7 +30,7 @@ export function AuthShell({ title, subtitle, children, footer, width = 440 }: Au
       }}
     >
       <div style={{ position: "absolute", top: 16, right: 16 }}>
-        <LanguageSwitch />
+        <LanguageSwitch onDark />
       </div>
       <Brand to={false} onDark />
 

@@ -89,7 +89,7 @@ export function BookingPage({ legacy = false }: { legacy?: boolean }) {
       style={{ minHeight: "100vh", padding: "24px 16px 40px", background: `linear-gradient(180deg, ${brand.navy} 0, ${brand.navy} 220px, transparent 220px)` }}
     >
       <div style={{ alignSelf: "flex-end" }}>
-        <LanguageSwitch />
+        <LanguageSwitch onDark />
       </div>
       <Brand to={false} onDark />
       <div style={{ width: "100%", maxWidth: 760 }}>{children}</div>

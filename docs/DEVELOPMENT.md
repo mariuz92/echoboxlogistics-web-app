@@ -41,7 +41,7 @@ The same checks run in CI (`.github/workflows/ci.yml`).
 | add a column | new migration → `npm run db:types` → update the feature's `api.ts` and form |
 | change colours / typography | `src/config/theme.ts` |
 | add a screen | `src/features/<name>/`, register the route in `src/App.tsx` (and the nav in `layout/AppLayout.tsx`) |
-| add an Italian error message | `src/lib/errors.ts` |
+| add a text, or an error message | write it in Italian inside `t("…")` (error messages: `src/lib/errors.ts`), then add the English in `src/i18n/en.ts` |
 
 ## Conventions
 
@@ -52,9 +52,15 @@ The same checks run in CI (`.github/workflows/ci.yml`).
 - Use `App.useApp()` for `message` / `modal` / `notification` (not the static antd functions).
 - Dates: store `timestamptz`; display with `fmtDateTime(value, tenant.timezone)`; convert picker values with
   `wallClockToIso` / `isoToWallClock`.
-- Language: UI text in Italian; code, comments and docs in English.
+- Language: every visible text is written in Italian and wrapped in `t("…")` (`tn(n, "{n} ordine", "{n} ordini")`
+  for counts, `{name}` placeholders for values, never string concatenation). English lives in `src/i18n/en.ts`,
+  keyed by the Italian text; `src/i18n/i18n.test.ts` fails when a text has no English version, so a missing
+  translation cannot reach production. The language is Italian unless `?lang=en` or the language switch (header,
+  sign-in and booking pages) chose English; the choice is kept in the browser and changing it reloads the page. The
+  browser's own language is deliberately not used, so existing Italian companies never see their app change.
+  Code, comments and docs are in English.
 - Don't use `localStorage` for application data. The only things stored there are the Supabase session
-  (by supabase-js) and the theme preference.
+  (by supabase-js), the theme preference and the language.
 
 ## Testing
 
@@ -123,7 +129,12 @@ guides and ~3 months of orders). To regenerate them after a UI change:
 ```bash
 node scripts/screenshots/capture.mjs            # all of them
 node scripts/screenshots/capture.mjs dashboard  # only names containing "dashboard"
+node scripts/screenshots/capture.mjs "" en      # only the English set
 ```
+
+Every shot is taken twice, from the real app in each language: `<name>.webp` (Italian) and `<name>-en.webp` (English). The
+landing page shows the Italian ones to Italian visitors and the English ones to everyone else. The landing adds a
+fingerprint of each file to its address (`?v=…`), so a replaced picture is never served from an old cache.
 
 The script starts Vite and answers the app's Supabase calls from `scripts/screenshots/demo-data.mjs` inside the
 browser, so no database is needed and no real data can end up in a picture. The clock is frozen at 10:25 Rome time
