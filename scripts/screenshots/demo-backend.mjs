@@ -2,7 +2,7 @@
 // landing-page screenshots. It answers the PostgREST, RPC, Auth and Realtime
 // calls the app makes, from the demo data in ./demo-data.mjs.
 
-import { channelBoard, dashboardStats, riderActivity } from "./demo-data.mjs";
+import { channelBoard, dashboardInsights, riderActivity } from "./demo-data.mjs";
 
 export const DEMO_SUPABASE_URL = "http://demo-supabase.localhost:54321";
 export const STORAGE_KEY = "sb-demo-supabase-auth-token";
@@ -193,7 +193,7 @@ export async function installDemoBackend(page, db, { asUserId, log = false } = {
     touch_login: () => null,
     bootstrap_profile: () => user,
     get_channel_board: (body) => (isAdmin ? channelBoard(db, body.p_from, body.p_to) : []),
-    get_dashboard_stats: (body) => dashboardStats(db, (body.p_month ?? "").slice(0, 7)),
+    get_dashboard_insights: (body) => dashboardInsights(db, (body.p_month ?? "").slice(0, 7)),
     get_public_tenant: () => [
       { name: db.tenant.name, slug: db.tenant.slug, timezone: db.tenant.timezone, accepting_bookings: true },
     ],

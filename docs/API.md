@@ -92,7 +92,7 @@ curl -s -X POST "$BASE/rest/v1/rpc/rider_order_action" ... \
 | `touch_login` | `{}` | – |
 | `update_member` | `{p_user_id, p_full_name?, p_phone?, p_roles?, p_disabled?}` (admin) | updated profile |
 | `get_channel_board` | `{p_from, p_to}` (admin) | `[{channel, order_id, guide_name, status, delivery_at, pickup_at, busy_until}]` |
-| `get_dashboard_stats` | `{p_month: "2026-11-01"}` (admin) | JSON: `current`, `previous`, `status_distribution`, `daily`, `weekly`, `hourly`, `heatmap`, `top_guides`, `channels`, `top_locations` |
+| `get_dashboard_insights` | `{p_month: "2026-11-01"}` (admin) | JSON for the decision dashboard: `current` / `previous` (a month in progress is measured up to today and compared with the same days of the month before), `booked_ahead`, `trend` (12 months), `capacity` (most groups and radios out at the same time per day, this month and the next 14 days), `alerts` (overdue pickups, deliveries and pickups without a rider), `stops` (weekday x hour), `guides` (top, new, to win back, losses), `operations` (booking lead time, source, days out, riders), `locations` |
 
 ### Public booking (no login)
 

@@ -93,3 +93,16 @@ deletion within 30 days after an e-mail request. Until the in-app flow exists th
 - [ ] Claims on the page, checked 2026-11-23: deletion within 30 days matches GDPR Art. 12(3) (one month, extendable by two with notice). **Backups: Supabase is self-hosted, so there are no managed backups: the page's "within 30 days" is true only if you set it up.** Run a scheduled `pg_dump` (or WAL archiving) of the database, store it off the server, encrypted, and delete copies older than 30 days; test a restore. If you keep backups longer, change the page. After a restore, re-apply any deletions made since the backup. Accounting retention of 10 years is the Italian rule (art. 2220 c.c.); Germany and France use other periods (6 to 10 years), so the page says "in Italy". Confirm with your accountant.
 - [ ] The page uses `support@echoboxlogistics.com`: switch to the real support address when the domain is final (also in the legal pages).
 - [ ] Play Console: fill the Data safety form to match (account data, name, phone, e-mail collected; deletion request link = the page URL) and keep the listing name equal to "EchoBox Logistics".
+
+## 10. Dashboard follow-ups
+
+The decision dashboard (`get_dashboard_insights`) is in. Next, once there is real usage to learn from:
+
+- [ ] **Fleet size** in the company settings (how many radios the company owns). With it the capacity chart can draw the limit and the findings can say "you are at 91% of your radios on peak days" instead of "this is the minimum fleet".
+- [ ] Cost of a lost radio in the settings, so losses can be shown in euros.
+- [ ] Company-level thresholds for the findings: how late is "on time" (10 minutes now), how long before a guide counts as lapsed (45 days), how much concentration is too much (40%).
+- [ ] Rider-level view for admins: stops per day, punctuality over time, per rider.
+- [ ] Revenue and orders by source and by guide over the 12 months (retention), and a forecast of the month from bookings already made.
+- [ ] Export of the month to CSV and PDF for the accountant.
+
+- [ ] Drop `get_dashboard_stats` in a later migration once no deployed app build calls it (the new dashboard uses `get_dashboard_insights`).

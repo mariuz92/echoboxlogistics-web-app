@@ -230,7 +230,7 @@ Future<void> riderAction(String orderId, String action, {int? lost}) async {
 await supabase.rpc('assign_order', params: {'p_order_id': id, 'p_leg': 'delivery', 'p_rider_id': riderId});
 await supabase.rpc('admin_set_status', params: {'p_order_id': id, 'p_status': 'cancelled'});
 final channels = await supabase.rpc('get_channel_status');           // free / busy / disabled per channel
-final stats = await supabase.rpc('get_dashboard_stats', params: {'p_month': '2026-11-01'});
+final stats = await supabase.rpc('get_dashboard_insights', params: {'p_month': '2026-11-01'});
 ```
 
 Creating or editing an order is a normal `insert` / `update` on `orders` for the plain fields; `status` and the rider
