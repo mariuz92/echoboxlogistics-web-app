@@ -607,6 +607,13 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      claim_push_deliveries: {
+        Args: { p_limit?: number }
+        Returns: {
+          delivery_id: string
+          lease_id: string
+        }[]
+      }
       create_public_order: {
         Args: {
           p_delivery_address: string
@@ -621,6 +628,17 @@ export type Database = {
           p_slug: string
         }
         Returns: string
+      }
+      finish_push_delivery: {
+        Args: {
+          p_code?: string
+          p_delivery_id: string
+          p_lease_id: string
+          p_result: string
+          p_retry_after?: number
+          p_token?: string
+        }
+        Returns: undefined
       }
       get_channel_board: {
         Args: { p_from: string; p_to: string }
@@ -688,8 +706,27 @@ export type Database = {
       }
       platform_pending_invitation: { Args: never; Returns: Json }
       platform_runtime_settings: { Args: never; Returns: Json }
+      read_push_delivery: {
+        Args: { p_delivery_id: string; p_lease_id: string }
+        Returns: {
+          expires_at: string
+          kind: string
+          leg: string
+          order_id: string
+          token: string
+        }[]
+      }
+      register_push_device: {
+        Args: { p_device_id: string; p_platform: string; p_token: string }
+        Returns: undefined
+      }
       report_platform_issue: {
-        Args: { p_area: string; p_build?: string; p_code: string; p_source: string }
+        Args: {
+          p_area: string
+          p_build?: string
+          p_code: string
+          p_source: string
+        }
         Returns: string
       }
       rider_order_action: {
@@ -730,6 +767,10 @@ export type Database = {
         }
       }
       touch_login: { Args: never; Returns: undefined }
+      unregister_push_device: {
+        Args: { p_device_id: string }
+        Returns: undefined
+      }
       update_member: {
         Args: {
           p_disabled?: boolean
