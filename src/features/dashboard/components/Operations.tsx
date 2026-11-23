@@ -4,6 +4,7 @@ import type { DashboardInsights } from "../api";
 import { fmtEuro, fmtShare, share } from "../utils";
 import { BarList } from "./BarList";
 import { Section } from "./Section";
+import { withKeys } from "./withKeys";
 
 const SOURCE_LABEL = { public_form: "Dal modulo online", dashboard: "Inseriti dall'ufficio" } as const;
 
@@ -68,9 +69,8 @@ export function Operations({ data }: { data: DashboardInsights }) {
         <Section title="Carico e puntualità dei rider" note="Spostamenti = consegne + ritiri del periodo." empty={riders.length === 0}>
           <Table
             size="small"
-            rowKey={(_, n) => String(n)}
             pagination={false}
-            dataSource={riders}
+            dataSource={withKeys(riders)}
             columns={[
               { title: "Rider", dataIndex: "name", ellipsis: true },
               { title: "Spostamenti", dataIndex: "stops", align: "right", width: 110 },

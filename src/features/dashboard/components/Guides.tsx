@@ -4,6 +4,7 @@ import type { DashboardInsights } from "../api";
 import { fmtEuro, fmtShare, share } from "../utils";
 import { BarList } from "./BarList";
 import { Section } from "./Section";
+import { withKeys } from "./withKeys";
 
 /** Who the revenue depends on, who is new, who has gone quiet, who loses radios. */
 export function Guides({ data }: { data: DashboardInsights }) {
@@ -54,9 +55,8 @@ export function Guides({ data }: { data: DashboardInsights }) {
           >
             <Table
               size="small"
-              rowKey={(_, n) => String(n)}
               pagination={false}
-              dataSource={g.win_back}
+              dataSource={withKeys(g.win_back)}
               locale={{ emptyText: "Nessuna guida inattiva da recuperare" }}
               columns={[
                 { title: "Guida", dataIndex: "name", ellipsis: true },
@@ -73,9 +73,8 @@ export function Guides({ data }: { data: DashboardInsights }) {
             <Section title="Chi perde radio" note="Per chi succede più spesso, valuta una cauzione.">
               <Table
                 size="small"
-                rowKey={(_, n) => String(n)}
                 pagination={false}
-                dataSource={g.losses}
+                dataSource={withKeys(g.losses)}
                 columns={[
                   { title: "Guida", dataIndex: "name", ellipsis: true },
                   { title: "Perse", dataIndex: "lost", align: "right", width: 80 },

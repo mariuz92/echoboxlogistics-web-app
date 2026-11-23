@@ -2,6 +2,7 @@ import { Table } from "antd";
 import type { DashboardInsights } from "../api";
 import { fmtEuro, fmtShare, share } from "../utils";
 import { Section } from "./Section";
+import { withKeys } from "./withKeys";
 
 /** Where the work is: clusters worth a dedicated route or a rider stationed nearby. */
 export function Locations({ data }: { data: DashboardInsights }) {
@@ -14,9 +15,8 @@ export function Locations({ data }: { data: DashboardInsights }) {
     >
       <Table
         size="small"
-        rowKey={(_, n) => String(n)}
         pagination={false}
-        dataSource={data.locations}
+        dataSource={withKeys(data.locations)}
         columns={[
           { title: "Luogo", dataIndex: "location", ellipsis: true },
           { title: "Ordini", dataIndex: "orders", align: "right", width: 80 },
