@@ -3,6 +3,7 @@ import { ArrowRightOutlined, CloseOutlined, MenuOutlined } from "@ant-design/ico
 import { CONFIG } from "../../config/configuration";
 import { getLandingConfig } from "./config";
 import { DICTS, LANGS, LANG_NAMES, SECTION_IDS, detectLang, rememberLang, type Dict, type Lang, type SectionId } from "./i18n";
+import { DELETE_CONTENT } from "./deleteAccountContent";
 import "./landing.css";
 
 /** Screenshots in public/images/screens (made by scripts/screenshots/capture.mjs). */
@@ -50,7 +51,7 @@ function Shot({ id, alt, eager = false }: { id: ShotId; alt: string; eager?: boo
   );
 }
 
-function LanguageSelect({ lang, onChange, label, id }: { lang: Lang; onChange: (l: Lang) => void; label: string; id: string }) {
+export function LanguageSelect({ lang, onChange, label, id }: { lang: Lang; onChange: (l: Lang) => void; label: string; id: string }) {
   return (
     <span className="lp-lang">
       <label htmlFor={id} className="lp-sr">
@@ -537,6 +538,7 @@ export default function LandingPage() {
             <a href="/privacy">{t.footer.privacy}</a>
             <a href="/terms">{t.footer.terms}</a>
             <a href="/cookies">{t.footer.cookies}</a>
+            <a href="/delete-account">{DELETE_CONTENT[lang].footerLink}</a>
           </nav>
           <div>
             <h4>{t.nav.language}</h4>

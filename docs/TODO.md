@@ -82,3 +82,14 @@ booking is created for that company only, and the page shows that company's iden
 - [ ] Supabase **Site URL** and **Redirect URLs**: the app domain only. `ALLOWED_ORIGINS` (Edge Functions): app domain and landing domain.
 - [ ] Booking links and invitation e-mails must use the app's new domain (they are built from the app's public URL).
 - [ ] Reminder: change the Cloudflare Pages build command to `npm run build:landing` with output `dist-landing`.
+
+## 9. Account deletion (Google Play, GDPR)
+
+The public page `/delete-account` (landing site, four languages) is the URL for the Play Console "Delete account URL". It promises
+deletion within 30 days after an e-mail request. Until the in-app flow exists the operator does it by hand, so:
+
+- [ ] **Runbook** for a manual deletion: set `orders.delivery_rider_id` and `pickup_rider_id` to null for that person (the foreign keys are `on delete restrict`), null `order_events.actor_id` (no foreign key), then delete the Auth user (the profile goes with it). For a guide or customer: clear name, phone and e-mail on `guides` and on the matching `orders` rows. For a company: delete the `tenants` row (everything cascades).
+- [ ] **In-app "Delete my account"** (Profile screen, web and mobile): Play expects it in the app as well as on the web. Edge Function `delete-account` that re-checks the password, does the steps above, and signs out. An owner cannot delete the account while the company has no other admin.
+- [ ] Verify the claims on the page before publishing the Play listing: backups leave within about 35 days (depends on the Supabase plan), 10-year retention for accounting records (confirm with your accountant), and that contact messages are deleted on request.
+- [ ] The page uses `support@echoboxlogistics.com`: switch to the real support address when the domain is final (also in the legal pages).
+- [ ] Play Console: fill the Data safety form to match (account data, name, phone, e-mail collected; deletion request link = the page URL) and keep the listing name equal to "EchoBox Logistics".

@@ -12,6 +12,7 @@ import LandingPage from "../src/features/landing/landingPage";
 const PrivacyPolicy = lazy(() => import("../src/features/landing/privacy"));
 const TermsAndConditions = lazy(() => import("../src/features/landing/terms"));
 const CookiePolicy = lazy(() => import("../src/features/landing/cookies"));
+const DeleteAccount = lazy(() => import("../src/features/landing/deleteAccount"));
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
@@ -22,6 +23,7 @@ createRoot(document.getElementById("root")!).render(
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsAndConditions />} />
           <Route path="/cookies" element={<CookiePolicy />} />
+          <Route path="/delete-account" element={<DeleteAccount />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>
