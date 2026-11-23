@@ -5,7 +5,7 @@ import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 
 /**
- * Two builds from one repository:
+ * Web app, landing and operator console from one repository:
  *   vite / vite build                   the web app (login, orders, riders…)
  *   vite --mode landing / build:landing  the marketing site: static, no login, no environment
  *                                        variables, hostable on its own domain.
@@ -29,6 +29,18 @@ function dropAppOnlyFiles(): Plugin {
 }
 
 export default defineConfig(({ mode }) => {
+  if (mode === "console") {
+    return {
+      root: resolve(__dirname, "console"),
+      publicDir: resolve(__dirname, "public"),
+      envDir: resolve(__dirname),
+      plugins: [react()],
+      server: { port: 5175, host: true, allowedHosts: [".localhost"], fs: { allow: [resolve(__dirname)] } },
+      preview: { port: 4175, host: true, allowedHosts: true },
+      build: { outDir: resolve(__dirname, "dist-console"), emptyOutDir: true },
+    };
+  }
+
   if (mode === "landing") {
     return {
       root: resolve(__dirname, "landing"),

@@ -203,7 +203,7 @@ function OrderFormBody({
     <Form<FormValues>
       form={form}
       layout="vertical"
-      requiredMark="optional"
+      requiredMark
       initialValues={initialValues}
       onFinish={(values) => void onFinish(values).catch(() => undefined)}
       scrollToFirstError
@@ -301,8 +301,8 @@ function OrderFormBody({
           </Form.Item>
         </Col>
         <Col xs={12} sm={6}>
-          <Form.Item label="Fattura richiesta" name="invoice_required" valuePropName="checked">
-            <Switch checkedChildren="Sì" unCheckedChildren="No" />
+          <Form.Item label="Fattura" name="invoice_required" valuePropName="checked">
+            <Switch aria-label="Fattura richiesta" checkedChildren="Sì" unCheckedChildren="No" />
           </Form.Item>
         </Col>
       </Row>
@@ -392,7 +392,7 @@ function OrderFormBody({
         <Input.TextArea rows={3} maxLength={1000} showCount />
       </Form.Item>
 
-      <Flex justify="flex-end" gap={8} style={{ marginTop: 8 }}>
+      <Flex justify="flex-end" align="center" gap={8} wrap style={{ marginTop: 8 }}>
         <Button onClick={onCancel} disabled={saving}>
           Annulla
         </Button>

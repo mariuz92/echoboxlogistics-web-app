@@ -35,11 +35,13 @@ export async function createGuide(tenantId: string, input: GuideInput): Promise<
 }
 
 export async function updateGuide(id: string, input: GuideInput): Promise<void> {
-  const { error } = await supabase.from("guides").update(clean(input)).eq("id", id);
+  const { data, error } = await supabase.from("guides").update(clean(input)).eq("id", id).select("id").maybeSingle();
   if (error) throw error;
+  if (!data) throw new Error("write_not_applied");
 }
 
 export async function deleteGuide(id: string): Promise<void> {
-  const { error } = await supabase.from("guides").delete().eq("id", id);
+  const { data, error } = await supabase.from("guides").delete().eq("id", id).select("id").maybeSingle();
   if (error) throw error;
+  if (!data) throw new Error("write_not_applied");
 }

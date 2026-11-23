@@ -4,97 +4,68 @@ Two things are deployed: the **Supabase stack** (database, auth, functions), whi
 server, and the **web app** (static files, in the Docker image). The marketing site is a third, separate static
 deployment (see "Marketing site and app are two separate deployments" below).
 
-## 1. Supabase (self-hosted)
+## 1. Supabase project
 
-Follow the official [self-hosting with Docker guide](https://supabase.com/docs/guides/self-hosting/docker) for the
-version you run; names of settings below are the ones used by its `docker/.env` and `docker-compose.yml` at the time
-of writing, so check them against your copy. Put the stack behind a TLS reverse proxy on its own hostname
-(for example `api.example.com`); everything below uses that as the **API URL**.
+For a dedicated Supabase Docker stack on your server, follow the [self-hosting plan](#5-self-hosted-supabase-on-a-shared-docker-server). The steps below are for a managed Supabase project.
 
-1. **Secrets first.** Replace every default in `docker/.env`: `POSTGRES_PASSWORD`, `JWT_SECRET`, `ANON_KEY`,
-   `SERVICE_ROLE_KEY` (generate the two keys from the new `JWT_SECRET`), the dashboard login, and the other
-   secrets the guide lists. Never use the service-role key in the web app. Do not expose the Postgres port or the
-   Studio dashboard to the internet (put Studio behind a VPN or an authenticated proxy).
-2. **Apply the schema** from a machine that can reach the database:
+1. Create a project at <https://supabase.com> (choose an EU region if your data must stay in the EU).
+2. Link and push the schema:
 
    ```bash
-   supabase db push --db-url "postgresql://postgres:<password>@<db-host>:5432/postgres"   # applies supabase/migrations/*
+   supabase login
+   supabase link --project-ref <project-ref>
+   supabase db push                      # applies supabase/migrations/*
    ```
 
-   **Do not** run `supabase/seed.sql` against a real database: it creates demo users with a known password.
-3. **Edge Functions.** On self-hosted they are plain folders served by the `functions` (Edge Runtime) container:
-   copy `supabase/functions/invite-member`, `supabase/functions/contact` and `supabase/functions/_shared` into
-   the stack's `volumes/functions/` directory and restart the container. Two things differ from the hosted product:
+   **Do not** run `supabase/seed.sql` against a real project: it creates demo users with a known password.
 
-   - The stock `volumes/functions/main/index.ts` router checks a JWT on **every** function. `contact` is public by
-     design (visitors of the marketing site are not signed in), so make the router skip that check for `contact` only
-     (the hosted equivalent is `--no-verify-jwt`). `invite-member` keeps the check.
-   - Secrets are environment variables of the `functions` service in `docker-compose.yml` (add them under
-     `environment:`, they are not read from `supabase secrets set`).
+3. Deploy the Edge Functions and set their secrets:
 
-   | Variable | Value |
-   |---|---|
-   | `SITE_URL` | `https://platform.example.com` (where invitation links point, `/join`) |
-   | `ALLOWED_ORIGINS` | `https://platform.example.com,https://example.com,https://www.example.com` (CORS allow-list: the app and the marketing site that hosts the contact form) |
-   | `CONTACT_TO_EMAIL`, `RESEND_API_KEY`, `CONTACT_FROM_EMAIL` | optional, see below |
+   ```bash
+   supabase functions deploy invite-member
+   supabase functions deploy contact --no-verify-jwt
+   supabase secrets set SITE_URL=https://platform.example.com \
+                        ALLOWED_ORIGINS=https://platform.example.com,https://example.com,https://www.example.com
+   ```
 
-   The `contact` function is then public at `https://api.example.com/functions/v1/contact`: that is the value of
-   `contactEndpoint` in `src/features/landing/config.ts`.
+   `SITE_URL` is where invitation links point (`/join`); `ALLOWED_ORIGINS` is a comma separated CORS allow-list
+   (include the marketing site's domain, which hosts the contact form).
 
    **Contact form e-mails.** Every message sent from the landing page is saved in `public.contact_messages`
-   (Studio → *Table editor*; tick `handled` once answered). To also receive it by e-mail, create a
-   [Resend](https://resend.com) account and set `CONTACT_TO_EMAIL=you@your-domain`, `RESEND_API_KEY=re_xxx` and
-   `CONTACT_FROM_EMAIL="EchoBox Logistics <hello@your-domain>"` on the `functions` service.
+   (dashboard → *Table editor*; tick `handled` once answered). To also receive it by e-mail, create a
+   [Resend](https://resend.com) account and set:
+
+   ```bash
+   supabase secrets set CONTACT_TO_EMAIL=you@your-domain \
+                        RESEND_API_KEY=re_xxx \
+                        CONTACT_FROM_EMAIL="EchoBox Logistics <hello@your-domain>"
+   ```
+
    Until your sending domain is verified in Resend, leave `CONTACT_FROM_EMAIL` unset: the default test sender
    (`onboarding@resend.dev`) can only deliver to the e-mail address of the Resend account itself, which is fine
    when that is the address in `CONTACT_TO_EMAIL`. Replies go straight to the visitor (`Reply-To`). If the e-mail
    fails, the message is still saved and the reason is stored in `email_error`.
 
-4. **Authentication.** `supabase/config.toml` only configures the local development stack. On self-hosted, Auth
-   (GoTrue) is configured by environment variables of the `auth` service in `docker/.env` and `docker-compose.yml`:
+4. Configure **Authentication** (dashboard → *Authentication*). `supabase/config.toml` only configures the
+   local stack; mirror these on the hosted project:
 
-   | Setting | Self-hosted variable | Value |
-   |---|---|---|
-   | Site URL | `SITE_URL` (`.env`) | `https://platform.example.com` |
-   | Redirect URLs | `ADDITIONAL_REDIRECT_URLS` | `https://platform.example.com/**` |
-   | Public API URL | `API_EXTERNAL_URL`, `SUPABASE_PUBLIC_URL` | `https://api.example.com` |
-   | Confirm e-mail | `ENABLE_EMAIL_AUTOCONFIRM` | **`false`** (onboarding relies on verified e-mails) |
-   | Sign-up | `DISABLE_SIGNUP` | `false` for now; `true` once companies are created only by the operator (invitations keep working), see [TODO.md](TODO.md) |
-   | Password policy | `GOTRUE_PASSWORD_MIN_LENGTH`, `GOTRUE_PASSWORD_REQUIRED_CHARACTERS` | min 8; lower + upper + digits (matches the web form). Add them to the `auth` service if the compose file does not pass them |
-   | E-mail link lifetime | `GOTRUE_MAILER_OTP_EXP` | seconds; `config.toml` uses 3600 |
-   | Access token lifetime | `JWT_EXPIRY` | 3600 |
-   | SMTP | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_ADMIN_EMAIL`, `SMTP_SENDER_NAME` | **required**: self-hosted has no built-in mail sender, so no confirmation, invitation or reset e-mail leaves without it. Use a provider with SPF, DKIM and DMARC set on your domain |
-   | E-mail templates | `GOTRUE_MAILER_TEMPLATES_*` or the templates mounted in the `auth` service | translate *Confirm signup*, *Invite user*, *Reset password* to Italian if desired; the template must carry the link (and the 6-digit code once the rider sign-in in TODO.md exists) |
-   | Google provider | `GOTRUE_EXTERNAL_GOOGLE_*` | optional; also set `VITE_ENABLE_GOOGLE_AUTH=true` |
+   | Setting | Value |
+   |---|---|
+   | Site URL | `https://platform.example.com` |
+   | Redirect URLs | `https://platform.example.com/**` |
+   | Email → *Confirm email* | **ON** (required: onboarding relies on verified emails) |
+   | Password policy | min length 8, lower + upper + digits (matches the web form) |
+   | SMTP | **Configure your own SMTP provider.** The built-in sender is heavily rate-limited and meant for testing |
+   | Email templates | Translate *Confirm signup*, *Invite user*, *Reset password* to Italian if desired |
+   | Google provider | optional; also set `VITE_ENABLE_GOOGLE_AUTH=true` |
 
-5. **Keys for the web app:** the **API URL** and the **anon key** from your `docker/.env`.
+5. Copy the **Project URL** and the **anon / publishable key** (Settings → API) for the web app.
+   Never use the service-role key in the web app.
 
 ### Backups and operations
 
-A self-hosted stack has **no managed backups**: nobody keeps your data unless you set this up. This also decides what
-the public `/delete-account` page may promise (deleted data leaves the backups within 30 days).
-
-- **Database:** a scheduled dump, copied **off the server**, **encrypted**, and pruned after **30 days**. Example (adapt
-  names, run daily from cron or a systemd timer, and keep the key to decrypt somewhere other than the server):
-
-  ```bash
-  docker exec supabase-db pg_dump -U postgres -Fc postgres \
-    | age -r <public-key> > /backups/echobox-$(date +%F).dump.age
-  rclone copy /backups remote:echobox-backups          # any off-site storage
-  find /backups -name '*.dump.age' -mtime +30 -delete   # also prune the remote copy to the same age
-  ```
-
-  For a smaller data-loss window add WAL archiving (for example pgBackRest or WAL-G), also kept at most 30 days.
-- **Test a restore** into an empty database at least once and before every major upgrade.
-- **After any restore, re-apply account deletions** made since that backup (the log of requests handled).
-- **Uploaded files** (Storage volume) are not in the dump; back up the volume if you ever use Storage.
-- **Updates:** you own Postgres and Supabase image updates and security patches. Pin image versions in compose, read the
-  release notes before upgrading, and take a backup first.
-- **Monitoring:** disk space, the e-mail provider's bounces, container health, and certificate expiry.
-- Schema changes are always new migration files, reviewed and applied with `supabase db push --db-url …`.
-
-If you ever move to the managed product at supabase.com, the same settings live in its dashboard (Authentication,
-Edge Function secrets, Backups) and `supabase functions deploy` / `supabase secrets set` replace the manual steps.
+Enable point-in-time recovery / daily backups on the project (Settings → Database → Backups). Schema
+changes are always new migration files, reviewed and pushed with `supabase db push`.
 
 ## 2. Web app with Docker
 
@@ -145,8 +116,8 @@ default on Cloudflare Pages) so `/privacy`, `/terms` and `/cookies` work.
 
 **App:** it is not deployed on Cloudflare. It will run on your own server from the Docker image (see above) behind a
 TLS reverse proxy, and the app's hostname is pointed at that server with a DNS record. When it moves, also update the
-Auth `SITE_URL` and `ADDITIONAL_REDIRECT_URLS` to the app domain and add the app and landing domains to `ALLOWED_ORIGINS`
-(checklist in [TODO.md](TODO.md), section 7).
+Auth `SITE_URL` and `ADDITIONAL_REDIRECT_URLS` (Supabase **Site URL** and **Redirect URLs** on a managed project) to the app domain and add the app and landing domains to `ALLOWED_ORIGINS`
+(see "Host the web app on my own server" in [TODO.md](TODO.md)).
 
 The only optional link between the two is the contact form: set `contactEndpoint` in
 `src/features/landing/config.ts` (or `window.__ECHOBOX_LANDING__` in `landing/index.html`) to the public URL of the
@@ -166,6 +137,8 @@ inlined by Vite), or edit `dist/env-config.js` as part of your pipeline.
 
 ## 4. Go-live checklist
 
+On the shared Docker server described in section 5, follow that section's steps and use this list to confirm the result.
+
 - [ ] Every default secret in `docker/.env` replaced; Postgres and Studio not reachable from the internet
 - [ ] `supabase db push --db-url …` ran; `supabase test db` passes locally against the same migrations
 - [ ] Edge Functions copied to `volumes/functions` (`invite-member`, `contact`, `_shared`); `contact` skips the JWT check, `invite-member` does not; `SITE_URL` and `ALLOWED_ORIGINS` set on the `functions` service
@@ -179,3 +152,251 @@ inlined by Vite), or edit `dist/env-config.js` as part of your pipeline.
 - [ ] Someone owns updates and monitoring of the server
 - [ ] Privacy / cookie pages reviewed for the new processors (see [migration notes](MIGRATION_FROM_FIREBASE.md#things-to-review-outside-the-code))
 - [ ] Play Console: the delete-account page URL is live and the support address on it works
+
+## 5. Self-hosted Supabase on a shared Docker server
+
+Run a dedicated Supabase stack for EchoBox and deploy the web app with the Compose file in this repo. The landing site uses the existing Cloudflare Pages deployment with `npm run build:landing` and output `dist-landing`.
+
+| Component | Proposed deployment |
+|---|---|
+| Supabase | Compose project `echobox-supabase` in `/opt/echobox/supabase`, with its own network, database, storage directory and credentials |
+| Supabase API | `https://api.example.com` → `127.0.0.1:18000` → gateway port `8000` |
+| Web app | Compose project `echobox-web` → `https://platform.example.com` via `127.0.0.1:18080` |
+| Superadmin | Compose project `echobox-console` → `https://admin.example.com` via `127.0.0.1:18090` |
+| Studio | Private access to the EchoBox gateway through an SSH tunnel or VPN |
+| Postgres and Supavisor | Internal Docker ports only during normal operation |
+
+The hostnames and loopback ports are examples. This layout assumes the TLS proxy runs on the host. For a proxy in Docker, attach the proxy and each EchoBox HTTP upstream to an appropriate shared network, use unique upstream aliases, and remove their host port mappings. EchoBox's database and other internal services stay on its project network. [Supabase proxy and HTTPS guide](https://supabase.com/docs/guides/self-hosting/self-hosted-proxy-https)
+
+### 1. Check the server and prepare the stack
+
+```bash
+docker compose version
+docker compose ls
+docker ps --format 'table {{.Names}}\t{{.Ports}}\t{{.Status}}'
+ss -ltn '( sport = :18000 or sport = :18080 or sport = :18090 )'
+df -h
+free -h
+```
+
+Record the current stack's project name, bindings, data locations and health. An `ss` header with no rows means it found no TCP listeners on the proposed ports. Check the Docker bindings too and confirm the host has room for a second stack. Use the official `self-hosted/v0.8.4` snapshot with Postgres 17 and Envoy. The commands below assume a Linux server, a user who can run Docker and write under `/opt/echobox`, and an EchoBox checkout that includes this repo's `deploy/` directory. Run the one-time setup from the EchoBox checkout. [Supabase Docker setup](https://supabase.com/docs/guides/self-hosting/docker)
+
+```bash
+export ECHOBOX_APP_DIR="$PWD"
+export ECHOBOX_SUPABASE_DIR=/opt/echobox/supabase
+
+(
+  set -e
+  mkdir -p /opt/echobox
+  mkdir "$ECHOBOX_SUPABASE_DIR"
+  git clone --depth 1 --filter=blob:none --sparse --branch self-hosted/v0.8.4 \
+    https://github.com/supabase/supabase.git /opt/echobox/supabase-source
+  git -C /opt/echobox/supabase-source sparse-checkout set docker
+  cp -a /opt/echobox/supabase-source/docker/. "$ECHOBOX_SUPABASE_DIR/"
+
+  umask 077
+  cd "$ECHOBOX_SUPABASE_DIR"
+  cp .env.example .env
+  cp "$ECHOBOX_APP_DIR/deploy/supabase/.env.functions.example" .env.functions
+  sh utils/generate-keys.sh --update-env
+  sh utils/add-new-auth-keys.sh --update-env
+)
+```
+
+Use a private terminal for the key scripts because they display credentials. Keep the generated `.env`, its backup copies, `volumes/db/data`, `volumes/storage` and named volumes with this installation. Set the following entries in the new stack's `.env` and replace the example domains. Set `ECHOBOX_API_PORT` only if you need a different free host port.
+
+```dotenv
+SUPABASE_PUBLIC_URL=https://api.example.com
+API_EXTERNAL_URL=https://api.example.com/auth/v1
+SITE_URL=https://platform.example.com
+ADDITIONAL_REDIRECT_URLS=https://platform.example.com,https://platform.example.com/join,https://platform.example.com/update-password
+STUDIO_DEFAULT_PROJECT=EchoBox
+POOLER_TENANT_ID=echobox
+ENABLE_EMAIL_SIGNUP=true
+ENABLE_EMAIL_AUTOCONFIRM=false
+DISABLE_SIGNUP=false
+```
+
+The pinned Supabase release uses the `/auth/v1` suffix in `API_EXTERNAL_URL`. `SUPABASE_PUBLIC_URL` and the clients' Supabase URL use the API origin. [Supabase Auth URL change](https://supabase.com/changelog/47093-self-hosted-supabase-api-external-url-to-include-auth-v1)
+
+Replace the `SMTP_*` settings with your mail provider's settings before testing signup, invitations and resets. The current `/register` flow uses signup to create the first company after email confirmation. [Supabase Auth configuration](https://github.com/supabase/auth#configuration)
+
+For Resend, verify `echoboxlogistics.com` by adding its DNS records to Cloudflare, then create a sending API key for that domain. The script sets the outbound sender to `no-reply@echoboxlogistics.com` and prompts for the key in the server terminal. Domain verification authorizes this sender address. Create the first Superadmin account with an inbox you can access. [Verify your sending domain](https://resend.com/docs/dashboard/domains/introduction) · [Resend SMTP](https://resend.com/docs/send-with-smtp)
+
+```bash
+python3 "$ECHOBOX_APP_DIR/deploy/supabase/configure-resend-auth.py" "$ECHOBOX_SUPABASE_DIR/.env"
+```
+
+If EchoBox is already running, apply the settings with `echobox_supabase up -d --no-deps --wait auth`. Test an owner invitation from Superadmin and verify that the email links to the web app's `/join` page.
+
+### 2. Start the separate Compose project
+
+The [EchoBox Supabase Compose override](../deploy/supabase/compose.echobox.yml) removes the upstream global container names and pooler bindings and publishes the gateway on loopback. Realtime retains Envoy's expected hostname as an alias on the private network. Use Docker Compose 2.24.4 or later and recheck the merged config with each upstream upgrade. [Upstream Compose file](https://github.com/supabase/supabase/blob/self-hosted/v0.8.4/docker/docker-compose.yml), [Compose merge rules](https://docs.docker.com/reference/compose-file/merge/)
+
+Configure `ALLOWED_ORIGINS` in `.env.functions` with the actual app, landing and operator console origins. If you enable the landing form, set a fresh `CONTACT_IP_SALT` and optionally add `CONTACT_TO_EMAIL`, `RESEND_API_KEY` and `CONTACT_FROM_EMAIL` for notifications.
+
+```bash
+cp -R "$ECHOBOX_APP_DIR/supabase/functions/"{invite-member,contact,platform-invite,_shared} \
+  "$ECHOBOX_SUPABASE_DIR/volumes/functions/"
+
+echobox_supabase() {
+  docker compose --project-directory "$ECHOBOX_SUPABASE_DIR" \
+    --env-file "$ECHOBOX_SUPABASE_DIR/.env" -p echobox-supabase \
+    -f "$ECHOBOX_SUPABASE_DIR/docker-compose.yml" \
+    -f "$ECHOBOX_APP_DIR/deploy/supabase/compose.echobox.yml" "$@"
+}
+
+echobox_supabase config --quiet
+echobox_supabase up -d --wait
+echobox_supabase ps
+```
+
+To reuse a locally cached `kong/kong:3.9.3` image, add `-f "$ECHOBOX_SUPABASE_DIR/docker-compose.kong.yml"` immediately after the base Compose file in `echobox_supabase()`. Use the Kong file from the same pinned Supabase download. The final EchoBox override gives the gateway a project-scoped container name and keeps its only published port on `127.0.0.1:18000` by default. [Pinned Kong override](https://github.com/supabase/supabase/blob/self-hosted/v0.8.4/docker/docker-compose.kong.yml)
+
+For a smaller initial deployment, add `-f "$ECHOBOX_APP_DIR/deploy/supabase/compose.lean.yml"` after `compose.echobox.yml` and before `"$@"` in `echobox_supabase()`. The default services are Postgres, Auth, PostgREST, Realtime, the gateway and Edge Functions. EchoBox currently stores its application records in Postgres. Enable Studio and Postgres Meta when needed with `echobox_supabase --profile studio up -d --wait`. The `storage` and `pooler` profiles enable Supabase Storage with imgproxy and Supavisor respectively. Run database migrations directly as in the next section. [Supabase optional services](https://supabase.com/docs/guides/self-hosting/docker#system-requirements)
+
+An existing Supabase `self-hosted/v0.8.1` deployment with Kong can share the locally cached Postgres and Kong images with this recipe. Use the pinned bundle for the new EchoBox project to include the later Realtime and Storage fixes. Keep the original project's `.env`, network overrides, database initialization files and data paths with that project. [Supabase release notes](https://github.com/supabase/supabase/blob/self-hosted/v0.8.4/docker/CHANGELOG.md)
+
+Keep the upstream `main` dispatcher. The override lets `contact` receive signed-out requests. `invite-member` verifies the caller's user token with Auth and checks for an active admin in its own handler. [Pinned Edge Runtime dispatcher](https://github.com/supabase/supabase/blob/self-hosted/v0.8.4/docker/volumes/functions/main/index.ts)
+
+### 3. Load and audit the EchoBox database
+
+For a fresh database, apply the application migrations from the app checkout with Supabase CLI `2.117.0` (the version in CI). Use the explicit EchoBox database URL. A runner on `echobox-supabase_default` can reach `db:5432`. On a standard Linux Docker host, the command below finds the container's private bridge IP for a CLI running on the host. This example uses the generated alphanumeric Postgres password and the upstream internal port `5432`. Percent-encode a custom password if it contains URI delimiters. Compare the dry run with `supabase/migrations/` and leave `supabase/seed.sql` out of production.
+
+```bash
+cd "$ECHOBOX_APP_DIR"
+ECHOBOX_DB_IP=$(docker inspect \
+  --format '{{(index .NetworkSettings.Networks "echobox-supabase_default").IPAddress}}' \
+  "$(echobox_supabase ps -q db)")
+read -r -s -p 'EchoBox Postgres password: ' ECHOBOX_DB_PASSWORD
+printf '\n'
+ECHOBOX_DB_URL="postgresql://postgres:${ECHOBOX_DB_PASSWORD}@${ECHOBOX_DB_IP}:5432/postgres"
+supabase db push --db-url "$ECHOBOX_DB_URL" --dry-run
+supabase db push --db-url "$ECHOBOX_DB_URL"
+unset ECHOBOX_DB_PASSWORD ECHOBOX_DB_URL
+```
+
+Run the read-only audit after the migrations or restore. Review the output against the [production record inventory](DATABASE.md#production-records-and-cutover-audit). The fresh database has zero app rows until you register and confirm the first admin through the web app.
+
+```bash
+echobox_supabase exec -T db psql -X -v ON_ERROR_STOP=1 -U supabase_admin -d postgres \
+  < "$ECHOBOX_APP_DIR/deploy/supabase/check-data.sql"
+```
+
+If EchoBox already has live data in managed Supabase, rehearse a restore to the new stack before applying pending migrations. Reconcile the restored migration history, verify Auth users and app data, and schedule a write freeze for the final transfer. Users sign in again because the new stack issues its own tokens. For Firestore, follow the [legacy field mapping and migration notes](MIGRATION_FROM_FIREBASE.md). [Restore a managed Supabase project](https://supabase.com/docs/guides/self-hosting/restore-from-platform)
+
+### 4. Verify, cut over and back up
+
+From the EchoBox checkout, set `VITE_SUPABASE_URL` in the app's `.env` to the public EchoBox API origin and `VITE_SUPABASE_ANON_KEY` to the generated `ANON_KEY` from the Supabase stack. The [web Compose override](../deploy/compose.web-server.yml) listens on `127.0.0.1:18080` by default. Set `WEB_PORT` in the app's `.env` if you want a different free port.
+
+```bash
+cd "$ECHOBOX_APP_DIR"
+docker compose -p echobox-web -f docker-compose.yml -f deploy/compose.web-server.yml up -d --build --wait
+```
+
+- Configure TLS and WebSocket forwarding. Route `/auth/v1/`, `/rest/v1/`, `/realtime/v1/`, and the EchoBox function paths on the public API host. Keep Studio and management routes private. Configure the proxy to replace client-supplied `X-Forwarded-For` at the trusted edge so contact rate limits can use the real client IP.
+- Check sign-up and email confirmation, sign-in, password reset, and an admin invitation to `/join`. Verify that a signed-out request to `invite-member` gets `401` and a signed-in non-admin gets `403`. Confirm bookings for two different company links stay in their respective companies and order changes arrive over Realtime. If using `contact`, set the landing's `contactEndpoint` to `https://api.example.com/functions/v1/contact`, then test submission, the saved message and optional email delivery from the landing origin.
+- Recheck the existing instance against its baseline. Schedule off-host backups of EchoBox Postgres and any Storage files, keep a protected copy of the deployment configuration and secrets, and test a restore. Keep the previous app/backend routing available during cutover. If EchoBox has already accepted new writes, reconcile or export them before switching traffic back. Use the EchoBox project name for any stop or restart so commands target the new stack.
+
+### 5. Deploy the Superadmin console
+
+Apply the database migrations before publishing the console. The support queue and order journal require [`20261120010200_platform_support.sql`](../supabase/migrations/20261120010200_platform_support.sql). Deploy `platform-invite` alongside the other Edge Functions and route `/functions/v1/platform-invite` through the API proxy. Add the console origin to `ALLOWED_ORIGINS`. `SITE_URL` remains the customer web app origin for invitation links. The Supabase Compose override enables TOTP enrollment and verification.
+
+Create a dedicated, email-confirmed Supabase Auth account for the first operator with a password. Copy its user UUID from Auth. On the EchoBox database, provision it from a privileged SQL session. This operation grants platform-wide access.
+
+```sql
+insert into private.platform_admins(user_id)
+select id from auth.users
+where id = '00000000-0000-0000-0000-000000000000'::uuid
+  and email_confirmed_at is not null;
+```
+
+Replace the placeholder with the actual Auth UUID and verify the insert produced one row. Sign in to the console and enroll an authenticator before using operator controls. Use a second verified account for recovery and enroll its authenticator before relying on that account.
+
+Reuse the customer app's Supabase URL and public key in the checkout's `.env`. The console has a separate browser session and image. Build it as follows.
+
+```bash
+docker compose --env-file .env -f deploy/compose.console-server.yml up -d --build --wait
+```
+
+Route `https://admin.example.com` to `127.0.0.1:18090` in the TLS reverse proxy. The console requires a platform operator and MFA at the database API. Keep developer accounts and production credentials separate.
+
+In the production console, turn on **Creazione aziende solo dalla console** under **Configurazione → Modifica** before opening the customer platform. Verify that the login page hides the company registration link and that a direct visit to `/register` displays invitation instructions. Confirm that an owner can accept an invitation and access a test company. Existing companies keep full access until you assign a subscription or suspend them. The [Flutter Supabase branch](https://github.com/mariuz92/echoboxlogistics_mobile/tree/03e673e790fbe385aaa1082b3e7ab02dadf5c19a) uses Firebase for push. Point the deployed Flutter build at the same EchoBox Supabase project and complete the [mobile compatibility checks](SUPERADMIN.md#flutter-and-the-shared-supabase-backend) before the shared rollout.
+
+### 6. Enable rider push notifications
+
+Update the EchoBox checkout and apply the database migrations through `20261121000000_rider_push.sql` using the
+migration command in section 3. Rebuild the customer web container with the command in section 4 so Flutter can
+open the recovery form even when the browser already has an EchoBox session.
+Enable the Firebase Cloud Messaging API in the Firebase project used by the Android and iOS builds. Give a service
+account permission to send FCM messages and place its JSON key on the VPS with mode `0600`. For iOS, configure APNs
+in the same Firebase project for the EchoBox bundle identifier. [FCM HTTP v1 setup](https://firebase.google.com/docs/cloud-messaging/send/v1-api) · [Firebase Apple client setup](https://firebase.google.com/docs/cloud-messaging/ios/client)
+
+Run on the VPS. Enter the absolute path to the service account JSON when prompted.
+
+```bash
+(
+  set -e
+  source /opt/echobox/deploy-env.sh
+  ECHOBOX_PUSH_CHECKOUT=/opt/echobox/app
+  ECHOBOX_PUSH_DEPLOY="$ECHOBOX_PUSH_CHECKOUT/deploy/supabase"
+  ECHOBOX_PUSH_FUNCTION="$ECHOBOX_PUSH_CHECKOUT/supabase/functions/notify-rider"
+  for ECHOBOX_PUSH_FILE in "$ECHOBOX_PUSH_DEPLOY"/echobox-push.{service,timer} \
+    "$ECHOBOX_PUSH_DEPLOY"/{configure-rider-push.py,run-push-worker.py} \
+    "$ECHOBOX_PUSH_FUNCTION"/{index.ts,fcm.ts}; do
+    if [ ! -r "$ECHOBOX_PUSH_FILE" ]; then
+      printf 'Missing %s. Update the EchoBox deployment checkout first.\n' "$ECHOBOX_PUSH_FILE" >&2
+      exit 1
+    fi
+  done
+
+  ECHOBOX_PUSH_SCHEMA_READY=$(echobox_supabase exec -T db psql -X -v ON_ERROR_STOP=1 \
+    -U supabase_admin -d postgres -Atc \
+    "select to_regprocedure('public.claim_push_deliveries(integer)') is not null
+        and to_regprocedure('public.read_push_delivery(uuid,uuid)') is not null;")
+  if [ "$ECHOBOX_PUSH_SCHEMA_READY" != t ]; then
+    printf 'Apply the EchoBox rider push database migration before starting the worker.\n' >&2
+    exit 1
+  fi
+
+  read -rp 'Firebase service account JSON path: ' ECHOBOX_FCM_KEY_FILE
+  python3 "$ECHOBOX_PUSH_DEPLOY/configure-rider-push.py" "$ECHOBOX_FCM_KEY_FILE"
+  install -d /opt/echobox/supabase/volumes/functions/notify-rider
+  install -m 644 "$ECHOBOX_PUSH_FUNCTION"/{index.ts,fcm.ts} \
+    /opt/echobox/supabase/volumes/functions/notify-rider/
+  echobox_supabase up -d --no-deps --force-recreate --wait functions
+  install -m 644 "$ECHOBOX_PUSH_DEPLOY"/echobox-push.{service,timer} /etc/systemd/system/
+  systemctl daemon-reload
+  systemctl start echobox-push.service
+  systemctl enable --now echobox-push.timer
+  systemctl list-timers echobox-push.timer
+  journalctl -u echobox-push.service -n 30 --no-pager
+)
+```
+
+The timer calls the worker on the loopback gateway. Keep the public API allowlist unchanged so
+`/functions/v1/notify-rider` stays private. Pass `--api-port` to the configuration command if the local gateway
+uses a different port. If the initial service run fails, check `journalctl -u echobox-push.service -n 30 --no-pager`.
+When the database has the migration and PostgREST still reports a missing push RPC, run `NOTIFY pgrst, 'reload schema';`
+on the EchoBox database and restart the service before enabling the timer. The worker counts Firebase-accepted
+sends. Verify actual receipt and order navigation on
+an invited rider’s real iPhone and Android device. Assign a pilot delivery, then reschedule and reassign a pickup
+to confirm that only the currently assigned rider receives the reminder.
+
+### 7. Backups and retention
+
+A self-hosted stack has no managed backups. The public `/delete-account` page promises that deleted data leaves the backups within 30 days, so the backups must not be kept longer than that.
+
+- **Database:** a scheduled dump, copied **off the server**, **encrypted**, pruned after **30 days** (the same on the remote copy). Example, run daily from cron or a systemd timer, with the decryption key kept somewhere other than this server:
+
+  ```bash
+  echobox_supabase exec -T db pg_dump -U supabase_admin -Fc postgres \
+    | age -r <public-key> > /backups/echobox-$(date +%F).dump.age
+  rclone copy /backups remote:echobox-backups
+  find /backups -name '*.dump.age' -mtime +30 -delete
+  ```
+
+- **Test a restore** into an empty database at least once, and before every major upgrade.
+- **After a restore, re-apply account deletions** made since that backup.
+- **Storage files** (`volumes/storage`) are not in the dump; back them up if Storage is enabled.
+- **Updates:** pin image versions, read the release notes first, and take a backup before upgrading.

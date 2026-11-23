@@ -1,6 +1,7 @@
 # Keep the build context small and free of secrets.
 node_modules
 dist
+dist-console
 .git
 .github
 .claude

@@ -1,9 +1,10 @@
-import { useMemo, useRef } from "react";
-import { Form, InputNumber, Typography } from "antd";
+import { useMemo, useRef, useState, type ChangeEvent } from "react";
+import { Button, Flex, Form, Input, Typography } from "antd";
 import { useReadyUser } from "../../../providers/current-user";
 import { fmtTime, wallClockToIso, type Dayjs } from "../../../lib/dates";
 import { channelConflicts, channelWindowEnd } from "../../../types/domain";
 import { useChannelBoard } from "../hooks";
+import { OccupiedChannels } from "./ChannelBoard";
 
 interface ChannelPickerProps {
   /** The order being edited: it does not occupy its own channel. */
@@ -21,35 +22,45 @@ export function ChannelPicker({ orderId }: ChannelPickerProps) {
   const deliveryAt = Form.useWatch("delivery_at", form) as Dayjs | undefined;
   const pickupAt = Form.useWatch("pickup_at", form) as Dayjs | null | undefined;
   const channel = Form.useWatch("radio_channel", form) as number | null | undefined;
+  const [occupiedOpen, setOccupiedOpen] = useState(false);
+  const { channel_min: min, channel_max: max } = tenant;
 
   const slot = useMemo(() => {
     if (!deliveryAt) return null;
     const from = wallClockToIso(deliveryAt, timezone);
     const pickup = pickupAt ? wallClockToIso(pickupAt, timezone) : null;
+    if (pickup && Date.parse(pickup) < Date.parse(from)) return null;
     return { from, to: channelWindowEnd(from, pickup, timezone) };
   }, [deliveryAt, pickupAt, timezone]);
 
-  // Only asked for when a channel is typed: the orders holding a channel at these times.
-  const { data: uses = [] } = useChannelBoard(slot, channel != null);
+  const inRange = channel != null && Number.isInteger(channel) && channel >= min && channel <= max;
+  const { data, isError, isPlaceholderData } = useChannelBoard(
+    slot, inRange && !tenant.disabled_channels.includes(channel),
+  );
+  const uses = isPlaceholderData ? [] : data ?? [];
   const conflicts = slot && channel != null ? channelConflicts(uses, channel, slot.from, slot.to, orderId) : [];
 
   let status: { type: "success" | "warning" | "danger" | "secondary"; text: string; blocking: boolean };
   if (channel == null) {
     status = {
       type: "secondary",
-      text: `Facoltativo. I tuoi canali vanno da ${tenant.channel_min} a ${tenant.channel_max}.`,
+      text: `Facoltativo. I tuoi canali vanno da ${min} a ${max}.`,
       blocking: false,
     };
-  } else if (channel < tenant.channel_min || channel > tenant.channel_max) {
+  } else if (!inRange) {
     status = {
       type: "danger",
-      text: `Il canale ${channel} non esiste: i tuoi canali vanno da ${tenant.channel_min} a ${tenant.channel_max}.`,
+      text: `Inserisci un numero intero da ${min} a ${max}.`,
       blocking: true,
     };
   } else if (tenant.disabled_channels.includes(channel)) {
     status = { type: "danger", text: `Il canale ${channel} è disabilitato.`, blocking: true };
   } else if (!slot) {
-    status = { type: "secondary", text: "Indica l'orario di consegna per controllare il canale.", blocking: false };
+    status = { type: "secondary", text: "Indica gli orari dell’ordine per controllare il canale.", blocking: false };
+  } else if (isError) {
+    status = { type: "warning", text: "Disponibilità non verificata. EchoBox controllerà il canale al salvataggio.", blocking: false };
+  } else if (!data || isPlaceholderData) {
+    status = { type: "secondary", text: "Verifica disponibilità del canale…", blocking: false };
   } else if (conflicts.length) {
     const who = conflicts
       .map((c) => `${c.guide_name} (${fmtTime(c.delivery_at, timezone)}–${fmtTime(c.busy_until, timezone)})`)
@@ -66,13 +77,52 @@ export function ChannelPicker({ orderId }: ChannelPickerProps) {
   problem.current = status.blocking ? status.text : null;
 
   return (
-    <Form.Item
-      label="Canale"
-      name="radio_channel"
-      rules={[{ validator: () => (problem.current ? Promise.reject(new Error(problem.current)) : Promise.resolve()) }]}
-      help={<Typography.Text type={status.type === "secondary" ? "secondary" : status.type}>{status.text}</Typography.Text>}
-    >
-      <InputNumber min={0} max={99999} precision={0} placeholder="Numero" style={{ width: 160 }} />
-    </Form.Item>
+    <>
+      <Form.Item
+        label="Canale"
+        htmlFor="radio_channel"
+        help={
+          <Flex id="radio_channel_status" vertical gap={2} style={{ paddingBottom: 12 }}>
+            <Typography.Text type={status.type}>{status.text}</Typography.Text>
+            {!slot && channel == null && (
+              <Typography.Text type="secondary">Indica gli orari dell’ordine per vedere i canali occupati.</Typography.Text>
+            )}
+          </Flex>
+        }
+      >
+        <Flex align="center" gap={8} wrap>
+          <Form.Item
+            name="radio_channel"
+            noStyle
+            getValueFromEvent={({ target }: ChangeEvent<HTMLInputElement>) =>
+              target.value === "" ? null : target.valueAsNumber
+            }
+            rules={[{ validator: () => (problem.current ? Promise.reject(new Error(problem.current)) : Promise.resolve()) }]}
+          >
+            <Input
+              type="number"
+              inputMode="numeric"
+              min={min}
+              max={max}
+              step={1}
+              placeholder="Numero"
+              aria-describedby="radio_channel_status"
+              style={{ width: 144, maxWidth: "100%" }}
+            />
+          </Form.Item>
+          <Button onClick={() => setOccupiedOpen(true)} disabled={!slot}>
+            Canali occupati
+          </Button>
+        </Flex>
+      </Form.Item>
+      {slot && (
+        <OccupiedChannels
+          open={occupiedOpen}
+          onClose={() => setOccupiedOpen(false)}
+          period={slot}
+          excludeOrderId={orderId}
+        />
+      )}
+    </>
   );
 }

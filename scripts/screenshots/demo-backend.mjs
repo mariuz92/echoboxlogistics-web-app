@@ -191,6 +191,9 @@ export async function installDemoBackend(page, db, { asUserId, log = false } = {
 
   const rpcs = {
     touch_login: () => null,
+    platform_company_access: () => "full",
+    platform_runtime_settings: () => ({ operator_only_companies: false, booking_paused: false, notice: "" }),
+    report_platform_issue: () => null,
     bootstrap_profile: () => user,
     get_channel_board: (body) => (isAdmin ? channelBoard(db, body.p_from, body.p_to) : []),
     get_dashboard_insights: (body) => dashboardInsights(db, (body.p_month ?? "").slice(0, 7)),

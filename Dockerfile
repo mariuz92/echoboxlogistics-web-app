@@ -29,8 +29,12 @@ RUN --mount=type=cache,target=/root/.npm \
 FROM deps AS build
 WORKDIR /app
 COPY . .
-# `npm run build` runs `tsc --noEmit && vite build`
-RUN npm run build
+ARG APP_KIND=web
+RUN case "$APP_KIND" in \
+      web) npm run build && mv dist /app/site ;; \
+      console) npm run build:console && mv dist-console /app/site ;; \
+      *) echo "Unsupported APP_KIND" >&2; exit 2 ;; \
+    esac
 
 # ---- 3. runtime: unprivileged nginx serving the static bundle ----------------
 FROM nginxinc/nginx-unprivileged:${NGINX_VERSION}-alpine AS runtime
@@ -42,7 +46,7 @@ LABEL org.opencontainers.image.title="echoboxlogistics-web-app" \
 COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
 COPY docker/security-headers.inc /etc/nginx/security-headers.inc
 COPY --chmod=0755 docker/40-env-config.sh /docker-entrypoint.d/40-env-config.sh
-COPY --from=build /app/dist /usr/share/nginx/html
+COPY --from=build /app/site /usr/share/nginx/html
 
 # Listens on 8080 as the non-root "nginx" user.
 EXPOSE 8080

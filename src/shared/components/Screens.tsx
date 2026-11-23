@@ -18,7 +18,7 @@ export function SectionSpinner() {
   );
 }
 
-export function NotFoundPage() {
+export function NotFoundPage({ returnLabel = "Torna agli ordini" }: { returnLabel?: string }) {
   return (
     <Result
       status="404"
@@ -26,7 +26,7 @@ export function NotFoundPage() {
       subTitle="La pagina che cerchi non esiste o è stata spostata."
       extra={
         <Link to="/">
-          <Button type="primary">Torna agli ordini</Button>
+          <Button type="primary">{returnLabel}</Button>
         </Link>
       }
     />
