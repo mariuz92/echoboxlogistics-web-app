@@ -85,7 +85,7 @@ works for every environment.
 ```bash
 docker build -t echoboxlogistics-web-app .
 docker run --rm -p 8080:8080 \
-  -e VITE_SUPABASE_URL=https://<project>.supabase.co \
+  -e VITE_SUPABASE_URL=https://<your-api-url> \
   -e VITE_SUPABASE_ANON_KEY=<anon key> \
   echoboxlogistics-web-app
 ```

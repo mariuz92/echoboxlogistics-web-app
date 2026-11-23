@@ -30,7 +30,7 @@ that first checks the caller is a platform admin.
 
 ## 2. Accounts and invitations (phases 1 and 2 of AUTH_REVIEW.md)
 
-- [ ] **Deprecate sign-up:** remove `/register` and the "create a company" step of `/onboarding`, stop reading `company_name` from user metadata in `bootstrap_profile()`, turn off sign-up in the hosted Auth settings (invitations keep working), and drop the Google "create a company" path. Companies come only from the operator panel (F1, F2).
+- [ ] **Deprecate sign-up:** remove `/register` and the "create a company" step of `/onboarding`, stop reading `company_name` from user metadata in `bootstrap_profile()`, set `DISABLE_SIGNUP=true` on the Auth service (invitations keep working), and drop the Google "create a company" path. Companies come only from the operator panel (F1, F2).
 - [ ] `accept_invitation()` called only after the person has finished the join step; nobody is active before that (F4).
 - [ ] Keep an invitation when the person already has an account without a company (F5).
 - [ ] Invite quotas per company and a generic answer that does not reveal who has an account elsewhere (F3).
@@ -55,9 +55,9 @@ that first checks the caller is a platform admin.
 
 ## 5. Hardening and operations
 
-- [ ] Checklist of hosted Auth settings in `DEPLOYMENT.md` (OTP expiry, password policy, e-mail confirmation, rate limits, SMTP, captcha if sign-up ever reopens).
+- [ ] Checklist of production Auth settings in `DEPLOYMENT.md` (written for the self-hosted stack; review it when sign-up is closed): OTP expiry, password policy, e-mail confirmation, rate limits, SMTP, captcha if sign-up ever reopens.
 - [ ] Audit log of member changes visible to company owners.
-- [ ] Verify on the hosted project: invite-link expiry, `inviteUserByEmail` for an unconfirmed address, default `signOut` scope.
+- [ ] Verify on the production stack: invite-link expiry, `inviteUserByEmail` for an unconfirmed address, default `signOut` scope.
 
 ## 6. Landing page follow-ups
 
@@ -79,7 +79,7 @@ booking is created for that company only, and the page shows that company's iden
 ## 8. Host the web app on my own server
 
 - [ ] Run the app from the Docker image on your own server behind a TLS reverse proxy; point the app's hostname to it with a DNS record. The landing page stays on Cloudflare Pages.
-- [ ] Supabase **Site URL** and **Redirect URLs**: the app domain only. `ALLOWED_ORIGINS` (Edge Functions): app domain and landing domain.
+- [ ] Auth `SITE_URL` and `ADDITIONAL_REDIRECT_URLS`: the app domain only. `ALLOWED_ORIGINS` (Edge Functions): app domain and landing domain.
 - [ ] Booking links and invitation e-mails must use the app's new domain (they are built from the app's public URL).
 - [ ] Reminder: change the Cloudflare Pages build command to `npm run build:landing` with output `dist-landing`.
 
@@ -90,6 +90,6 @@ deletion within 30 days after an e-mail request. Until the in-app flow exists th
 
 - [ ] **Runbook** for a manual deletion: set `orders.delivery_rider_id` and `pickup_rider_id` to null for that person (the foreign keys are `on delete restrict`), null `order_events.actor_id` (no foreign key), then delete the Auth user (the profile goes with it). For a guide or customer: clear name, phone and e-mail on `guides` and on the matching `orders` rows. For a company: delete the `tenants` row (everything cascades).
 - [ ] **In-app "Delete my account"** (Profile screen, web and mobile): Play expects it in the app as well as on the web. Edge Function `delete-account` that re-checks the password, does the steps above, and signs out. An owner cannot delete the account while the company has no other admin.
-- [ ] Claims on the page, checked 2026-11-23: deletion within 30 days matches GDPR Art. 12(3) (one month, extendable by two with notice). Backups: Supabase keeps 7 days of daily backups on Pro, 14 on Team, and point-in-time recovery up to 28 days as a paid add-on, so the page says "within 30 days"; confirm the plan and that the Free plan has no backups. Accounting retention of 10 years is the Italian rule (art. 2220 c.c.); Germany and France use other periods (6 to 10 years), so the page says "in Italy". Confirm both with your accountant.
+- [ ] Claims on the page, checked 2026-11-23: deletion within 30 days matches GDPR Art. 12(3) (one month, extendable by two with notice). **Backups: Supabase is self-hosted, so there are no managed backups: the page's "within 30 days" is true only if you set it up.** Run a scheduled `pg_dump` (or WAL archiving) of the database, store it off the server, encrypted, and delete copies older than 30 days; test a restore. If you keep backups longer, change the page. After a restore, re-apply any deletions made since the backup. Accounting retention of 10 years is the Italian rule (art. 2220 c.c.); Germany and France use other periods (6 to 10 years), so the page says "in Italy". Confirm with your accountant.
 - [ ] The page uses `support@echoboxlogistics.com`: switch to the real support address when the domain is final (also in the legal pages).
 - [ ] Play Console: fill the Data safety form to match (account data, name, phone, e-mail collected; deletion request link = the page URL) and keep the listing name equal to "EchoBox Logistics".
