@@ -55,7 +55,7 @@ that first checks the caller is a platform admin.
 
 ## 5. Hardening and operations
 
-- [ ] Checklist of production Auth settings in `DEPLOYMENT.md` (written for the self-hosted stack; review it when sign-up is closed): OTP expiry, password policy, e-mail confirmation, rate limits, SMTP, captcha if sign-up ever reopens).
+- [ ] Checklist of production Auth settings in `DEPLOYMENT.md` (written for the self-hosted stack; review it when sign-up is closed): OTP expiry, password policy, e-mail confirmation, rate limits, SMTP, captcha if sign-up ever reopens.
 - [ ] Audit log of member changes visible to company owners.
 - [ ] Verify on the production stack: invite-link expiry, `inviteUserByEmail` for an unconfirmed address, default `signOut` scope.
 
