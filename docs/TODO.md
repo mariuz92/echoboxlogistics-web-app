@@ -104,3 +104,5 @@ The decision dashboard (`get_dashboard_insights`) is in. Next, once there is rea
 - [ ] Rider-level view for admins: stops per day, punctuality over time, per rider.
 - [ ] Revenue and orders by source and by guide over the 12 months (retention), and a forecast of the month from bookings already made.
 - [ ] Export of the month to CSV and PDF for the accountant.
+
+- [ ] Drop `get_dashboard_stats` in a later migration once no deployed app build calls it (the new dashboard uses `get_dashboard_insights`).
