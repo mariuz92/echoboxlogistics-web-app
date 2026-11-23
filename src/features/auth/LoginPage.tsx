@@ -8,9 +8,10 @@ import { env } from "../../config/env";
 import type { LoginParams } from "../../providers/auth-provider";
 import { getErrorMessage } from "../../lib/errors";
 import { takeLoginNotice } from "./session";
+import { t } from "../../i18n";
 
 const REASON_MESSAGES: Record<string, string> = {
-  disabled: "Il tuo account è stato disabilitato. Contatta un amministratore.",
+  disabled: t("Il tuo account è stato disabilitato. Contatta un amministratore."),
 };
 
 export function LoginPage() {
@@ -22,11 +23,11 @@ export function LoginPage() {
 
   return (
     <AuthShell
-      title="Accedi"
-      subtitle="Gestisci ordini, rider e canali radio."
+      title={t("Accedi")}
+      subtitle={t("Gestisci ordini, rider e canali radio.")}
       footer={
         <>
-          Non hai un account? <Link to="/register">Registra la tua azienda</Link>
+          {t("Non hai un account?")}{" "}<Link to="/register">{t("Registra la tua azienda")}</Link>
         </>
       }
     >
@@ -46,11 +47,11 @@ export function LoginPage() {
         autoComplete="on"
       >
         <Form.Item
-          label="Email"
+          label={t("Email")}
           name="email"
           rules={[
-            { required: true, message: "Inserisci la tua email" },
-            { type: "email", message: "Email non valida" },
+            { required: true, message: t("Inserisci la tua email") },
+            { type: "email", message: t("Email non valida") },
           ]}
         >
           <Input
@@ -62,12 +63,12 @@ export function LoginPage() {
         </Form.Item>
 
         <Form.Item
-          label="Password"
+          label={t("Password")}
           name="password"
-          rules={[{ required: true, message: "Inserisci la password" }]}
+          rules={[{ required: true, message: t("Inserisci la password") }]}
           extra={
             <Flex justify="flex-end" style={{ marginTop: 6 }}>
-              <Link to="/forgot-password">Password dimenticata?</Link>
+              <Link to="/forgot-password">{t("Password dimenticata?")}</Link>
             </Flex>
           }
         >
@@ -80,20 +81,20 @@ export function LoginPage() {
         </Form.Item>
 
         <Button type="primary" htmlType="submit" size="large" block loading={isPending}>
-          Accedi
+          {t("Accedi")}
         </Button>
       </Form>
 
       {env.enableGoogleAuth && (
         <>
-          <Divider plain>oppure</Divider>
+          <Divider plain>{t("oppure")}</Divider>
           <Button
             size="large"
             block
             icon={<GoogleOutlined />}
             onClick={() => login({ providerName: "google" })}
           >
-            Continua con Google
+            {t("Continua con Google")}
           </Button>
         </>
       )}

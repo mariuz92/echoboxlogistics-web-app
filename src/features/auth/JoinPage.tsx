@@ -9,6 +9,7 @@ import { getErrorMessage } from "../../lib/errors";
 import { loadCurrentUser } from "./session";
 import { updateOwnProfile } from "../settings/api";
 import { useCurrentUser } from "../../providers/current-user";
+import { t } from "../../i18n";
 
 interface JoinValues {
   name: string;
@@ -86,7 +87,7 @@ export function JoinPage() {
         });
       }
       await refresh();
-      message.success("Benvenuto! Il tuo account è pronto.");
+      message.success(t("Benvenuto! Il tuo account è pronto."));
       navigate("/", { replace: true });
     } catch (error) {
       message.error(getErrorMessage(error));
@@ -97,8 +98,8 @@ export function JoinPage() {
 
   return (
     <AuthShell
-      title="Completa la registrazione"
-      subtitle={companyName ? `Sei stato invitato a unirti a ${companyName}.` : undefined}
+      title={t("Completa la registrazione")}
+      subtitle={companyName ? t("Sei stato invitato a unirti a {company}.", { company: companyName }) : undefined}
     >
       {state === "checking" && <Spin />}
 
@@ -106,37 +107,37 @@ export function JoinPage() {
         <Alert
           type="error"
           showIcon
-          title="Invito non valido o scaduto"
-          description="Chiedi a un amministratore di inviarti un nuovo invito."
+          title={t("Invito non valido o scaduto")}
+          description={t("Chiedi a un amministratore di inviarti un nuovo invito.")}
         />
       )}
 
       {state === "ready" && (
         <Form<JoinValues> layout="vertical" requiredMark={false} initialValues={initial} onFinish={onFinish}>
           <Form.Item
-            label="Nome e cognome"
+            label={t("Nome e cognome")}
             name="name"
-            rules={[{ required: true, message: "Inserisci il tuo nome" }]}
+            rules={[{ required: true, message: t("Inserisci il tuo nome") }]}
           >
             <Input size="large" autoComplete="name" />
           </Form.Item>
-          <Form.Item label="Telefono" name="phone" rules={phoneRules}>
+          <Form.Item label={t("Telefono")} name="phone" rules={phoneRules}>
             <Input size="large" autoComplete="tel" />
           </Form.Item>
-          <Form.Item label="Scegli una password" name="password" rules={passwordRules} hasFeedback>
+          <Form.Item label={t("Scegli una password")} name="password" rules={passwordRules} hasFeedback>
             <Input.Password size="large" prefix={<LockOutlined />} autoComplete="new-password" />
           </Form.Item>
           <Form.Item
-            label="Conferma password"
+            label={t("Conferma password")}
             name="confirmPassword"
             dependencies={["password"]}
-            rules={[{ required: true, message: "Conferma la password" }, confirmPasswordRule()]}
+            rules={[{ required: true, message: t("Conferma la password") }, confirmPasswordRule()]}
             hasFeedback
           >
             <Input.Password size="large" prefix={<LockOutlined />} autoComplete="new-password" />
           </Form.Item>
           <Button type="primary" htmlType="submit" size="large" block loading={saving}>
-            Entra
+            {t("Entra")}
           </Button>
         </Form>
       )}

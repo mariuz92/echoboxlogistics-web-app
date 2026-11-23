@@ -1,5 +1,7 @@
 import dayjs, { type Dayjs } from "dayjs";
 import "dayjs/locale/it";
+import "dayjs/locale/en-gb";
+import { getLang, numberLocale } from "../i18n";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
 import relativeTime from "dayjs/plugin/relativeTime";
@@ -13,7 +15,8 @@ dayjs.extend(relativeTime);
 dayjs.extend(isSameOrBefore);
 dayjs.extend(isSameOrAfter);
 dayjs.extend(isBetween);
-dayjs.locale("it");
+// en-gb keeps weeks starting on Monday, like Italian
+dayjs.locale(getLang() === "en" ? "en-gb" : "it");
 
 export { dayjs };
 export type { Dayjs };
@@ -83,12 +86,12 @@ export const fmtRelative = (value?: string | null) =>
   value ? dayjs(value).fromNow() : "—";
 
 export const fmtMoney = (value: number | null | undefined) =>
-  new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR" }).format(
+  new Intl.NumberFormat(numberLocale(), { style: "currency", currency: "EUR" }).format(
     value ?? 0,
   );
 
 export const fmtNumber = (value: number | null | undefined) =>
-  new Intl.NumberFormat("it-IT").format(value ?? 0);
+  new Intl.NumberFormat(numberLocale()).format(value ?? 0);
 
 /**
  * Date pickers work with plain wall-clock values in the browser's zone, while

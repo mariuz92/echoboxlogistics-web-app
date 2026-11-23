@@ -106,3 +106,10 @@ The decision dashboard (`get_dashboard_insights`) is in. Next, once there is rea
 - [ ] Export of the month to CSV and PDF for the accountant.
 
 - [ ] Drop `get_dashboard_stats` in a later migration once no deployed app build calls it (the new dashboard uses `get_dashboard_insights`).
+
+## 11. More languages in the app
+
+The app has Italian and English (`src/i18n`). To add German or French: add the language to `APP_LANGS`, a dictionary next to
+`en.ts` (the unit test lists every missing text), the dayjs and antd locales in `src/lib/dates.ts` and `src/App.tsx`, and take
+the landing screenshots in that language (`capture.mjs`). Not yet translated: e-mails sent by Supabase Auth (invitation,
+confirmation, reset), the PDF header text of the order export, and the public privacy, terms and cookie pages.

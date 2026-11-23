@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Button, Calendar, Card, Flex, Tag, Tooltip, type CalendarProps } from "antd";
+import enGB from "antd/es/calendar/locale/en_GB";
 import itIT from "antd/es/calendar/locale/it_IT";
 import { DownloadOutlined, ReloadOutlined } from "@ant-design/icons";
 import { dayjs, fmtMoney, getPeriodRange, type Dayjs } from "../../lib/dates";
@@ -10,6 +11,7 @@ import { PageHeader } from "../../shared/components/PageHeader";
 import { usePageTitle } from "../../shared/hooks/usePageTitle";
 import { listOrders } from "../orders/api";
 import { useOrdersRealtime } from "../orders/hooks";
+import { getLang, t, tn } from "../../i18n";
 
 interface DayStats {
   deliveries: number;
@@ -21,7 +23,7 @@ interface DayStats {
 const empty = (): DayStats => ({ deliveries: 0, pickups: 0, revenue: 0, radios: 0 });
 
 export function CalendarPage() {
-  usePageTitle("Calendario");
+  usePageTitle(t("Calendario"));
   const navigate = useNavigate();
   const { timezone } = useReadyUser();
   const [month, setMonth] = useState<Dayjs>(dayjs());
@@ -74,7 +76,7 @@ export function CalendarPage() {
   }, [orders, timezone]);
 
   const exportCsv = () => {
-    const rows = [["Data", "Consegne", "Ritiri", "Incasso (EUR)", "Radioguide consegnate"]];
+    const rows = [[t("Data"), t("Consegne"), t("Ritiri"), t("Incasso (EUR)"), t("Radioguide consegnate")]];
     [...days.entries()]
       .filter(([date]) => date.startsWith(month.format("YYYY-MM")))
       .sort(([a], [b]) => a.localeCompare(b))
@@ -84,7 +86,7 @@ export function CalendarPage() {
     const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
     const a = document.createElement("a");
     a.href = url;
-    a.download = `calendario_${month.format("YYYY-MM")}.csv`;
+    a.download = `${t("calendario")}_${month.format("YYYY-MM")}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -97,12 +99,12 @@ export function CalendarPage() {
         <Flex vertical gap={3} style={{ marginTop: 4 }}>
           {s.deliveries > 0 && (
             <Tag color="blue" variant="filled" style={{ margin: 0 }}>
-              {s.deliveries} consegn{s.deliveries === 1 ? "a" : "e"}
+              {tn(s.deliveries, "{n} consegna", "{n} consegne")}
             </Tag>
           )}
           {s.pickups > 0 && (
             <Tag color="purple" variant="filled" style={{ margin: 0 }}>
-              {s.pickups} ritir{s.pickups === 1 ? "o" : "i"}
+              {tn(s.pickups, "{n} ritiro", "{n} ritiri")}
             </Tag>
           )}
         </Flex>
@@ -112,10 +114,10 @@ export function CalendarPage() {
       const s = months.get(current.format("YYYY-MM"));
       if (!s) return null;
       return (
-        <Tooltip title={`${s.radios} radioguide`}>
+        <Tooltip title={t("{n} radioguide", { n: s.radios })}>
           <Flex vertical align="center" gap={2}>
             <Tag color="geekblue" variant="filled">
-              {s.deliveries} ordini
+              {s.deliveries} {t("ordini")}
             </Tag>
             <span style={{ fontSize: 12, opacity: 0.7 }}>{fmtMoney(s.revenue)}</span>
           </Flex>
@@ -128,22 +130,22 @@ export function CalendarPage() {
   return (
     <>
       <PageHeader
-        title="Calendario"
-        subtitle="Consegne e ritiri del mese. Clicca un giorno per vederne gli ordini."
+        title={t("Calendario")}
+        subtitle={t("Consegne e ritiri del mese. Clicca un giorno per vederne gli ordini.")}
         actions={
           <>
             <Button icon={<ReloadOutlined />} loading={isFetching} onClick={() => void refetch()}>
-              Aggiorna
+              {t("Aggiorna")}
             </Button>
             <Button icon={<DownloadOutlined />} onClick={exportCsv} disabled={days.size === 0}>
-              Esporta CSV
+              {t("Esporta CSV")}
             </Button>
           </>
         }
       />
       <Card styles={{ body: { padding: 8 } }}>
         <Calendar
-          locale={itIT}
+          locale={getLang() === "en" ? enGB : itIT}
           value={month}
           cellRender={cellRender}
           onPanelChange={(date) => setMonth(date)}

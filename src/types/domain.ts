@@ -1,5 +1,6 @@
 import type { Database, Tables } from "./database.types";
 import { dayjs } from "../lib/dates";
+import { t } from "../i18n";
 
 export type OrderStatus = Database["public"]["Enums"]["order_status"];
 export type AppRole = Database["public"]["Enums"]["app_role"];
@@ -56,67 +57,67 @@ export interface StatusMeta {
 
 export const ORDER_STATUS_META: Record<OrderStatus, StatusMeta> = {
   received: {
-    label: "Presa in carico",
+    label: t("Presa in carico"),
     color: "gold",
     hex: "#d97706",
     group: "open",
-    hint: "Ordine registrato, nessun rider assegnato.",
+    hint: t("Ordine registrato, nessun rider assegnato."),
   },
   delivery_assigned: {
-    label: "Consegna assegnata",
+    label: t("Consegna assegnata"),
     color: "geekblue",
     hex: "#3b5bdb",
     group: "open",
-    hint: "Un rider è stato assegnato alla consegna.",
+    hint: t("Un rider è stato assegnato alla consegna."),
   },
   out_for_delivery: {
-    label: "In consegna",
+    label: t("In consegna"),
     color: "blue",
     hex: "#1d5fa8",
     group: "open",
-    hint: "Il rider sta consegnando le radioguide.",
+    hint: t("Il rider sta consegnando le radioguide."),
   },
   delivered: {
-    label: "Consegnato",
+    label: t("Consegnato"),
     color: "green",
     hex: "#16a34a",
     group: "open",
-    hint: "Consegnato. Il ritiro non è ancora stato pianificato.",
+    hint: t("Consegnato. Il ritiro non è ancora stato pianificato."),
   },
   awaiting_pickup: {
-    label: "Attesa ritiro",
+    label: t("Attesa ritiro"),
     color: "orange",
     hex: "#ea580c",
     group: "open",
-    hint: "Consegnato, in attesa che un rider ritiri le radioguide.",
+    hint: t("Consegnato, in attesa che un rider ritiri le radioguide."),
   },
   pickup_assigned: {
-    label: "Ritiro assegnato",
+    label: t("Ritiro assegnato"),
     color: "purple",
     hex: "#7c3aed",
     group: "open",
-    hint: "Un rider è stato assegnato al ritiro.",
+    hint: t("Un rider è stato assegnato al ritiro."),
   },
   out_for_pickup: {
-    label: "In ritiro",
+    label: t("In ritiro"),
     color: "magenta",
     hex: "#c026d3",
     group: "open",
-    hint: "Il rider sta ritirando le radioguide.",
+    hint: t("Il rider sta ritirando le radioguide."),
   },
   picked_up: {
-    label: "Ritirato",
+    label: t("Ritirato"),
     color: "cyan",
     hex: "#0891b2",
     group: "done",
-    hint: "Ciclo concluso: radioguide rientrate.",
+    hint: t("Ciclo concluso: radioguide rientrate."),
   },
   cancelled: {
-    label: "Annullato",
+    label: t("Annullato"),
     color: "red",
     hex: "#dc2626",
     group: "cancelled",
-    hint: "Ordine annullato.",
+    hint: t("Ordine annullato."),
   },
 };
 
@@ -253,8 +254,8 @@ export function formatChannelList(channels: readonly number[]): string {
 /* -------------------------------------------------------------------------- */
 
 export const ROLE_LABELS: Record<AppRole, string> = {
-  admin: "Amministratore",
-  rider: "Rider",
+  admin: t("Amministratore"),
+  rider: t("Rider"),
 };
 
 export const hasRole = (profile: Pick<Profile, "roles"> | null | undefined, role: AppRole) =>

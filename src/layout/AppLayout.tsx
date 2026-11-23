@@ -36,6 +36,8 @@ import { brand } from "../config/theme";
 import { useCurrentUser } from "../providers/current-user";
 import { useThemeMode } from "../providers/theme-mode";
 import { Brand } from "./Brand";
+import { t } from "../i18n";
+import { LanguageSwitch } from "../i18n/LanguageSwitch";
 
 const { Sider, Header, Content } = Layout;
 
@@ -47,16 +49,16 @@ interface NavItem {
 }
 
 const ADMIN_NAV: NavItem[] = [
-  { key: "/", label: "Ordini", icon: <ProfileOutlined /> },
-  { key: "/calendar", label: "Calendario", icon: <CalendarOutlined /> },
-  { key: "/dashboard", label: "Dashboard", icon: <BarChartOutlined /> },
-  { key: "/riders", label: "Team e rider", icon: <TeamOutlined /> },
-  { key: "/guides", label: "Guide", icon: <SolutionOutlined /> },
-  { key: "/settings", label: "Impostazioni", icon: <SettingOutlined /> },
+  { key: "/", label: t("Ordini"), icon: <ProfileOutlined /> },
+  { key: "/calendar", label: t("Calendario"), icon: <CalendarOutlined /> },
+  { key: "/dashboard", label: t("Dashboard"), icon: <BarChartOutlined /> },
+  { key: "/riders", label: t("Team e rider"), icon: <TeamOutlined /> },
+  { key: "/guides", label: t("Guide"), icon: <SolutionOutlined /> },
+  { key: "/settings", label: t("Impostazioni"), icon: <SettingOutlined /> },
 ];
 
 const RIDER_NAV: NavItem[] = [
-  { key: "/", label: "Le mie consegne", icon: <ProfileOutlined /> },
+  { key: "/", label: t("Le mie consegne"), icon: <ProfileOutlined /> },
 ];
 
 function selectedKey(pathname: string, items: NavItem[]): string {
@@ -94,9 +96,9 @@ export function AppLayout() {
 
   const userMenu: MenuProps = {
     items: [
-      { key: "profile", icon: <UserOutlined />, label: "Il mio profilo" },
+      { key: "profile", icon: <UserOutlined />, label: t("Il mio profilo") },
       { type: "divider" },
-      { key: "logout", icon: <LogoutOutlined />, label: "Esci", danger: true },
+      { key: "logout", icon: <LogoutOutlined />, label: t("Esci"), danger: true },
     ],
     onClick: ({ key }) => {
       if (key === "profile") navigate("/profile");
@@ -176,7 +178,7 @@ export function AppLayout() {
           <Flex align="center" gap={12}>
             <Button
               type="text"
-              aria-label="Apri o chiudi il menu"
+              aria-label={t("Apri o chiudi il menu")}
               icon={
                 isMobile ? (
                   <MenuOutlined />
@@ -196,10 +198,11 @@ export function AppLayout() {
           </Flex>
 
           <Flex align="center" gap={8}>
-            <Tooltip title={mode === "dark" ? "Tema chiaro" : "Tema scuro"}>
+            <LanguageSwitch />
+            <Tooltip title={mode === "dark" ? t("Tema chiaro") : t("Tema scuro")}>
               <Button
                 type="text"
-                aria-label="Cambia tema"
+                aria-label={t("Cambia tema")}
                 icon={mode === "dark" ? <SunOutlined /> : <MoonOutlined />}
                 onClick={toggle}
               />
@@ -224,7 +227,7 @@ export function AppLayout() {
                         color={isAdmin ? "blue" : "default"}
                         style={{ margin: 0, fontSize: 11, lineHeight: "16px" }}
                       >
-                        {isAdmin ? "Amministratore" : "Rider"}
+                        {isAdmin ? t("Amministratore") : t("Rider")}
                       </Tag>
                     </Flex>
                   )}

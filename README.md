@@ -15,7 +15,7 @@ Everything is multi-tenant: each company only ever sees its own data, enforced b
 | Front end | React 19, TypeScript, Vite 8, Ant Design 6, Refine (headless), TanStack Query, Recharts 3 |
 | Back end | [Supabase](https://supabase.com): Postgres 17 + Row Level Security, Auth, Realtime, Edge Functions |
 | Delivery | Docker image (nginx, non-root) or any static host |
-| Language | UI in Italian |
+| Language | UI in Italian (default) and English |
 
 ## Quick start (local)
 

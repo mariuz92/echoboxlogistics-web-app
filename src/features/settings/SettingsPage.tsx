@@ -8,6 +8,7 @@ import { usePageTitle } from "../../shared/hooks/usePageTitle";
 import { ChannelSettings } from "../orders/components/ChannelBoard";
 import { updateTenant } from "./api";
 import { channelCount } from "../../types/domain";
+import { numberLocale, t, tn } from "../../i18n";
 
 interface CompanyForm {
   name: string;
@@ -29,7 +30,7 @@ function timezones(): string[] {
 }
 
 export function SettingsPage() {
-  usePageTitle("Impostazioni");
+  usePageTitle(t("Impostazioni"));
   const { message } = App.useApp();
   const { tenant, refresh } = useReadyUser();
   const [form] = Form.useForm<CompanyForm>();
@@ -49,7 +50,7 @@ export function SettingsPage() {
         public_booking_enabled: values.public_booking_enabled,
       });
       await refresh();
-      void message.success("Impostazioni salvate");
+      void message.success(t("Impostazioni salvate"));
     } catch (error) {
       void message.error(getErrorMessage(error));
     } finally {
@@ -60,7 +61,7 @@ export function SettingsPage() {
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(bookingUrl);
-      void message.success("Link copiato");
+      void message.success(t("Link copiato"));
     } catch {
       void message.info(bookingUrl);
     }
@@ -68,11 +69,11 @@ export function SettingsPage() {
 
   return (
     <>
-      <PageHeader title="Impostazioni" subtitle="Dati dell'azienda, fuso orario e prenotazioni online." />
+      <PageHeader title={t("Impostazioni")} subtitle={t("Dati dell'azienda, fuso orario e prenotazioni online.")} />
 
       <Row gutter={[16, 16]}>
         <Col xs={24} lg={14}>
-          <Card title="Azienda">
+          <Card title={t("Azienda")}>
             <Form<CompanyForm>
               form={form}
               layout="vertical"
@@ -86,33 +87,33 @@ export function SettingsPage() {
               }}
             >
               <Form.Item
-                label="Nome azienda"
+                label={t("Nome azienda")}
                 name="name"
                 rules={[
-                  { required: true, whitespace: true, message: "Inserisci il nome" },
-                  { min: 2, message: "Almeno 2 caratteri" },
+                  { required: true, whitespace: true, message: t("Inserisci il nome") },
+                  { min: 2, message: t("Almeno 2 caratteri") },
                 ]}
               >
                 <Input />
               </Form.Item>
-              <Form.Item label="Descrizione" name="description">
+              <Form.Item label={t("Descrizione")} name="description">
                 <Input.TextArea rows={2} maxLength={300} showCount />
               </Form.Item>
               <Form.Item
-                label="Fuso orario"
+                label={t("Fuso orario")}
                 name="timezone"
-                extra="Determina i confini dei giorni nelle liste, nel calendario e nelle statistiche."
+                extra={t("Determina i confini dei giorni nelle liste, nel calendario e nelle statistiche.")}
                 rules={[{ required: true }]}
               >
                 <Select showSearch={{ optionFilterProp: "label" }} options={zones} />
               </Form.Item>
 
-              <Form.Item label="Prenotazioni online" name="public_booking_enabled" valuePropName="checked">
-                <Switch checkedChildren="Attive" unCheckedChildren="Disattivate" />
+              <Form.Item label={t("Prenotazioni online")} name="public_booking_enabled" valuePropName="checked">
+                <Switch checkedChildren={t("Attive")} unCheckedChildren={t("Disattivate")} />
               </Form.Item>
 
               <Button type="primary" htmlType="submit" loading={saving}>
-                Salva modifiche
+                {t("Salva modifiche")}
               </Button>
             </Form>
           </Card>
@@ -120,28 +121,29 @@ export function SettingsPage() {
 
         <Col xs={24} lg={10}>
           <Flex vertical gap={16}>
-            <Card title="Modulo di prenotazione per le guide">
+            <Card title={t("Modulo di prenotazione per le guide")}>
               <Typography.Paragraph type="secondary">
-                Condividi questo link con le guide: potranno richiedere un servizio senza registrarsi. Le richieste
-                arrivano negli ordini come &quot;Presa in carico&quot;.
+                {t(
+                  "Condividi questo link con le guide: potranno richiedere un servizio senza registrarsi. Le richieste arrivano negli ordini come \"Presa in carico\".",
+                )}
               </Typography.Paragraph>
               <Space.Compact style={{ width: "100%" }}>
-                <Input readOnly value={bookingUrl} prefix={<LinkOutlined />} aria-label="Link di prenotazione" />
-                <Button icon={<CopyOutlined />} onClick={() => void copy()} aria-label="Copia link" />
+                <Input readOnly value={bookingUrl} prefix={<LinkOutlined />} aria-label={t("Link di prenotazione")} />
+                <Button icon={<CopyOutlined />} onClick={() => void copy()} aria-label={t("Copia link")} />
               </Space.Compact>
               {!tenant.public_booking_enabled && (
-                <Alert style={{ marginTop: 12 }} type="warning" showIcon title="Le prenotazioni online sono disattivate: il link mostra un avviso." />
+                <Alert style={{ marginTop: 12 }} type="warning" showIcon title={t("Le prenotazioni online sono disattivate: il link mostra un avviso.")} />
               )}
             </Card>
 
-            <Card title="Canali radio">
+            <Card title={t("Canali radio")}>
               <Typography.Paragraph type="secondary">
-                {channelCount(tenant).toLocaleString("it-IT")} {channelCount(tenant) === 1 ? "canale" : "canali"} (
-                {tenant.channel_min}–{tenant.channel_max}), {tenant.disabled_channels.length} disabilitati.{" "}
-                {tenant.channels_exclusive ? "Un gruppo per canale." : "Canali condivisibili tra gruppi."}
+                {tn(channelCount(tenant), "{n} canale", "{n} canali", { n: channelCount(tenant).toLocaleString(numberLocale()) })} (
+                {tenant.channel_min}–{tenant.channel_max}), {tenant.disabled_channels.length} {t("disabilitati.")}{" "}
+                {tenant.channels_exclusive ? t("Un gruppo per canale.") : t("Canali condivisibili tra gruppi.")}
               </Typography.Paragraph>
               <Button icon={<AppstoreOutlined />} onClick={() => setChannelsOpen(true)}>
-                Gestisci canali
+                {t("Gestisci canali")}
               </Button>
             </Card>
           </Flex>

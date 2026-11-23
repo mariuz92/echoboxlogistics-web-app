@@ -25,22 +25,24 @@ import { dayjs, wallClockToIso, type Dayjs } from "../../lib/dates";
 import { getErrorMessage } from "../../lib/errors";
 import { CONFIG } from "../../config/configuration";
 import { Brand } from "../../layout/Brand";
+import { LanguageSwitch } from "../../i18n/LanguageSwitch";
 import { AddressInput } from "../../shared/components/AddressInput";
 import { usePageTitle } from "../../shared/hooks/usePageTitle";
 import { createPublicBooking, getPublicTenant } from "./api";
+import { t } from "../../i18n";
 
 const COUNTRY_CODES = [
-  { code: "+39", label: "IT +39" },
-  { code: "+44", label: "GB +44" },
-  { code: "+33", label: "FR +33" },
-  { code: "+49", label: "DE +49" },
-  { code: "+34", label: "ES +34" },
-  { code: "+41", label: "CH +41" },
-  { code: "+43", label: "AT +43" },
-  { code: "+1", label: "US +1" },
-  { code: "+351", label: "PT +351" },
-  { code: "+31", label: "NL +31" },
-  { code: "+48", label: "PL +48" },
+  { code: "+39", label: t("IT +39") },
+  { code: "+44", label: t("GB +44") },
+  { code: "+33", label: t("FR +33") },
+  { code: "+49", label: t("DE +49") },
+  { code: "+34", label: t("ES +34") },
+  { code: "+41", label: t("CH +41") },
+  { code: "+43", label: t("AT +43") },
+  { code: "+1", label: t("US +1") },
+  { code: "+351", label: t("PT +351") },
+  { code: "+31", label: t("NL +31") },
+  { code: "+48", label: t("PL +48") },
 ];
 
 interface BookingValues {
@@ -65,7 +67,7 @@ interface BookingValues {
 export function BookingPage({ legacy = false }: { legacy?: boolean }) {
   const params = useParams();
   const slug = legacy ? env.publicBookingSlug : params.slug;
-  usePageTitle("Prenota il servizio");
+  usePageTitle(t("Prenota il servizio"));
 
   const [form] = Form.useForm<BookingValues>();
   const [submitting, setSubmitting] = useState(false);
@@ -86,6 +88,9 @@ export function BookingPage({ legacy = false }: { legacy?: boolean }) {
       gap={20}
       style={{ minHeight: "100vh", padding: "24px 16px 40px", background: `linear-gradient(180deg, ${brand.navy} 0, ${brand.navy} 220px, transparent 220px)` }}
     >
+      <div style={{ alignSelf: "flex-end" }}>
+        <LanguageSwitch onDark />
+      </div>
       <Brand to={false} onDark />
       <div style={{ width: "100%", maxWidth: 760 }}>{children}</div>
       <Typography.Text type="secondary" style={{ fontSize: 13 }}>
@@ -93,7 +98,7 @@ export function BookingPage({ legacy = false }: { legacy?: boolean }) {
         {env.marketingUrl && (
           <>
             {" "}
-            · <a href={env.marketingUrl}>Torna al sito</a>
+            · <a href={env.marketingUrl}>{t("Torna al sito")}</a>
           </>
         )}
       </Typography.Text>
@@ -105,11 +110,11 @@ export function BookingPage({ legacy = false }: { legacy?: boolean }) {
       <Card>
         <Result
           status="info"
-          title="Prenotazioni non disponibili"
+          title={t("Prenotazioni non disponibili")}
           subTitle={
             !slug || !tenant
-              ? "Il link che hai usato non è valido. Chiedi il link corretto a chi ti ha fornito il servizio."
-              : "Questa azienda non accetta prenotazioni online al momento. Contattala direttamente."
+              ? t("Il link che hai usato non è valido. Chiedi il link corretto a chi ti ha fornito il servizio.")
+              : t("Questa azienda non accetta prenotazioni online al momento. Contattala direttamente.")
           }
         />
       </Card>,
@@ -129,8 +134,8 @@ export function BookingPage({ legacy = false }: { legacy?: boolean }) {
       <Card>
         <Result
           icon={<CheckCircleFilled style={{ color: "#16a34a" }} />}
-          title="Richiesta inviata!"
-          subTitle={`${tenant.name} ha ricevuto la tua richiesta e ti contatterà a breve per confermare i dettagli.`}
+          title={t("Richiesta inviata!")}
+          subTitle={t("{company} ha ricevuto la tua richiesta e ti contatterà a breve per confermare i dettagli.", { company: tenant.name })}
           extra={
             <Button
               type="primary"
@@ -139,7 +144,7 @@ export function BookingPage({ legacy = false }: { legacy?: boolean }) {
                 setDone(false);
               }}
             >
-              Nuova richiesta
+              {t("Nuova richiesta")}
             </Button>
           }
         />
@@ -170,7 +175,7 @@ export function BookingPage({ legacy = false }: { legacy?: boolean }) {
       });
       setDone(true);
     } catch (e) {
-      setError(getErrorMessage(e, "Non è stato possibile inviare la richiesta. Riprova."));
+      setError(getErrorMessage(e, t("Non è stato possibile inviare la richiesta. Riprova.")));
     } finally {
       setSubmitting(false);
     }
@@ -188,7 +193,7 @@ export function BookingPage({ legacy = false }: { legacy?: boolean }) {
         </Flex>
         <div>
           <Typography.Title level={3} style={{ margin: 0 }}>
-            Prenota il servizio radioguide
+            {t("Prenota il servizio radioguide")}
           </Typography.Title>
           <Typography.Text type="secondary">{tenant.name}</Typography.Text>
         </div>
@@ -204,22 +209,22 @@ export function BookingPage({ legacy = false }: { legacy?: boolean }) {
         onFinish={onFinish}
         scrollToFirstError
       >
-        <Typography.Title level={5}>I tuoi dati</Typography.Title>
+        <Typography.Title level={5}>{t("I tuoi dati")}</Typography.Title>
         <Row gutter={16}>
           <Col xs={24} md={12}>
             <Form.Item
-              label="Nome guida o gruppo"
+              label={t("Nome guida o gruppo")}
               name="guideName"
               rules={[
-                { required: true, whitespace: true, message: "Inserisci il nome" },
-                { min: 2, message: "Almeno 2 caratteri" },
+                { required: true, whitespace: true, message: t("Inserisci il nome") },
+                { min: 2, message: t("Almeno 2 caratteri") },
               ]}
             >
-              <Input size="large" placeholder="Mario Rossi / Gruppo Roma" autoComplete="name" />
+              <Input size="large" placeholder={t("Mario Rossi / Gruppo Roma")} autoComplete="name" />
             </Form.Item>
           </Col>
           <Col xs={24} md={12}>
-            <Form.Item label="Telefono" required>
+            <Form.Item label={t("Telefono")} required>
               <Space.Compact style={{ width: "100%" }}>
                 <Form.Item name="prefix" noStyle>
                   <Select size="large" style={{ width: 110 }} options={COUNTRY_CODES.map((c) => ({ value: c.code, label: c.label }))} />
@@ -228,8 +233,8 @@ export function BookingPage({ legacy = false }: { legacy?: boolean }) {
                   name="phone"
                   noStyle
                   rules={[
-                    { required: true, message: "Inserisci il numero" },
-                    { pattern: /^[0-9\s]{5,15}$/, message: "Solo cifre (5-15)" },
+                    { required: true, message: t("Inserisci il numero") },
+                    { pattern: /^[0-9\s]{5,15}$/, message: t("Solo cifre (5-15)") },
                   ]}
                 >
                   <Input size="large" placeholder="333 1234567" inputMode="tel" autoComplete="tel-national" />
@@ -239,41 +244,41 @@ export function BookingPage({ legacy = false }: { legacy?: boolean }) {
           </Col>
           <Col xs={24} md={12}>
             <Form.Item
-              label="Email"
+              label={t("Email")}
               name="email"
               rules={[
-                { required: true, message: "Inserisci la tua email" },
-                { type: "email", message: "Email non valida" },
+                { required: true, message: t("Inserisci la tua email") },
+                { type: "email", message: t("Email non valida") },
               ]}
             >
-              <Input size="large" placeholder="nome@esempio.it" autoComplete="email" />
+              <Input size="large" placeholder={t("nome@esempio.it")} autoComplete="email" />
             </Form.Item>
           </Col>
           <Col xs={24} md={12}>
             <Form.Item
-              label="Numero di radioguide"
+              label={t("Numero di radioguide")}
               name="radiosCount"
-              rules={[{ required: true, message: "Indica quante radioguide servono" }]}
+              rules={[{ required: true, message: t("Indica quante radioguide servono") }]}
             >
-              <InputNumber size="large" min={1} max={500} precision={0} placeholder="Es. 25" style={{ width: "100%" }} />
+              <InputNumber size="large" min={1} max={500} precision={0} placeholder={t("Es. 25")} style={{ width: "100%" }} />
             </Form.Item>
           </Col>
         </Row>
 
         <Typography.Title level={5} style={{ marginTop: 8 }}>
-          Consegna
+          {t("Consegna")}
         </Typography.Title>
         <Row gutter={16}>
           <Col xs={24} md={10}>
             <Form.Item
-              label="Data e ora"
+              label={t("Data e ora")}
               name="deliveryAt"
               rules={[
-                { required: true, message: "Seleziona data e ora" },
+                { required: true, message: t("Seleziona data e ora") },
                 {
                   validator: (_, value: Dayjs | undefined) =>
                     value && value.isBefore(dayjs().subtract(1, "hour"))
-                      ? Promise.reject(new Error("La data non può essere nel passato"))
+                      ? Promise.reject(new Error(t("La data non può essere nel passato")))
                       : Promise.resolve(),
                 },
               ]}
@@ -283,22 +288,22 @@ export function BookingPage({ legacy = false }: { legacy?: boolean }) {
           </Col>
           <Col xs={24} md={14}>
             <Form.Item
-              label="Luogo"
+              label={t("Luogo")}
               name="deliveryAddress"
-              rules={[{ required: true, whitespace: true, message: "Inserisci il luogo di consegna" }]}
+              rules={[{ required: true, whitespace: true, message: t("Inserisci il luogo di consegna") }]}
             >
-              <AddressInput size="large" placeholder="Indirizzo di consegna" />
+              <AddressInput size="large" placeholder={t("Indirizzo di consegna")} />
             </Form.Item>
           </Col>
         </Row>
 
         <Typography.Title level={5} style={{ marginTop: 8 }}>
-          Ritiro <Typography.Text type="secondary" style={{ fontWeight: 400, fontSize: 13 }}>(facoltativo)</Typography.Text>
+          {t("Ritiro")}{" "}<Typography.Text type="secondary" style={{ fontWeight: 400, fontSize: 13 }}>{t("(facoltativo)")}</Typography.Text>
         </Typography.Title>
         <Row gutter={16}>
           <Col xs={24} md={10}>
             <Form.Item
-              label="Data e ora"
+              label={t("Data e ora")}
               name="pickupAt"
               dependencies={["deliveryAt", "pickupAddress"]}
               rules={[
@@ -307,11 +312,11 @@ export function BookingPage({ legacy = false }: { legacy?: boolean }) {
                     const delivery = getFieldValue("deliveryAt") as Dayjs | undefined;
                     if (!value) {
                       return getFieldValue("pickupAddress")
-                        ? Promise.reject(new Error("Indica anche data e ora"))
+                        ? Promise.reject(new Error(t("Indica anche data e ora")))
                         : Promise.resolve();
                     }
                     return delivery && value.isBefore(delivery)
-                      ? Promise.reject(new Error("Il ritiro non può precedere la consegna"))
+                      ? Promise.reject(new Error(t("Il ritiro non può precedere la consegna")))
                       : Promise.resolve();
                   },
                 }),
@@ -322,36 +327,36 @@ export function BookingPage({ legacy = false }: { legacy?: boolean }) {
           </Col>
           <Col xs={24} md={14}>
             <Form.Item
-              label="Luogo"
+              label={t("Luogo")}
               name="pickupAddress"
               dependencies={["pickupAt"]}
               rules={[
                 ({ getFieldValue }) => ({
                   validator: (_, value?: string) =>
                     getFieldValue("pickupAt") && !value?.trim()
-                      ? Promise.reject(new Error("Indica il luogo del ritiro"))
+                      ? Promise.reject(new Error(t("Indica il luogo del ritiro")))
                       : Promise.resolve(),
                 }),
               ]}
             >
-              <AddressInput size="large" placeholder="Indirizzo di ritiro" />
+              <AddressInput size="large" placeholder={t("Indirizzo di ritiro")} />
             </Form.Item>
           </Col>
         </Row>
 
-        <Form.Item label="Note" name="notes">
-          <Input.TextArea rows={3} maxLength={500} showCount placeholder="Richieste particolari, accessi, referenti sul posto…" />
+        <Form.Item label={t("Note")} name="notes">
+          <Input.TextArea rows={3} maxLength={500} showCount placeholder={t("Richieste particolari, accessi, referenti sul posto…")} />
         </Form.Item>
 
         {/* Honeypot (hidden from people, tempting for bots) */}
         <div aria-hidden="true" style={{ position: "absolute", left: "-9999px", height: 0, overflow: "hidden" }}>
-          <Form.Item name="website" label="Website">
+          <Form.Item name="website" label={t("Website")}>
             <Input tabIndex={-1} autoComplete="off" />
           </Form.Item>
         </div>
 
         <Button type="primary" htmlType="submit" size="large" block icon={<SendOutlined />} loading={submitting}>
-          Invia richiesta
+          {t("Invia richiesta")}
         </Button>
       </Form>
     </Card>,

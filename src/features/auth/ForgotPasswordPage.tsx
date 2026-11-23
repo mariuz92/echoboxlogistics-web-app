@@ -3,15 +3,16 @@ import { Button, Form, Input } from "antd";
 import { MailOutlined } from "@ant-design/icons";
 import { Link } from "react-router";
 import { AuthShell } from "./AuthShell";
+import { t } from "../../i18n";
 
 export function ForgotPasswordPage() {
   const { mutate: forgotPassword, isPending } = useForgotPassword<{ email: string }>();
 
   return (
     <AuthShell
-      title="Password dimenticata"
-      subtitle="Inserisci la tua email: ti invieremo un link per scegliere una nuova password."
-      footer={<Link to="/login">Torna all&apos;accesso</Link>}
+      title={t("Password dimenticata")}
+      subtitle={t("Inserisci la tua email: ti invieremo un link per scegliere una nuova password.")}
+      footer={<Link to="/login">{t("Torna all'accesso")}</Link>}
     >
       <Form<{ email: string }>
         layout="vertical"
@@ -19,17 +20,17 @@ export function ForgotPasswordPage() {
         onFinish={(values) => forgotPassword(values)}
       >
         <Form.Item
-          label="Email"
+          label={t("Email")}
           name="email"
           rules={[
-            { required: true, message: "Inserisci la tua email" },
-            { type: "email", message: "Email non valida" },
+            { required: true, message: t("Inserisci la tua email") },
+            { type: "email", message: t("Email non valida") },
           ]}
         >
           <Input size="large" prefix={<MailOutlined />} autoComplete="email" />
         </Form.Item>
         <Button type="primary" htmlType="submit" size="large" block loading={isPending}>
-          Invia link
+          {t("Invia link")}
         </Button>
       </Form>
     </AuthShell>

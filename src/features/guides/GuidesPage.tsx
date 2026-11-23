@@ -10,9 +10,10 @@ import { usePageTitle } from "../../shared/hooks/usePageTitle";
 import type { Guide } from "../../types/domain";
 import { queryKeys, useGuides } from "../orders/hooks";
 import { createGuide, deleteGuide, updateGuide, type GuideInput } from "./api";
+import { numberLocale, t, tn } from "../../i18n";
 
 export function GuidesPage() {
-  usePageTitle("Guide");
+  usePageTitle(t("Guide"));
   const { message, modal } = App.useApp();
   const queryClient = useQueryClient();
   const { tenant, timezone } = useReadyUser();
@@ -45,10 +46,10 @@ export function GuidesPage() {
     try {
       if (editing === "new") {
         await createGuide(tenant.id, values);
-        void message.success("Guida aggiunta");
+        void message.success(t("Guida aggiunta"));
       } else if (editing) {
         await updateGuide(editing.id, values);
-        void message.success("Guida aggiornata");
+        void message.success(t("Guida aggiornata"));
       }
       await queryClient.invalidateQueries({ queryKey: queryKeys.guides });
       setEditing(null);
@@ -61,16 +62,16 @@ export function GuidesPage() {
 
   const confirmDelete = (guide: Guide) =>
     modal.confirm({
-      title: `Eliminare ${guide.full_name}?`,
-      content: "Gli ordini già registrati restano visibili con il nome della guida.",
-      okText: "Elimina",
+      title: t("Eliminare {name}?", { name: guide.full_name }),
+      content: t("Gli ordini già registrati restano visibili con il nome della guida."),
+      okText: t("Elimina"),
       okButtonProps: { danger: true },
-      cancelText: "Annulla",
+      cancelText: t("Annulla"),
       onOk: async () => {
         try {
           await deleteGuide(guide.id);
           await queryClient.invalidateQueries({ queryKey: queryKeys.guides });
-          void message.success("Guida eliminata");
+          void message.success(t("Guida eliminata"));
         } catch (error) {
           void message.error(getErrorMessage(error));
         }
@@ -80,11 +81,11 @@ export function GuidesPage() {
   return (
     <>
       <PageHeader
-        title="Guide"
-        subtitle="Rubrica delle guide e dei gruppi a cui noleggi le radioguide. Non hanno un account: servono solo per precompilare gli ordini."
+        title={t("Guide")}
+        subtitle={t("Rubrica delle guide e dei gruppi a cui noleggi le radioguide. Non hanno un account: servono solo per precompilare gli ordini.")}
         actions={
           <Button type="primary" icon={<PlusOutlined />} onClick={() => open("new")}>
-            Nuova guida
+            {t("Nuova guida")}
           </Button>
         }
       />
@@ -92,7 +93,7 @@ export function GuidesPage() {
       <Card styles={{ body: { padding: 16 } }}>
         <Input.Search
           allowClear
-          placeholder="Cerca per nome, telefono o email…"
+          placeholder={t("Cerca per nome, telefono o email…")}
           style={{ maxWidth: 360, marginBottom: 16 }}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -102,26 +103,26 @@ export function GuidesPage() {
           loading={isLoading}
           dataSource={visible}
           scroll={{ x: 760 }}
-          pagination={{ defaultPageSize: 25, showTotal: (t) => `${t} guide` }}
-          locale={{ emptyText: "Nessuna guida in rubrica" }}
+          pagination={{ defaultPageSize: 25, showTotal: (total) => tn(total, "{n} guida", "{n} guide") }}
+          locale={{ emptyText: t("Nessuna guida in rubrica") }}
           columns={[
             {
-              title: "Nome",
+              title: t("Nome"),
               dataIndex: "full_name",
-              sorter: (a, b) => a.full_name.localeCompare(b.full_name, "it"),
+              sorter: (a, b) => a.full_name.localeCompare(b.full_name, numberLocale()),
               defaultSortOrder: "ascend",
               render: (v: string) => <Typography.Text strong>{v}</Typography.Text>,
             },
-            { title: "Telefono", dataIndex: "phone", render: (v: string | null) => v ?? "—" },
-            { title: "Email", dataIndex: "email", render: (v: string | null) => v ?? "—", ellipsis: true },
-            { title: "Aggiunta il", dataIndex: "created_at", width: 120, render: (v: string) => fmtDate(v, timezone) },
+            { title: t("Telefono"), dataIndex: "phone", render: (v: string | null) => v ?? "—" },
+            { title: t("Email"), dataIndex: "email", render: (v: string | null) => v ?? "—", ellipsis: true },
+            { title: t("Aggiunta il"), dataIndex: "created_at", width: 120, render: (v: string) => fmtDate(v, timezone) },
             {
               title: "",
               width: 100,
               render: (_, guide) => (
                 <Flex gap={4} justify="flex-end">
-                  <Button type="text" aria-label="Modifica" icon={<EditOutlined />} onClick={() => open(guide)} />
-                  <Button type="text" danger aria-label="Elimina" icon={<DeleteOutlined />} onClick={() => confirmDelete(guide)} />
+                  <Button type="text" aria-label={t("Modifica")} icon={<EditOutlined />} onClick={() => open(guide)} />
+                  <Button type="text" danger aria-label={t("Elimina")} icon={<DeleteOutlined />} onClick={() => confirmDelete(guide)} />
                 </Flex>
               ),
             },
@@ -130,7 +131,7 @@ export function GuidesPage() {
       </Card>
 
       <Drawer
-        title={editing === "new" ? "Nuova guida" : "Modifica guida"}
+        title={editing === "new" ? t("Nuova guida") : t("Modifica guida")}
         open={Boolean(editing)}
         onClose={() => setEditing(null)}
         size={440}
@@ -138,32 +139,32 @@ export function GuidesPage() {
       >
         <Form<GuideInput> form={form} layout="vertical" requiredMark="optional" onFinish={save}>
           <Form.Item
-            label="Nome e cognome (o gruppo)"
+            label={t("Nome e cognome (o gruppo)")}
             name="full_name"
             rules={[
-              { required: true, whitespace: true, message: "Inserisci il nome" },
-              { min: 2, message: "Almeno 2 caratteri" },
+              { required: true, whitespace: true, message: t("Inserisci il nome") },
+              { min: 2, message: t("Almeno 2 caratteri") },
             ]}
           >
             <Input />
           </Form.Item>
           <Form.Item
-            label="Telefono"
+            label={t("Telefono")}
             name="phone"
-            rules={[{ pattern: /^[0-9+\s()-]{6,20}$/, message: "Numero non valido" }]}
+            rules={[{ pattern: /^[0-9+\s()-]{6,20}$/, message: t("Numero non valido") }]}
           >
             <Input placeholder="+39 333 1234567" />
           </Form.Item>
-          <Form.Item label="Email" name="email" rules={[{ type: "email", message: "Email non valida" }]}>
+          <Form.Item label={t("Email")} name="email" rules={[{ type: "email", message: t("Email non valida") }]}>
             <Input />
           </Form.Item>
-          <Form.Item label="Note" name="notes">
+          <Form.Item label={t("Note")} name="notes">
             <Input.TextArea rows={3} maxLength={500} showCount />
           </Form.Item>
           <Flex justify="flex-end" gap={8}>
-            <Button onClick={() => setEditing(null)}>Annulla</Button>
+            <Button onClick={() => setEditing(null)}>{t("Annulla")}</Button>
             <Button type="primary" htmlType="submit" loading={saving}>
-              Salva
+              {t("Salva")}
             </Button>
           </Flex>
         </Form>

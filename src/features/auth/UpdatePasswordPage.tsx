@@ -6,6 +6,7 @@ import { Link } from "react-router";
 import { AuthShell } from "./AuthShell";
 import { confirmPasswordRule, passwordRules } from "./validators";
 import { supabase } from "../../lib/supabase";
+import { t } from "../../i18n";
 
 /** Landing page of the "reset password" email link. */
 export function UpdatePasswordPage() {
@@ -33,9 +34,9 @@ export function UpdatePasswordPage() {
 
   return (
     <AuthShell
-      title="Nuova password"
-      subtitle="Scegli una password sicura per il tuo account."
-      footer={<Link to="/login">Torna all&apos;accesso</Link>}
+      title={t("Nuova password")}
+      subtitle={t("Scegli una password sicura per il tuo account.")}
+      footer={<Link to="/login">{t("Torna all'accesso")}</Link>}
     >
       {hasSession === null ? (
         <Spin />
@@ -43,10 +44,10 @@ export function UpdatePasswordPage() {
         <Alert
           type="error"
           showIcon
-          title="Link non valido o scaduto"
+          title={t("Link non valido o scaduto")}
           description={
             <>
-              Richiedine uno nuovo dalla pagina <Link to="/forgot-password">Password dimenticata</Link>.
+              {t("Richiedine uno nuovo dalla pagina")}{" "}<Link to="/forgot-password">{t("Password dimenticata")}</Link>.
             </>
           }
         />
@@ -56,20 +57,20 @@ export function UpdatePasswordPage() {
           requiredMark={false}
           onFinish={({ password }) => updatePassword({ password })}
         >
-          <Form.Item label="Nuova password" name="password" rules={passwordRules} hasFeedback>
+          <Form.Item label={t("Nuova password")} name="password" rules={passwordRules} hasFeedback>
             <Input.Password size="large" prefix={<LockOutlined />} autoComplete="new-password" />
           </Form.Item>
           <Form.Item
-            label="Conferma password"
+            label={t("Conferma password")}
             name="confirmPassword"
             dependencies={["password"]}
-            rules={[{ required: true, message: "Conferma la password" }, confirmPasswordRule()]}
+            rules={[{ required: true, message: t("Conferma la password") }, confirmPasswordRule()]}
             hasFeedback
           >
             <Input.Password size="large" prefix={<LockOutlined />} autoComplete="new-password" />
           </Form.Item>
           <Button type="primary" htmlType="submit" size="large" block loading={isPending}>
-            Aggiorna password
+            {t("Aggiorna password")}
           </Button>
         </Form>
       )}

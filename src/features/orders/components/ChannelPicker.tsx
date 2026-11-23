@@ -4,6 +4,7 @@ import { useReadyUser } from "../../../providers/current-user";
 import { fmtTime, wallClockToIso, type Dayjs } from "../../../lib/dates";
 import { channelConflicts, channelWindowEnd } from "../../../types/domain";
 import { useChannelBoard } from "../hooks";
+import { t } from "../../../i18n";
 
 interface ChannelPickerProps {
   /** The order being edited: it does not occupy its own channel. */
@@ -37,28 +38,28 @@ export function ChannelPicker({ orderId }: ChannelPickerProps) {
   if (channel == null) {
     status = {
       type: "secondary",
-      text: `Facoltativo. I tuoi canali vanno da ${tenant.channel_min} a ${tenant.channel_max}.`,
+      text: t("Facoltativo. I tuoi canali vanno da {min} a {max}.", { min: tenant.channel_min, max: tenant.channel_max }),
       blocking: false,
     };
   } else if (channel < tenant.channel_min || channel > tenant.channel_max) {
     status = {
       type: "danger",
-      text: `Il canale ${channel} non esiste: i tuoi canali vanno da ${tenant.channel_min} a ${tenant.channel_max}.`,
+      text: t("Il canale {channel} non esiste: i tuoi canali vanno da {min} a {max}.", { channel, min: tenant.channel_min, max: tenant.channel_max }),
       blocking: true,
     };
   } else if (tenant.disabled_channels.includes(channel)) {
-    status = { type: "danger", text: `Il canale ${channel} è disabilitato.`, blocking: true };
+    status = { type: "danger", text: t("Il canale {channel} è disabilitato.", { channel }), blocking: true };
   } else if (!slot) {
-    status = { type: "secondary", text: "Indica l'orario di consegna per controllare il canale.", blocking: false };
+    status = { type: "secondary", text: t("Indica l'orario di consegna per controllare il canale."), blocking: false };
   } else if (conflicts.length) {
     const who = conflicts
       .map((c) => `${c.guide_name} (${fmtTime(c.delivery_at, timezone)}–${fmtTime(c.busy_until, timezone)})`)
       .join(", ");
     status = tenant.channels_exclusive
-      ? { type: "danger", text: `Canale ${channel} occupato da ${who}.`, blocking: true }
-      : { type: "warning", text: `Canale ${channel} già usato in questi orari da ${who}.`, blocking: false };
+      ? { type: "danger", text: t("Canale {channel} occupato da {who}.", { channel, who }), blocking: true }
+      : { type: "warning", text: t("Canale {channel} già usato in questi orari da {who}.", { channel, who }), blocking: false };
   } else {
-    status = { type: "success", text: `Canale ${channel} libero in questi orari.`, blocking: false };
+    status = { type: "success", text: t("Canale {channel} libero in questi orari.", { channel }), blocking: false };
   }
 
   // The form validator reads the latest status without re-creating the rules.
@@ -67,12 +68,12 @@ export function ChannelPicker({ orderId }: ChannelPickerProps) {
 
   return (
     <Form.Item
-      label="Canale"
+      label={t("Canale")}
       name="radio_channel"
       rules={[{ validator: () => (problem.current ? Promise.reject(new Error(problem.current)) : Promise.resolve()) }]}
       help={<Typography.Text type={status.type === "secondary" ? "secondary" : status.type}>{status.text}</Typography.Text>}
     >
-      <InputNumber min={0} max={99999} precision={0} placeholder="Numero" style={{ width: 160 }} />
+      <InputNumber min={0} max={99999} precision={0} placeholder={t("Numero")} style={{ width: 160 }} />
     </Form.Item>
   );
 }
