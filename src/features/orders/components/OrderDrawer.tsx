@@ -41,6 +41,7 @@ import {
 import { useGuides, useMembers, useOrderEvents, useOrderMutations } from "../hooks";
 import { ChannelPicker } from "./ChannelPicker";
 import type { NewOrderInput, OrderPatch } from "../api";
+import { t } from "../../../i18n";
 
 export type DrawerMode = "create" | "view" | "edit";
 
@@ -75,7 +76,7 @@ interface FormValues {
 export function OrderDrawer({ open, mode, order, defaultDate, onClose, onModeChange }: OrderDrawerProps) {
   const screens = Grid.useBreakpoint();
   const title =
-    mode === "create" ? "Nuovo ordine" : mode === "edit" ? "Modifica ordine" : "Dettagli ordine";
+    mode === "create" ? t("Nuovo ordine") : mode === "edit" ? t("Modifica ordine") : t("Dettagli ordine");
 
   return (
     <Drawer
@@ -190,11 +191,11 @@ function OrderFormBody({
 
     if (mode === "create") {
       await create.mutateAsync({ tenantId: tenant.id, input: payload as NewOrderInput });
-      void message.success("Ordine creato");
+      void message.success(t("Ordine creato"));
     } else if (order) {
       const patch: OrderPatch = { ...payload, lost_radios: values.lost_radios ?? 0 };
       await update.mutateAsync({ id: order.id, patch });
-      void message.success("Ordine aggiornato");
+      void message.success(t("Ordine aggiornato"));
     }
     onSaved();
   };
@@ -209,21 +210,21 @@ function OrderFormBody({
       scrollToFirstError
     >
       <Typography.Title level={5} style={{ marginTop: 0 }}>
-        Guida
+        {t("Guida")}
       </Typography.Title>
 
       {mode === "create" && (
-        <Form.Item label="Scegli dalla rubrica" name="guide_id">
+        <Form.Item label={t("Scegli dalla rubrica")} name="guide_id">
           <Select
             allowClear
             showSearch={{ optionFilterProp: "label" }}
-            placeholder="Cerca una guida…"
+            placeholder={t("Cerca una guida…")}
             options={guides.map((g) => ({
               value: g.id,
               label: `${g.full_name}${g.phone ? ` · ${g.phone}` : ""}`,
             }))}
             onChange={(value) => onGuideSelect(value)}
-            notFoundContent="Nessuna guida in rubrica: inserisci i dati qui sotto."
+            notFoundContent={t("Nessuna guida in rubrica: inserisci i dati qui sotto.")}
           />
         </Form.Item>
       )}
@@ -231,32 +232,32 @@ function OrderFormBody({
       <Row gutter={16}>
         <Col xs={24} sm={12}>
           <Form.Item
-            label="Nome guida o gruppo"
+            label={t("Nome guida o gruppo")}
             name="guide_name"
             rules={[
-              { required: true, message: "Inserisci il nome della guida" },
-              { min: 2, message: "Almeno 2 caratteri" },
+              { required: true, message: t("Inserisci il nome della guida") },
+              { min: 2, message: t("Almeno 2 caratteri") },
             ]}
           >
-            <Input placeholder="Mario Rossi" />
+            <Input placeholder={t("Mario Rossi")} />
           </Form.Item>
         </Col>
         <Col xs={24} sm={12}>
           <Form.Item
-            label="Telefono"
+            label={t("Telefono")}
             name="guide_phone"
-            rules={[{ pattern: /^[0-9+\s()-]{6,20}$/, message: "Numero non valido" }]}
+            rules={[{ pattern: /^[0-9+\s()-]{6,20}$/, message: t("Numero non valido") }]}
           >
             <Input placeholder="+39 333 1234567" />
           </Form.Item>
         </Col>
       </Row>
       <Form.Item
-        label="Email"
+        label={t("Email")}
         name="guide_email"
-        rules={[{ type: "email", message: "Email non valida" }]}
+        rules={[{ type: "email", message: t("Email non valida") }]}
       >
-        <Input placeholder="guida@esempio.it" />
+        <Input placeholder={t("guida@esempio.it")} />
       </Form.Item>
       {/* In create mode the address-book Select above owns guide_id; registering a second
           Form.Item for the same field produced two inputs with the same DOM id. */}
@@ -268,27 +269,27 @@ function OrderFormBody({
 
       <Divider />
       <Typography.Title level={5} style={{ marginTop: 0 }}>
-        Radioguide
+        {t("Radioguide")}
       </Typography.Title>
 
       <Row gutter={16}>
         <Col xs={12} sm={6}>
           <Form.Item
-            label="Radioguide"
+            label={t("Radioguide")}
             name="radios_count"
-            rules={[{ required: true, message: "Obbligatorio" }]}
+            rules={[{ required: true, message: t("Obbligatorio") }]}
           >
             <InputNumber min={0} precision={0} style={{ width: "100%" }} />
           </Form.Item>
         </Col>
         <Col xs={12} sm={6}>
-          <Form.Item label="Extra" name="extra_radios">
+          <Form.Item label={t("Extra")} name="extra_radios">
             <InputNumber min={0} precision={0} style={{ width: "100%" }} />
           </Form.Item>
         </Col>
         {mode === "edit" && (
           <Col xs={12} sm={6}>
-            <Form.Item label="Perse" name="lost_radios">
+            <Form.Item label={t("Perse")} name="lost_radios">
               <InputNumber min={0} precision={0} style={{ width: "100%" }} />
             </Form.Item>
           </Col>
@@ -296,50 +297,50 @@ function OrderFormBody({
       </Row>
       <Row gutter={16}>
         <Col xs={12} sm={6}>
-          <Form.Item label="Saldo (€)" name="balance">
+          <Form.Item label={t("Saldo (€)")} name="balance">
             <InputNumber min={0} step={10} precision={2} decimalSeparator="," style={{ width: "100%" }} />
           </Form.Item>
         </Col>
         <Col xs={12} sm={6}>
-          <Form.Item label="Fattura richiesta" name="invoice_required" valuePropName="checked">
-            <Switch checkedChildren="Sì" unCheckedChildren="No" />
+          <Form.Item label={t("Fattura richiesta")} name="invoice_required" valuePropName="checked">
+            <Switch checkedChildren={t("Sì")} unCheckedChildren={t("No")} />
           </Form.Item>
         </Col>
       </Row>
 
       <Divider />
       <Typography.Title level={5} style={{ marginTop: 0 }}>
-        Consegna
+        {t("Consegna")}
       </Typography.Title>
       <Row gutter={16}>
         <Col xs={24} sm={10}>
           <Form.Item
-            label="Data e ora"
+            label={t("Data e ora")}
             name="delivery_at"
-            rules={[{ required: true, message: "Obbligatorio" }]}
+            rules={[{ required: true, message: t("Obbligatorio") }]}
           >
             <DatePicker showTime={{ format: "HH:mm", minuteStep: 5 }} format="DD/MM/YYYY HH:mm" style={{ width: "100%" }} />
           </Form.Item>
         </Col>
         <Col xs={24} sm={14}>
           <Form.Item
-            label="Luogo"
+            label={t("Luogo")}
             name="delivery_address"
-            rules={[{ required: true, whitespace: true, message: "Inserisci il luogo di consegna" }]}
+            rules={[{ required: true, whitespace: true, message: t("Inserisci il luogo di consegna") }]}
           >
-            <AddressInput placeholder="Indirizzo di consegna" />
+            <AddressInput placeholder={t("Indirizzo di consegna")} />
           </Form.Item>
         </Col>
       </Row>
 
       <Divider />
       <Typography.Title level={5} style={{ marginTop: 0 }}>
-        Ritiro <Typography.Text type="secondary" style={{ fontWeight: 400, fontSize: 13 }}>(facoltativo)</Typography.Text>
+        {t("Ritiro")}{" "}<Typography.Text type="secondary" style={{ fontWeight: 400, fontSize: 13 }}>{t("(facoltativo)")}</Typography.Text>
       </Typography.Title>
       <Row gutter={16}>
         <Col xs={24} sm={10}>
           <Form.Item
-            label="Data e ora"
+            label={t("Data e ora")}
             name="pickup_at"
             dependencies={["delivery_at", "pickup_address"]}
             rules={[
@@ -348,11 +349,11 @@ function OrderFormBody({
                   const delivery = getFieldValue("delivery_at") as Dayjs | undefined;
                   if (!value) {
                     return getFieldValue("pickup_address")
-                      ? Promise.reject(new Error("Indica anche data e ora del ritiro"))
+                      ? Promise.reject(new Error(t("Indica anche data e ora del ritiro")))
                       : Promise.resolve();
                   }
                   if (delivery && value.isBefore(delivery)) {
-                    return Promise.reject(new Error("Il ritiro non può precedere la consegna"));
+                    return Promise.reject(new Error(t("Il ritiro non può precedere la consegna")));
                   }
                   return Promise.resolve();
                 },
@@ -364,40 +365,40 @@ function OrderFormBody({
         </Col>
         <Col xs={24} sm={14}>
           <Form.Item
-            label="Luogo"
+            label={t("Luogo")}
             name="pickup_address"
             dependencies={["pickup_at"]}
             rules={[
               ({ getFieldValue }) => ({
                 validator(_, value?: string) {
                   return getFieldValue("pickup_at") && !value?.trim()
-                    ? Promise.reject(new Error("Indica il luogo del ritiro"))
+                    ? Promise.reject(new Error(t("Indica il luogo del ritiro")))
                     : Promise.resolve();
                 },
               }),
             ]}
           >
-            <AddressInput placeholder="Indirizzo di ritiro" />
+            <AddressInput placeholder={t("Indirizzo di ritiro")} />
           </Form.Item>
         </Col>
       </Row>
 
       <Divider />
       <Typography.Title level={5} style={{ marginTop: 0 }}>
-        Canale radio
+        {t("Canale radio")}
       </Typography.Title>
       <ChannelPicker orderId={order?.id} />
 
-      <Form.Item label="Note" name="notes">
+      <Form.Item label={t("Note")} name="notes">
         <Input.TextArea rows={3} maxLength={1000} showCount />
       </Form.Item>
 
       <Flex justify="flex-end" gap={8} style={{ marginTop: 8 }}>
         <Button onClick={onCancel} disabled={saving}>
-          Annulla
+          {t("Annulla")}
         </Button>
         <Button type="primary" htmlType="submit" loading={saving}>
-          {mode === "create" ? "Crea ordine" : "Salva modifiche"}
+          {mode === "create" ? t("Crea ordine") : t("Salva modifiche")}
         </Button>
       </Flex>
     </Form>
@@ -427,8 +428,8 @@ function OrderDetails({
           type="info"
           showIcon
           style={{ marginBottom: 16 }}
-          title="Richiesta ricevuta dal modulo pubblico"
-          description="Verifica i dati, scegli un canale radio e assegna un rider."
+          title={t("Richiesta ricevuta dal modulo pubblico")}
+          description={t("Verifica i dati, scegli un canale radio e assegna un rider.")}
         />
       )}
 
@@ -437,10 +438,10 @@ function OrderDetails({
         size="small"
         column={{ xs: 1, sm: 2 }}
         items={[
-          { key: "guide", label: "Guida", children: order.guide_name },
+          { key: "guide", label: t("Guida"), children: order.guide_name },
           {
             key: "phone",
-            label: "Telefono",
+            label: t("Telefono"),
             children: order.guide_phone ? (
               <a href={`tel:${order.guide_phone.replace(/\s/g, "")}`}>
                 <PhoneOutlined /> {order.guide_phone}
@@ -449,55 +450,55 @@ function OrderDetails({
               "—"
             ),
           },
-          { key: "email", label: "Email", children: order.guide_email ?? "—", span: 2 },
-          { key: "radios", label: "Radioguide", children: order.radios_count },
-          { key: "extra", label: "Extra", children: order.extra_radios },
-          { key: "channel", label: "Canale", children: order.radio_channel ?? "—" },
-          { key: "lost", label: "Perse", children: order.lost_radios },
-          { key: "balance", label: "Saldo", children: fmtMoney(Number(order.balance)) },
-          { key: "invoice", label: "Fattura", children: order.invoice_required ? "Richiesta" : "No" },
+          { key: "email", label: t("Email"), children: order.guide_email ?? "—", span: 2 },
+          { key: "radios", label: t("Radioguide"), children: order.radios_count },
+          { key: "extra", label: t("Extra"), children: order.extra_radios },
+          { key: "channel", label: t("Canale"), children: order.radio_channel ?? "—" },
+          { key: "lost", label: t("Perse"), children: order.lost_radios },
+          { key: "balance", label: t("Saldo"), children: fmtMoney(Number(order.balance)) },
+          { key: "invoice", label: t("Fattura"), children: order.invoice_required ? t("Richiesta") : t("No") },
           {
             key: "delivery",
-            label: "Consegna",
+            label: t("Consegna"),
             span: 2,
             children: (
               <Flex vertical gap={2} align="flex-start">
                 <div>{fmtDateTime(order.delivery_at, timezone)}</div>
                 <AddressLine address={order.delivery_address} />
                 <Typography.Text type="secondary">
-                  Rider: {order.delivery_rider?.full_name ?? "non assegnato"}
+                  {t("Rider:")}{" "}{order.delivery_rider?.full_name ?? t("non assegnato")}
                 </Typography.Text>
               </Flex>
             ),
           },
           {
             key: "pickup",
-            label: "Ritiro",
+            label: t("Ritiro"),
             span: 2,
             children: order.pickup_at || order.pickup_address ? (
               <Flex vertical gap={2} align="flex-start">
                 <div>{fmtDateTime(order.pickup_at, timezone)}</div>
                 {order.pickup_address && <AddressLine address={order.pickup_address} />}
                 <Typography.Text type="secondary">
-                  Rider: {order.pickup_rider?.full_name ?? "non assegnato"}
+                  {t("Rider:")}{" "}{order.pickup_rider?.full_name ?? t("non assegnato")}
                 </Typography.Text>
               </Flex>
             ) : (
-              <Typography.Text type="secondary">Non pianificato</Typography.Text>
+              <Typography.Text type="secondary">{t("Non pianificato")}</Typography.Text>
             ),
           },
-          { key: "notes", label: "Note", span: 2, children: order.notes || "—" },
+          { key: "notes", label: t("Note"), span: 2, children: order.notes || "—" },
         ]}
       />
 
-      <Divider titlePlacement="start">Cronologia</Divider>
+      <Divider titlePlacement="start">{t("Cronologia")}</Divider>
       <EventTimeline orderId={order.id} />
 
       <Flex justify="flex-end" gap={8} style={{ marginTop: 24 }}>
-        <Button onClick={onClose}>Chiudi</Button>
+        <Button onClick={onClose}>{t("Chiudi")}</Button>
         {canEdit && (
           <Button type="primary" icon={<EditOutlined />} onClick={onEdit}>
-            Modifica
+            {t("Modifica")}
           </Button>
         )}
       </Flex>
@@ -518,21 +519,21 @@ function AddressLine({ address }: { address: string }) {
 }
 
 const FIELD_LABELS: Record<string, string> = {
-  guide_name: "nome guida",
-  guide_phone: "telefono",
-  guide_email: "email",
-  radio_channel: "canale",
-  radios_count: "radioguide",
-  extra_radios: "extra",
-  lost_radios: "perse",
-  balance: "saldo",
-  invoice_required: "fattura",
-  delivery_at: "orario consegna",
-  delivery_address: "luogo consegna",
-  pickup_at: "orario ritiro",
-  pickup_address: "luogo ritiro",
-  notes: "note",
-  guide_id: "guida",
+  guide_name: t("nome guida"),
+  guide_phone: t("telefono"),
+  guide_email: t("email"),
+  radio_channel: t("canale"),
+  radios_count: t("radioguide"),
+  extra_radios: t("extra"),
+  lost_radios: t("perse"),
+  balance: t("saldo"),
+  invoice_required: t("fattura"),
+  delivery_at: t("orario consegna"),
+  delivery_address: t("luogo consegna"),
+  pickup_at: t("orario ritiro"),
+  pickup_address: t("luogo ritiro"),
+  notes: t("note"),
+  guide_id: t("guida"),
 };
 
 function EventTimeline({ orderId }: { orderId: string }) {
@@ -551,29 +552,29 @@ function EventTimeline({ orderId }: { orderId: string }) {
       case "created":
         return payload.source === "public_form"
           ? "Ordine ricevuto dal modulo pubblico"
-          : "Ordine creato";
+          : t("Ordine creato");
       case "status_changed": {
         const from = event.from_status ? ORDER_STATUS_META[event.from_status as OrderStatus].label : "";
         const to = event.to_status ? ORDER_STATUS_META[event.to_status as OrderStatus].label : "";
-        return `Stato: ${from} → ${to}`;
+        return t("Stato: {from} → {to}", { from, to });
       }
       case "assigned": {
         const c = payload.changes ?? {};
         if (c.delivery_rider_id) {
           return c.delivery_rider_id.to
-            ? `Consegna assegnata a ${nameOf(c.delivery_rider_id.to as string)}`
+            ? t("Consegna assegnata a {name}", { name: nameOf(c.delivery_rider_id.to as string) })
             : "Assegnazione consegna rimossa";
         }
         if (c.pickup_rider_id) {
           return c.pickup_rider_id.to
-            ? `Ritiro assegnato a ${nameOf(c.pickup_rider_id.to as string)}`
+            ? t("Ritiro assegnato a {name}", { name: nameOf(c.pickup_rider_id.to as string) })
             : "Assegnazione ritiro rimossa";
         }
         return "Rider aggiornato";
       }
       case "updated": {
         const fields = Object.keys(payload.changes ?? {}).map((k) => FIELD_LABELS[k] ?? k);
-        return `Modificato: ${fields.join(", ")}`;
+        return t("Modificato: {fields}", { fields: fields.join(", ") });
       }
       case "deleted":
         return "Ordine eliminato";

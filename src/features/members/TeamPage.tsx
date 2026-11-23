@@ -38,6 +38,7 @@ import { ROLE_LABELS, type AppRole, type Invitation, type Profile } from "../../
 import { queryKeys, useMembers, useOrdersRealtime, useRiderActivity } from "../orders/hooks";
 import { useQuery } from "@tanstack/react-query";
 import { inviteMember, listInvitations, revokeInvitation, updateMember } from "./api";
+import { numberLocale, t, tn } from "../../i18n";
 
 const ROLE_OPTIONS = (Object.keys(ROLE_LABELS) as AppRole[]).map((r) => ({ value: r, label: ROLE_LABELS[r] }));
 
@@ -62,14 +63,14 @@ function ActivityCards() {
     <Card
       title={
         <Flex align="center" gap={8}>
-          <Badge status={busy.length ? "processing" : "default"} /> In servizio ora ({busy.length}/{activity.length})
+          <Badge status={busy.length ? "processing" : "default"} /> {t("In servizio ora (")}{busy.length}/{activity.length})
         </Flex>
       }
       size="small"
       style={{ marginBottom: 16 }}
     >
       {busy.length === 0 ? (
-        <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Nessun rider con ordini attivi" />
+        <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("Nessun rider con ordini attivi")} />
       ) : (
         <Row gutter={[12, 12]}>
           {busy.map((rider) => (
@@ -79,8 +80,8 @@ function ActivityCards() {
                   <Flex vertical>
                     <Typography.Text strong>{rider.rider_name}</Typography.Text>
                     <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                      {rider.current_leg === "delivery" ? "Consegna" : "Ritiro"} · {fmtTime(rider.scheduled_at, timezone)}
-                      {rider.active_orders && rider.active_orders > 1 ? ` · ${rider.active_orders} ordini` : ""}
+                      {rider.current_leg === "delivery" ? t("Consegna") : t("Ritiro")} · {fmtTime(rider.scheduled_at, timezone)}
+                      {rider.active_orders && rider.active_orders > 1 ? " · " + tn(rider.active_orders, "{n} ordine", "{n} ordini") : ""}
                     </Typography.Text>
                   </Flex>
                   {rider.current_status && <StatusTag status={rider.current_status} />}
@@ -100,7 +101,7 @@ function ActivityCards() {
 }
 
 export function TeamPage() {
-  usePageTitle("Team e rider");
+  usePageTitle(t("Team e rider"));
   const { message, modal } = App.useApp();
   const queryClient = useQueryClient();
   const { profile: me } = useReadyUser();
@@ -127,7 +128,7 @@ export function TeamPage() {
       await updateMember(member.id, { disabled });
       await refreshMembers();
       void queryClient.invalidateQueries({ queryKey: queryKeys.riderActivity });
-      void message.success(disabled ? "Utente disattivato" : "Utente riattivato");
+      void message.success(disabled ? t("Utente disattivato") : t("Utente riattivato"));
     } catch (error) {
       void message.error(getErrorMessage(error));
     }
@@ -144,7 +145,7 @@ export function TeamPage() {
     try {
       await updateMember(editing.id, { fullName: values.fullName, phone: values.phone ?? "", roles: values.roles });
       await refreshMembers();
-      void message.success("Utente aggiornato");
+      void message.success(t("Utente aggiornato"));
       setEditing(null);
     } catch (error) {
       void message.error(getErrorMessage(error));
@@ -158,7 +159,7 @@ export function TeamPage() {
     try {
       await inviteMember({ email: values.email.trim(), fullName: values.fullName?.trim(), roles: values.roles });
       await queryClient.invalidateQueries({ queryKey: ["invitations"] });
-      void message.success(`Invito inviato a ${values.email}`);
+      void message.success(t("Invito inviato a {email}", { email: values.email }));
       setInviting(false);
       inviteForm.resetFields();
     } catch (error) {
@@ -173,18 +174,18 @@ export function TeamPage() {
       redirectTo: `${window.location.origin}/update-password`,
     });
     if (error) void message.error(getErrorMessage(error));
-    else void message.success(`Email di reset inviata a ${member.email}`);
+    else void message.success(t("Email di reset inviata a {email}", { email: member.email }));
   };
 
   const memberColumns = (showRoles: boolean) => [
     {
-      title: "Nome",
+      title: t("Nome"),
       dataIndex: "full_name",
-      sorter: (a: Profile, b: Profile) => a.full_name.localeCompare(b.full_name, "it"),
+      sorter: (a: Profile, b: Profile) => a.full_name.localeCompare(b.full_name, numberLocale()),
       render: (v: string, m: Profile) => (
         <Flex vertical>
           <Typography.Text strong>
-            {v || m.email} {m.id === me.id && <Tag style={{ marginInlineStart: 6 }}>Tu</Tag>}
+            {v || m.email} {m.id === me.id && <Tag style={{ marginInlineStart: 6 }}>{t("Tu")}</Tag>}
           </Typography.Text>
           <Typography.Text type="secondary" style={{ fontSize: 12 }}>
             {m.email}
@@ -192,11 +193,11 @@ export function TeamPage() {
         </Flex>
       ),
     },
-    { title: "Telefono", dataIndex: "phone", render: (v: string | null) => v ?? "—" },
+    { title: t("Telefono"), dataIndex: "phone", render: (v: string | null) => v ?? "—" },
     ...(showRoles
       ? [
           {
-            title: "Ruoli",
+            title: t("Ruoli"),
             dataIndex: "roles",
             render: (roles: AppRole[]) => (
               <Flex gap={4} wrap>
@@ -211,19 +212,19 @@ export function TeamPage() {
         ]
       : []),
     {
-      title: "Ultimo accesso",
+      title: t("Ultimo accesso"),
       dataIndex: "last_login_at",
-      render: (v: string | null) => (v ? <span title={fmtDateTime(v)}>{fmtRelative(v)}</span> : "Mai"),
+      render: (v: string | null) => (v ? <span title={fmtDateTime(v)}>{fmtRelative(v)}</span> : t("Mai")),
     },
     {
-      title: "Attivo",
+      title: t("Attivo"),
       dataIndex: "disabled",
       width: 90,
       render: (disabled: boolean, m: Profile) => (
         <Switch
           checked={!disabled}
           disabled={m.id === me.id}
-          aria-label={`Attiva o disattiva ${m.full_name}`}
+          aria-label={t("Attiva o disattiva {name}", { name: m.full_name })}
           onChange={(checked) => void toggleDisabled(m, !checked)}
         />
       ),
@@ -233,24 +234,24 @@ export function TeamPage() {
       width: 150,
       render: (_: unknown, m: Profile) => (
         <Flex gap={4} justify="flex-end">
-          <Button type="text" icon={<EditOutlined />} onClick={() => openEdit(m)} aria-label="Modifica" />
-          <Button type="text" icon={<MailOutlined />} onClick={() => void sendPasswordReset(m)} aria-label="Invia reset password" title="Invia reset password" />
+          <Button type="text" icon={<EditOutlined />} onClick={() => openEdit(m)} aria-label={t("Modifica")} />
+          <Button type="text" icon={<MailOutlined />} onClick={() => void sendPasswordReset(m)} aria-label={t("Invia reset password")} title={t("Invia reset password")} />
         </Flex>
       ),
     },
   ];
 
   const invitationColumns = [
-    { title: "Email", dataIndex: "email" },
+    { title: t("Email"), dataIndex: "email" },
     {
-      title: "Ruoli",
+      title: t("Ruoli"),
       dataIndex: "roles",
       render: (roles: AppRole[]) => roles.map((r) => <Tag key={r}>{ROLE_LABELS[r]}</Tag>),
     },
     {
-      title: "Scade",
+      title: t("Scade"),
       dataIndex: "expires_at",
-      render: (v: string) => (dayjs(v).isBefore(dayjs()) ? <Tag color="red">Scaduto</Tag> : fmtRelative(v)),
+      render: (v: string) => (dayjs(v).isBefore(dayjs()) ? <Tag color="red">{t("Scaduto")}</Tag> : fmtRelative(v)),
     },
     {
       title: "",
@@ -263,13 +264,13 @@ export function TeamPage() {
             onClick={() =>
               void inviteMember({ email: inv.email, fullName: inv.full_name ?? undefined, roles: inv.roles })
                 .then(() => {
-                  void message.success("Invito reinviato");
+                  void message.success(t("Invito reinviato"));
                   return queryClient.invalidateQueries({ queryKey: ["invitations"] });
                 })
                 .catch((e) => void message.error(getErrorMessage(e)))
             }
           >
-            Reinvia
+            {t("Reinvia")}
           </Button>
           <Button
             size="small"
@@ -277,11 +278,11 @@ export function TeamPage() {
             icon={<UndoOutlined />}
             onClick={() =>
               modal.confirm({
-                title: "Revocare l'invito?",
-                content: `${inv.email} non potrà più usare il link ricevuto.`,
-                okText: "Revoca",
+                title: t("Revocare l'invito?"),
+                content: t("{email} non potrà più usare il link ricevuto.", { email: inv.email }),
+                okText: t("Revoca"),
                 okButtonProps: { danger: true },
-                cancelText: "Annulla",
+                cancelText: t("Annulla"),
                 onOk: async () => {
                   await revokeInvitation(inv.id);
                   await queryClient.invalidateQueries({ queryKey: ["invitations"] });
@@ -289,7 +290,7 @@ export function TeamPage() {
               })
             }
           >
-            Revoca
+            {t("Revoca")}
           </Button>
         </Flex>
       ),
@@ -299,8 +300,8 @@ export function TeamPage() {
   return (
     <>
       <PageHeader
-        title="Team e rider"
-        subtitle="Gestisci chi può accedere alla piattaforma e vedi chi è in servizio."
+        title={t("Team e rider")}
+        subtitle={t("Gestisci chi può accedere alla piattaforma e vedi chi è in servizio.")}
         actions={
           <Button
             type="primary"
@@ -310,7 +311,7 @@ export function TeamPage() {
               setInviting(true);
             }}
           >
-            Invita persona
+            {t("Invita persona")}
           </Button>
         }
       />
@@ -319,7 +320,7 @@ export function TeamPage() {
         items={[
           {
             key: "riders",
-            label: `Rider (${riders.length})`,
+            label: t("Rider ({n})", { n: riders.length }),
             children: (
               <>
                 <ActivityCards />
@@ -331,7 +332,7 @@ export function TeamPage() {
                     columns={memberColumns(true)}
                     scroll={{ x: 800 }}
                     pagination={false}
-                    locale={{ emptyText: "Nessun rider: invita il primo dal pulsante in alto" }}
+                    locale={{ emptyText: t("Nessun rider: invita il primo dal pulsante in alto") }}
                   />
                 </Card>
               </>
@@ -339,7 +340,7 @@ export function TeamPage() {
           },
           {
             key: "admins",
-            label: `Amministratori (${admins.length})`,
+            label: t("Amministratori ({n})", { n: admins.length }),
             children: (
               <Card styles={{ body: { padding: 16 } }}>
                 <Table<Profile>
@@ -355,7 +356,7 @@ export function TeamPage() {
           },
           {
             key: "invites",
-            label: `Inviti in sospeso (${invitations.length})`,
+            label: t("Inviti in sospeso ({n})", { n: invitations.length }),
             children: (
               <Card styles={{ body: { padding: 16 } }}>
                 <Table<Invitation>
@@ -365,7 +366,7 @@ export function TeamPage() {
                   columns={invitationColumns}
                   scroll={{ x: 640 }}
                   pagination={false}
-                  locale={{ emptyText: "Nessun invito in sospeso" }}
+                  locale={{ emptyText: t("Nessun invito in sospeso") }}
                 />
               </Card>
             ),
@@ -373,58 +374,58 @@ export function TeamPage() {
         ]}
       />
 
-      <Drawer title="Modifica utente" open={Boolean(editing)} onClose={() => setEditing(null)} size={420} destroyOnHidden>
+      <Drawer title={t("Modifica utente")} open={Boolean(editing)} onClose={() => setEditing(null)} size={420} destroyOnHidden>
         <Form<MemberForm> form={memberForm} layout="vertical" requiredMark="optional" onFinish={saveMember}>
-          <Form.Item label="Email">
+          <Form.Item label={t("Email")}>
             <Input value={editing?.email} disabled />
           </Form.Item>
           <Form.Item
-            label="Nome e cognome"
+            label={t("Nome e cognome")}
             name="fullName"
-            rules={[{ required: true, whitespace: true, message: "Inserisci il nome" }]}
+            rules={[{ required: true, whitespace: true, message: t("Inserisci il nome") }]}
           >
             <Input />
           </Form.Item>
-          <Form.Item label="Telefono" name="phone" rules={[{ pattern: /^[0-9+\s()-]{6,20}$|^$/, message: "Numero non valido" }]}>
+          <Form.Item label={t("Telefono")} name="phone" rules={[{ pattern: /^[0-9+\s()-]{6,20}$|^$/, message: t("Numero non valido") }]}>
             <Input />
           </Form.Item>
-          <Form.Item label="Ruoli" name="roles" rules={[{ required: true, type: "array", min: 1, message: "Seleziona almeno un ruolo" }]}>
+          <Form.Item label={t("Ruoli")} name="roles" rules={[{ required: true, type: "array", min: 1, message: t("Seleziona almeno un ruolo") }]}>
             <Checkbox.Group options={ROLE_OPTIONS} />
           </Form.Item>
           <Flex justify="flex-end" gap={8}>
-            <Button onClick={() => setEditing(null)}>Annulla</Button>
+            <Button onClick={() => setEditing(null)}>{t("Annulla")}</Button>
             <Button type="primary" htmlType="submit" loading={saving}>
-              Salva
+              {t("Salva")}
             </Button>
           </Flex>
         </Form>
       </Drawer>
 
-      <Drawer title="Invita una persona" open={inviting} onClose={() => setInviting(false)} size={420} destroyOnHidden>
+      <Drawer title={t("Invita una persona")} open={inviting} onClose={() => setInviting(false)} size={420} destroyOnHidden>
         <Typography.Paragraph type="secondary">
-          Riceverà un&apos;email con un link per scegliere la password e unirsi alla tua azienda con i ruoli indicati.
+          {t("Riceverà un'email con un link per scegliere la password e unirsi alla tua azienda con i ruoli indicati.")}
         </Typography.Paragraph>
         <Form<InviteForm> form={inviteForm} layout="vertical" requiredMark="optional" onFinish={sendInvite}>
           <Form.Item
-            label="Email"
+            label={t("Email")}
             name="email"
             rules={[
-              { required: true, message: "Inserisci l'email" },
-              { type: "email", message: "Email non valida" },
+              { required: true, message: t("Inserisci l'email") },
+              { type: "email", message: t("Email non valida") },
             ]}
           >
-            <Input placeholder="rider@esempio.it" />
+            <Input placeholder={t("rider@esempio.it")} />
           </Form.Item>
-          <Form.Item label="Nome e cognome" name="fullName">
+          <Form.Item label={t("Nome e cognome")} name="fullName">
             <Input />
           </Form.Item>
-          <Form.Item label="Ruoli" name="roles" rules={[{ required: true, type: "array", min: 1, message: "Seleziona almeno un ruolo" }]}>
+          <Form.Item label={t("Ruoli")} name="roles" rules={[{ required: true, type: "array", min: 1, message: t("Seleziona almeno un ruolo") }]}>
             <Checkbox.Group options={ROLE_OPTIONS} />
           </Form.Item>
           <Flex justify="flex-end" gap={8}>
-            <Button onClick={() => setInviting(false)}>Annulla</Button>
+            <Button onClick={() => setInviting(false)}>{t("Annulla")}</Button>
             <Button type="primary" htmlType="submit" icon={<MailOutlined />} loading={saving}>
-              Invia invito
+              {t("Invia invito")}
             </Button>
           </Flex>
         </Form>

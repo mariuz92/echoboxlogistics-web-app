@@ -1,4 +1,5 @@
 import type { Order, OrderStatus } from "../../types/domain";
+import { t } from "../../i18n";
 
 export interface StatusAction {
   /** Target status passed to admin_set_status */
@@ -54,9 +55,9 @@ export function getStatusActions(order: Pick<Order, "status" | "pickup_address" 
 function cancel(): StatusAction {
   return {
     status: "cancelled",
-    label: "Annulla ordine",
+    label: t("Annulla ordine"),
     danger: true,
-    confirm: "L'ordine verrà annullato e il canale radio tornerà disponibile.",
+    confirm: t("L'ordine verrà annullato e il canale radio tornerà disponibile."),
   };
 }
 

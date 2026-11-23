@@ -35,12 +35,13 @@ import { OrdersTable } from "./components/OrdersTable";
 import { OrderDrawer, type DrawerMode } from "./components/OrderDrawer";
 import { OccupiedChannels } from "./components/ChannelBoard";
 import { exportOrdersPdf } from "./exportPdf";
+import { t, tn } from "../../i18n";
 
 const PERIODS: { label: string; value: Period }[] = [
-  { label: "Giorno", value: "day" },
-  { label: "Settimana", value: "week" },
-  { label: "Mese", value: "month" },
-  { label: "Anno", value: "year" },
+  { label: t("Giorno"), value: "day" },
+  { label: t("Settimana"), value: "week" },
+  { label: t("Mese"), value: "month" },
+  { label: t("Anno"), value: "year" },
 ];
 
 const PICKER: Record<Period, "date" | "week" | "month" | "year"> = {
@@ -79,7 +80,7 @@ function periodTitle(date: Dayjs, period: Period): string {
 }
 
 export function OrdersPage() {
-  usePageTitle("Ordini");
+  usePageTitle(t("Ordini"));
   const { message } = App.useApp();
   const { timezone } = useReadyUser();
   const [params, setParams] = useSearchParams();
@@ -150,29 +151,29 @@ export function OrdersPage() {
     try {
       await exportOrdersPdf(visible, timezone, periodTitle(date, period));
     } catch {
-      void message.error("Impossibile generare il PDF.");
+      void message.error(t("Impossibile generare il PDF."));
     }
   };
 
   return (
     <>
       <PageHeader
-        title="Ordini"
+        title={t("Ordini")}
         subtitle={periodTitle(date, period)}
         actions={
           <>
             <Button icon={<AppstoreOutlined />} onClick={() => setChannelsOpen(true)}>
-              Canali occupati
+              {t("Canali occupati")}
             </Button>
             <Button icon={<FilePdfOutlined />} onClick={onExport} disabled={visible.length === 0}>
-              Esporta PDF
+              {t("Esporta PDF")}
             </Button>
             <Button
               type="primary"
               icon={<PlusOutlined />}
               onClick={() => setDrawer({ open: true, mode: "create" })}
             >
-              Nuovo ordine
+              {t("Nuovo ordine")}
             </Button>
           </>
         }
@@ -183,11 +184,11 @@ export function OrdersPage() {
           type="warning"
           showIcon
           style={{ marginBottom: 16 }}
-          title={`${overduePickups.length} ${overduePickups.length === 1 ? "ritiro da pianificare o in ritardo" : "ritiri da pianificare o in ritardo"}`}
-          description="Radioguide consegnate che non sono ancora rientrate e senza una data di ritiro valida."
+          title={tn(overduePickups.length, "{n} ritiro da pianificare o in ritardo", "{n} ritiri da pianificare o in ritardo")}
+          description={t("Radioguide consegnate che non sono ancora rientrate e senza una data di ritiro valida.")}
           action={
             <Button size="small" onClick={() => setPendingOpen(true)}>
-              Mostra
+              {t("Mostra")}
             </Button>
           }
         />
@@ -196,23 +197,23 @@ export function OrdersPage() {
       <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
         <Col xs={12} md={8} xl={4}>
           <Card size="small">
-            <Statistic title="Ordini" value={kpi.orders} />
+            <Statistic title={t("Ordini")} value={kpi.orders} />
           </Card>
         </Col>
         <Col xs={12} md={8} xl={5}>
           <Card size="small">
-            <Statistic title="Radioguide" value={kpi.radios} />
+            <Statistic title={t("Radioguide")} value={kpi.radios} />
           </Card>
         </Col>
         <Col xs={12} md={8} xl={5}>
           <Card size="small">
-            <Statistic title="Incasso" value={fmtMoney(kpi.revenue)} />
+            <Statistic title={t("Incasso")} value={fmtMoney(kpi.revenue)} />
           </Card>
         </Col>
         <Col xs={12} md={8} xl={5}>
           <Card size="small">
             <Statistic
-              title="Da assegnare"
+              title={t("Da assegnare")}
               value={kpi.toAssign}
               styles={{ content: { color: kpi.toAssign > 0 ? "#d97706" : undefined } }}
             />
@@ -220,7 +221,7 @@ export function OrdersPage() {
         </Col>
         <Col xs={12} md={8} xl={5}>
           <Card size="small">
-            <Statistic title="In corso" value={kpi.inProgress} />
+            <Statistic title={t("In corso")} value={kpi.inProgress} />
           </Card>
         </Col>
       </Row>
@@ -228,7 +229,7 @@ export function OrdersPage() {
       <Card styles={{ body: { padding: 16 } }}>
         <Flex gap={12} wrap align="center" style={{ marginBottom: 16 }}>
           <Flex gap={4} align="center">
-            <Button aria-label="Periodo precedente" icon={<LeftOutlined />} onClick={() => step(-1)} />
+            <Button aria-label={t("Periodo precedente")} icon={<LeftOutlined />} onClick={() => step(-1)} />
             <DatePicker
               allowClear={false}
               picker={PICKER[period]}
@@ -237,15 +238,15 @@ export function OrdersPage() {
               format={period === "day" ? "DD/MM/YYYY" : undefined}
               style={{ width: 160 }}
             />
-            <Button aria-label="Periodo successivo" icon={<RightOutlined />} onClick={() => step(1)} />
-            <Button onClick={() => go(dayjs(), "day")}>Oggi</Button>
+            <Button aria-label={t("Periodo successivo")} icon={<RightOutlined />} onClick={() => step(1)} />
+            <Button onClick={() => go(dayjs(), "day")}>{t("Oggi")}</Button>
           </Flex>
 
           <Segmented<Period> options={PERIODS} value={period} onChange={(value) => go(date, value)} />
 
           <Input.Search
             allowClear
-            placeholder="Cerca guida, telefono, indirizzo…"
+            placeholder={t("Cerca guida, telefono, indirizzo…")}
             style={{ width: 280, maxWidth: "100%" }}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -255,7 +256,7 @@ export function OrdersPage() {
             mode="multiple"
             allowClear
             maxTagCount="responsive"
-            placeholder="Tutti gli stati"
+            placeholder={t("Tutti gli stati")}
             style={{ minWidth: 200 }}
             value={statuses}
             onChange={setStatuses}
@@ -264,7 +265,7 @@ export function OrdersPage() {
 
           <Flex gap={8} align="center">
             <Switch checked={onlyUnassigned} onChange={setOnlyUnassigned} />
-            <Typography.Text>Solo da assegnare</Typography.Text>
+            <Typography.Text>{t("Solo da assegnare")}</Typography.Text>
           </Flex>
         </Flex>
 
@@ -288,7 +289,7 @@ export function OrdersPage() {
       <OccupiedChannels open={channelsOpen} onClose={() => setChannelsOpen(false)} />
 
       <Modal
-        title="Ritiri da pianificare o in ritardo"
+        title={t("Ritiri da pianificare o in ritardo")}
         open={pendingOpen}
         onCancel={() => setPendingOpen(false)}
         footer={null}

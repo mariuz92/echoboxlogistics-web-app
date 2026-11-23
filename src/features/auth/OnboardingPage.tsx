@@ -7,6 +7,7 @@ import { getErrorMessage } from "../../lib/errors";
 import { loadCurrentUser, signOut } from "./session";
 import { useCurrentUser } from "../../providers/current-user";
 import { FullPageSpinner } from "../../shared/components/Screens";
+import { t } from "../../i18n";
 
 /**
  * Shown to a signed-in user who is not attached to a company yet
@@ -46,27 +47,27 @@ export function OnboardingPage() {
 
   return (
     <AuthShell
-      title="Ultimo passaggio"
-      subtitle="Il tuo account non è ancora collegato a un'azienda. Registra la tua azienda, oppure chiedi a un amministratore di invitarti."
+      title={t("Ultimo passaggio")}
+      subtitle={t("Il tuo account non è ancora collegato a un'azienda. Registra la tua azienda, oppure chiedi a un amministratore di invitarti.")}
       footer={
         <Button type="link" onClick={() => void signOut().then(() => navigate("/login"))}>
-          Esci
+          {t("Esci")}
         </Button>
       }
     >
       <Form<{ companyName: string }> layout="vertical" requiredMark={false} onFinish={onFinish}>
         <Form.Item
-          label="Nome azienda"
+          label={t("Nome azienda")}
           name="companyName"
           rules={[
-            { required: true, message: "Inserisci il nome dell'azienda" },
-            { min: 2, message: "Almeno 2 caratteri" },
+            { required: true, message: t("Inserisci il nome dell'azienda") },
+            { min: 2, message: t("Almeno 2 caratteri") },
           ]}
         >
           <Input size="large" />
         </Form.Item>
         <Button type="primary" htmlType="submit" size="large" block loading={saving}>
-          Crea azienda
+          {t("Crea azienda")}
         </Button>
       </Form>
     </AuthShell>

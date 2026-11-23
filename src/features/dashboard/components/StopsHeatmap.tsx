@@ -4,6 +4,7 @@ import type { DashboardInsights } from "../api";
 import { WEEKDAYS } from "../utils";
 import { Section } from "./Section";
 import { useChartStyle } from "./chartStyle";
+import { t, tn } from "../../../i18n";
 
 /** Deliveries and pickups by weekday and hour: when riders are needed. */
 export function StopsHeatmap({ data }: { data: DashboardInsights["stops"] }) {
@@ -17,14 +18,14 @@ export function StopsHeatmap({ data }: { data: DashboardInsights["stops"] }) {
 
   return (
     <Section
-      title="Quando servono i rider"
-      note="Consegne e ritiri per giorno della settimana e ora. Più scuro, più lavoro."
+      title={t("Quando servono i rider")}
+      note={t("Consegne e ritiri per giorno della settimana e ora. Più scuro, più lavoro.")}
       empty={data.length === 0}
     >
       <div style={{ overflowX: "auto" }}>
         <div
           role="img"
-          aria-label="Mappa del carico di lavoro per giorno e ora"
+          aria-label={t("Mappa del carico di lavoro per giorno e ora")}
           style={{ display: "grid", gridTemplateColumns: `44px repeat(${range.length}, minmax(26px, 1fr))`, gap: 3, minWidth: 520 }}
         >
           <span />
@@ -43,7 +44,7 @@ export function StopsHeatmap({ data }: { data: DashboardInsights["stops"] }) {
                 return (
                   <div
                     key={h}
-                    title={`${label} ${h}:00 · ${count} ${count === 1 ? "spostamento" : "spostamenti"}`}
+                    title={`${label} ${h}:00 · ${tn(count, "{n} spostamento", "{n} spostamenti")}`}
                     style={{
                       height: 26,
                       borderRadius: 5,

@@ -5,6 +5,7 @@ import type { CapacityDay, DashboardInsights } from "../api";
 import { Section } from "./Section";
 import { useChartStyle } from "./chartStyle";
 import { fmtShare } from "../utils";
+import { t } from "../../../i18n";
 
 function DayBars({
   days,
@@ -35,10 +36,10 @@ function DayBars({
                 <Typography.Text strong style={{ textTransform: "capitalize" }}>
                   {r.full}
                 </Typography.Text>
-                <div>Radio fuori insieme: {fmtNumber(r.radios)}</div>
-                <div>Gruppi insieme: {fmtNumber(r.groups)}</div>
+                <div>{t("Radio fuori insieme: {n}", { n: fmtNumber(r.radios) })}</div>
+                <div>{t("Gruppi insieme: {n}", { n: fmtNumber(r.groups) })}</div>
                 <div>
-                  Consegne {r.deliveries} · ritiri {r.pickups}
+                  {t("Consegne {deliveries} · ritiri {pickups}", { deliveries: r.deliveries, pickups: r.pickups })}
                 </div>
               </div>
             );
@@ -67,13 +68,14 @@ export function Capacity({ data }: { data: DashboardInsights }) {
     <Row gutter={[16, 16]}>
       <Col xs={24} lg={14}>
         <Section
-          title="Radio fuori nello stesso momento"
+          title={t("Radio fuori nello stesso momento")}
           note={
             peak && peak.radios > 0 ? (
-              <>
-                Il massimo di ogni giorno. Picco del mese: <b>{fmtNumber(peak.radios)} radio</b> e{" "}
-                <b>{peak.groups} gruppi</b> insieme, {dayjs(peak.date).format("dddd D")}.
-              </>
+              t("Il massimo di ogni giorno. Picco del mese: {radios} radio e {groups} gruppi insieme, {day}.", {
+                radios: fmtNumber(peak.radios),
+                groups: peak.groups,
+                day: dayjs(peak.date).format("dddd D"),
+              })
             ) : undefined
           }
           height={250}
@@ -84,12 +86,13 @@ export function Capacity({ data }: { data: DashboardInsights }) {
       </Col>
       <Col xs={24} lg={10}>
         <Section
-          title="Prossimi 14 giorni"
+          title={t("Prossimi 14 giorni")}
           note={
             peakUpcoming && peakUpcoming.radios > 0 ? (
-              <>
-                Già prenotato. Il giorno più carico è {dayjs(peakUpcoming.date).format("dddd D")}: {fmtNumber(peakUpcoming.radios)} radio.
-              </>
+              t("Già prenotato. Il giorno più carico è {day}: {radios} radio.", {
+                day: dayjs(peakUpcoming.date).format("dddd D"),
+                radios: fmtNumber(peakUpcoming.radios),
+              })
             ) : undefined
           }
           height={250}
@@ -106,7 +109,7 @@ export function Capacity({ data }: { data: DashboardInsights }) {
       {exclusive && channels > 0 && peak && peak.groups > 0 && (
         <Col xs={24}>
           <Flex align="center" gap={16} wrap>
-            <Typography.Text strong>Canali nel giorno di punta</Typography.Text>
+            <Typography.Text strong>{t("Canali nel giorno di punta")}</Typography.Text>
             <Progress
               style={{ flex: 1, minWidth: 220, margin: 0 }}
               percent={Math.min(100, Math.round(occupancy ?? 0))}
@@ -114,7 +117,7 @@ export function Capacity({ data }: { data: DashboardInsights }) {
               format={() => fmtShare(occupancy)}
             />
             <Typography.Text type="secondary">
-              {peak.groups} gruppi su {fmtNumber(channels)} canali disponibili
+              {t("{groups} gruppi su {channels} canali disponibili", { groups: peak.groups, channels: fmtNumber(channels) })}
             </Typography.Text>
           </Flex>
         </Col>

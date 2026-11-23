@@ -16,6 +16,7 @@ import { usePageTitle } from "../../shared/hooks/usePageTitle";
 import type { Order } from "../../types/domain";
 import type { RiderAction } from "./api";
 import { useOrderMutations, useOrdersRealtime, useRiderJobs } from "./hooks";
+import { t } from "../../i18n";
 
 interface JobStep {
   action: RiderAction;
@@ -27,22 +28,22 @@ interface JobStep {
 function nextStep(order: Order, riderId: string): { leg: "delivery" | "pickup"; step?: JobStep } | null {
   if (order.delivery_rider_id === riderId) {
     if (order.status === "delivery_assigned")
-      return { leg: "delivery", step: { action: "start_delivery", label: "Avvia consegna", icon: <PlayCircleOutlined />, done: "Consegna avviata" } };
+      return { leg: "delivery", step: { action: "start_delivery", label: t("Avvia consegna"), icon: <PlayCircleOutlined />, done: t("Consegna avviata") } };
     if (order.status === "out_for_delivery")
-      return { leg: "delivery", step: { action: "complete_delivery", label: "Consegna completata", icon: <CheckCircleOutlined />, done: "Consegna completata" } };
+      return { leg: "delivery", step: { action: "complete_delivery", label: t("Consegna completata"), icon: <CheckCircleOutlined />, done: t("Consegna completata") } };
   }
   if (order.pickup_rider_id === riderId) {
     if (order.status === "pickup_assigned")
-      return { leg: "pickup", step: { action: "start_pickup", label: "Avvia ritiro", icon: <PlayCircleOutlined />, done: "Ritiro avviato" } };
+      return { leg: "pickup", step: { action: "start_pickup", label: t("Avvia ritiro"), icon: <PlayCircleOutlined />, done: t("Ritiro avviato") } };
     if (order.status === "out_for_pickup")
-      return { leg: "pickup", step: { action: "complete_pickup", label: "Ritiro completato", icon: <CheckCircleOutlined />, done: "Ritiro completato" } };
+      return { leg: "pickup", step: { action: "complete_pickup", label: t("Ritiro completato"), icon: <CheckCircleOutlined />, done: t("Ritiro completato") } };
   }
   return null;
 }
 
 /** Jobs list for riders: what to deliver/collect now, plus pickups anyone can claim. */
 export function RiderJobsPage() {
-  usePageTitle("Le mie consegne");
+  usePageTitle(t("Le mie consegne"));
   const { message } = App.useApp();
   const { profile, timezone } = useReadyUser();
   const { data: jobs = [], isLoading } = useRiderJobs();
@@ -72,7 +73,7 @@ export function RiderJobsPage() {
       setLostFor(order);
       return;
     }
-    run(order, step.action, step.done ?? "Fatto");
+    run(order, step.action, step.done ?? t("Fatto"));
   };
 
   const card = (order: Order, mode: "mine" | "available") => {
@@ -86,7 +87,7 @@ export function RiderJobsPage() {
         <Flex justify="space-between" align="flex-start" gap={8} wrap>
           <Flex vertical gap={2}>
             <Typography.Text type="secondary" style={{ fontSize: 12, textTransform: "uppercase", letterSpacing: ".05em" }}>
-              {leg === "delivery" ? "Consegna" : "Ritiro"}
+              {leg === "delivery" ? t("Consegna") : t("Ritiro")}
             </Typography.Text>
             <Typography.Title level={4} style={{ margin: 0 }}>
               {fmtDateTime(when, timezone)}
@@ -114,9 +115,9 @@ export function RiderJobsPage() {
             </a>
           )}
           <Tag icon={<AudioOutlined />} variant="filled">
-            {order.radios_count + order.extra_radios} radio
+            {order.radios_count + order.extra_radios} {t("radio")}
           </Tag>
-          {order.radio_channel !== null && <Tag variant="filled">Canale {order.radio_channel}</Tag>}
+          {order.radio_channel !== null && <Tag variant="filled">{t("Canale")}{" "}{order.radio_channel}</Tag>}
         </Flex>
 
         {order.notes && (
@@ -142,9 +143,9 @@ export function RiderJobsPage() {
             size="large"
             block
             loading={riderAction.isPending && riderAction.variables?.orderId === order.id}
-            onClick={() => run(order, "claim_pickup", "Ritiro preso in carico")}
+            onClick={() => run(order, "claim_pickup", t("Ritiro preso in carico"))}
           >
-            Prendi in carico il ritiro
+            {t("Prendi in carico il ritiro")}
           </Button>
         )}
       </Card>
@@ -153,17 +154,17 @@ export function RiderJobsPage() {
 
   return (
     <>
-      <PageHeader title="Le mie consegne" subtitle={`Ciao ${profile.full_name || profile.email}`} />
+      <PageHeader title={t("Le mie consegne")} subtitle={t("Ciao {name}", { name: profile.full_name || profile.email })} />
 
       {isLoading ? (
         <SectionSpinner />
       ) : (
         <Flex vertical gap={24} style={{ maxWidth: 720 }}>
           <section>
-            <Typography.Title level={4}>Assegnate a me ({mine.length})</Typography.Title>
+            <Typography.Title level={4}>{t("Assegnate a me (")}{mine.length})</Typography.Title>
             {mine.length === 0 ? (
               <Card>
-                <Empty description="Nessuna consegna o ritiro assegnato" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+                <Empty description={t("Nessuna consegna o ritiro assegnato")} image={Empty.PRESENTED_IMAGE_SIMPLE} />
               </Card>
             ) : (
               <Flex vertical gap={12}>
@@ -173,10 +174,10 @@ export function RiderJobsPage() {
           </section>
 
           <section>
-            <Typography.Title level={4}>Ritiri disponibili ({available.length})</Typography.Title>
+            <Typography.Title level={4}>{t("Ritiri disponibili (")}{available.length})</Typography.Title>
             {available.length === 0 ? (
               <Card>
-                <Empty description="Nessun ritiro in attesa" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+                <Empty description={t("Nessun ritiro in attesa")} image={Empty.PRESENTED_IMAGE_SIMPLE} />
               </Card>
             ) : (
               <Flex vertical gap={12}>
@@ -188,21 +189,21 @@ export function RiderJobsPage() {
       )}
 
       <Modal
-        title="Ritiro completato"
+        title={t("Ritiro completato")}
         open={Boolean(lostFor)}
         onCancel={() => setLostFor(null)}
-        okText="Conferma ritiro"
-        cancelText="Annulla"
+        okText={t("Conferma ritiro")}
+        cancelText={t("Annulla")}
         confirmLoading={riderAction.isPending}
         onOk={() => {
           if (!lostFor) return;
-          run(lostFor, "complete_pickup", "Ritiro completato", lost);
+          run(lostFor, "complete_pickup", t("Ritiro completato"), lost);
           setLostFor(null);
         }}
         destroyOnHidden
       >
         <Typography.Paragraph>
-          Quante radioguide mancano all&apos;appello? Lascia 0 se sono rientrate tutte.
+          {t("Quante radioguide mancano all'appello? Lascia 0 se sono rientrate tutte.")}
         </Typography.Paragraph>
         <InputNumber
           min={0}

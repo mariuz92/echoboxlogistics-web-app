@@ -2,11 +2,12 @@ import type { ReactNode } from "react";
 import { Button, Card, Flex, Typography } from "antd";
 import { BulbOutlined, CheckCircleFilled, CloseOutlined, ExclamationCircleFilled, InfoCircleFilled } from "@ant-design/icons";
 import type { Insight, Tone } from "../utils";
+import { t } from "../../../i18n";
 
 const ICON: Record<Tone, { icon: ReactNode; color: string; label: string }> = {
-  warn: { icon: <ExclamationCircleFilled />, color: "#d97706", label: "Da guardare" },
-  good: { icon: <CheckCircleFilled />, color: "#16a34a", label: "Va bene" },
-  info: { icon: <InfoCircleFilled />, color: "#0284c7", label: "Da sapere" },
+  warn: { icon: <ExclamationCircleFilled />, color: "#d97706", label: t("Da guardare") },
+  good: { icon: <CheckCircleFilled />, color: "#16a34a", label: t("Va bene") },
+  info: { icon: <InfoCircleFilled />, color: "#0284c7", label: t("Da sapere") },
 };
 
 /** The findings in plain words: what changed and what to do about it. */
@@ -16,14 +17,14 @@ export function Digest({ insights, onClose }: { insights: Insight[]; onClose: ()
       size="small"
       title={
         <span>
-          <BulbOutlined /> In breve
+          <BulbOutlined /> {t("In breve")}
         </span>
       }
-      extra={<Button type="text" size="small" icon={<CloseOutlined />} aria-label="Nascondi In breve" onClick={onClose} />}
+      extra={<Button type="text" size="small" icon={<CloseOutlined />} aria-label={t("Nascondi In breve")} onClick={onClose} />}
     >
       {insights.length === 0 ? (
         <Typography.Text type="secondary">
-          Servono più ordini nel periodo per dire qualcosa di affidabile.
+          {t("Servono più ordini nel periodo per dire qualcosa di affidabile.")}
         </Typography.Text>
       ) : (
         <Flex vertical gap={14}>

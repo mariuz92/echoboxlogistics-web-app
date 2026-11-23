@@ -2,6 +2,7 @@ import type { Session } from "@supabase/supabase-js";
 import { supabase } from "../../lib/supabase";
 import { getErrorMessage } from "../../lib/errors";
 import type { Profile, Tenant } from "../../types/domain";
+import { t } from "../../i18n";
 
 export type CurrentUserResult =
   | { kind: "signed_out" }
@@ -65,7 +66,7 @@ async function fetchCurrentUser(session: Session): Promise<CurrentUserResult> {
       session,
       reason: "disabled",
       code: "disabled",
-      message: "Il tuo account è stato disabilitato. Contatta un amministratore.",
+      message: t("Il tuo account è stato disabilitato. Contatta un amministratore."),
     };
   }
 

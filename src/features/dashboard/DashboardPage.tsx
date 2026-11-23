@@ -20,6 +20,7 @@ import { StopsHeatmap } from "./components/StopsHeatmap";
 import { TrendChart } from "./components/TrendChart";
 import { usePanels } from "./usePanels";
 import { buildInsights, fmtEuro } from "./utils";
+import { t } from "../../i18n";
 
 /** Shows or hides one of the explanatory panels. */
 function PanelToggle({ on, onChange, children }: { on: boolean; onChange: (on: boolean) => void; children: ReactNode }) {
@@ -31,7 +32,7 @@ function PanelToggle({ on, onChange, children }: { on: boolean; onChange: (on: b
 }
 
 export function DashboardPage() {
-  usePageTitle("Dashboard");
+  usePageTitle(t("Dashboard"));
   const [month, setMonth] = useState<Dayjs>(dayjs().startOf("month"));
 
   const { data, isLoading, error } = useQuery({
@@ -45,11 +46,11 @@ export function DashboardPage() {
   return (
     <>
       <PageHeader
-        title="Dashboard"
-        subtitle="Cosa sta succedendo e cosa conviene decidere: incassi, radio, rider e clienti"
+        title={t("Dashboard")}
+        subtitle={t("Cosa sta succedendo e cosa conviene decidere: incassi, radio, rider e clienti")}
         actions={
           <Flex gap={4} wrap>
-            <Button aria-label="Mese precedente" icon={<LeftOutlined />} onClick={() => setMonth((m) => m.subtract(1, "month"))} />
+            <Button aria-label={t("Mese precedente")} icon={<LeftOutlined />} onClick={() => setMonth((m) => m.subtract(1, "month"))} />
             <DatePicker
               picker="month"
               allowClear={false}
@@ -58,8 +59,8 @@ export function DashboardPage() {
               format="MMMM YYYY"
               style={{ width: 170 }}
             />
-            <Button aria-label="Mese successivo" icon={<RightOutlined />} onClick={() => setMonth((m) => m.add(1, "month"))} />
-            <Button onClick={() => setMonth(dayjs().startOf("month"))}>Questo mese</Button>
+            <Button aria-label={t("Mese successivo")} icon={<RightOutlined />} onClick={() => setMonth((m) => m.add(1, "month"))} />
+            <Button onClick={() => setMonth(dayjs().startOf("month"))}>{t("Questo mese")}</Button>
           </Flex>
         }
       />
@@ -70,18 +71,18 @@ export function DashboardPage() {
       {data && (
         <Flex vertical gap={16}>
           <Flex gap={8} wrap align="center">
-            <Typography.Text type="secondary">Note:</Typography.Text>
+            <Typography.Text type="secondary">{t("Note:")}</Typography.Text>
             {alertCount > 0 && (
               <PanelToggle on={panels.isOpen("alerts")} onChange={(v) => panels.setOpen("alerts", v)}>
-                Da gestire ora ({alertCount})
+                {t("Da gestire ora (")}{alertCount})
               </PanelToggle>
             )}
             <PanelToggle on={panels.isOpen("digest")} onChange={(v) => panels.setOpen("digest", v)}>
-              In breve
+              {t("In breve")}
             </PanelToggle>
             {data.in_progress && (
               <PanelToggle on={panels.isOpen("note")} onChange={(v) => panels.setOpen("note", v)}>
-                Mese in corso
+                {t("Mese in corso")}
               </PanelToggle>
             )}
           </Flex>
@@ -90,11 +91,11 @@ export function DashboardPage() {
             <Alert
               type="info"
               showIcon
-              closable={{ onClose: () => panels.setOpen("note", false), "aria-label": "Nascondi Mese in corso" }}
-              title={`Mese in corso: i dati arrivano fino al ${dayjs(data.through).format("D MMMM")} e sono confrontati con gli stessi giorni del mese scorso.`}
+              closable={{ onClose: () => panels.setOpen("note", false), "aria-label": t("Nascondi Mese in corso") }}
+              title={t("Mese in corso: i dati arrivano fino al {date} e sono confrontati con gli stessi giorni del mese scorso.", { date: dayjs(data.through).format("D MMMM") })}
               description={
                 data.booked_ahead.orders > 0
-                  ? `Già prenotati nei giorni che restano: ${fmtNumber(data.booked_ahead.orders)} ordini, ${fmtNumber(data.booked_ahead.radios)} radio, ${fmtEuro(data.booked_ahead.revenue)}.`
+                  ? t("Già prenotati nei giorni che restano: {orders} ordini, {radios} radio, {revenue}.", { orders: fmtNumber(data.booked_ahead.orders), radios: fmtNumber(data.booked_ahead.radios), revenue: fmtEuro(data.booked_ahead.revenue) })
                   : undefined
               }
             />
@@ -103,21 +104,21 @@ export function DashboardPage() {
           {panels.isOpen("alerts") && <Alerts alerts={data.alerts} onClose={() => panels.setOpen("alerts", false)} />}
           {panels.isOpen("digest") && <Digest insights={insights} onClose={() => panels.setOpen("digest", false)} />}
 
-          <GroupTitle>Come va il lavoro</GroupTitle>
+          <GroupTitle>{t("Come va il lavoro")}</GroupTitle>
           <Kpis data={data} />
           <TrendChart data={data} />
 
-          <GroupTitle>Quante radio e quanti rider servono</GroupTitle>
+          <GroupTitle>{t("Quante radio e quanti rider servono")}</GroupTitle>
           <Capacity data={data} />
           <StopsHeatmap data={data.stops} />
 
-          <GroupTitle>I clienti</GroupTitle>
+          <GroupTitle>{t("I clienti")}</GroupTitle>
           <Guides data={data} />
 
-          <GroupTitle>Come lavori</GroupTitle>
+          <GroupTitle>{t("Come lavori")}</GroupTitle>
           <Operations data={data} />
 
-          <GroupTitle>Dove</GroupTitle>
+          <GroupTitle>{t("Dove")}</GroupTitle>
           <Locations data={data} />
         </Flex>
       )}

@@ -5,19 +5,20 @@ import { fmtEuro, fmtShare, share } from "../utils";
 import { BarList } from "./BarList";
 import { Section } from "./Section";
 import { withKeys } from "./withKeys";
+import { t } from "../../../i18n";
 
-const SOURCE_LABEL = { public_form: "Dal modulo online", dashboard: "Inseriti dall'ufficio" } as const;
+const SOURCE_LABEL = { public_form: t("Dal modulo online"), dashboard: t("Inseriti dall'ufficio") } as const;
 
 /** How orders arrive and how the team handles them. */
 export function Operations({ data }: { data: DashboardInsights }) {
   const { lead_time: lt, sources, avg_days_out, riders } = data.operations;
   const total = lt.same_day + lt.days_1_2 + lt.days_3_7 + lt.days_8_30 + lt.over_30;
   const buckets = [
-    { label: "Meno di 24 ore", value: lt.same_day },
-    { label: "1-2 giorni", value: lt.days_1_2 },
-    { label: "3-7 giorni", value: lt.days_3_7 },
-    { label: "8-30 giorni", value: lt.days_8_30 },
-    { label: "Oltre 30 giorni", value: lt.over_30 },
+    { label: t("Meno di 24 ore"), value: lt.same_day },
+    { label: t("1-2 giorni"), value: lt.days_1_2 },
+    { label: t("3-7 giorni"), value: lt.days_3_7 },
+    { label: t("8-30 giorni"), value: lt.days_8_30 },
+    { label: t("Oltre 30 giorni"), value: lt.over_30 },
   ];
   const sourceOrders = sources.reduce((acc, s) => acc + s.orders, 0);
 
@@ -25,57 +26,57 @@ export function Operations({ data }: { data: DashboardInsights }) {
     <Row gutter={[16, 16]}>
       <Col xs={24} lg={8}>
         <Section
-          title="Con quanto anticipo prenotano"
-          note="Dalla prenotazione alla consegna. Gli ordini last minute sono quelli che mettono in crisi i rider."
+          title={t("Con quanto anticipo prenotano")}
+          note={t("Dalla prenotazione alla consegna. Gli ordini last minute sono quelli che mettono in crisi i rider.")}
           empty={total === 0}
         >
           <BarList
-            ariaLabel="Anticipo delle prenotazioni"
+            ariaLabel={t("Anticipo delle prenotazioni")}
             items={buckets.map((b) => ({ label: b.label, value: b.value, text: `${fmtNumber(b.value)} · ${fmtShare(share(b.value, total))}` }))}
           />
         </Section>
       </Col>
       <Col xs={24} lg={8}>
         <Flex vertical gap={16}>
-          <Section title="Da dove arrivano gli ordini" empty={sources.length === 0}>
+          <Section title={t("Da dove arrivano gli ordini")} empty={sources.length === 0}>
             <Flex vertical gap={14}>
               {sources.map((s) => (
                 <div key={s.source}>
                   <Flex justify="space-between" gap={8}>
                     <Typography.Text strong>{SOURCE_LABEL[s.source]}</Typography.Text>
                     <Typography.Text>
-                      {fmtNumber(s.orders)} ordini · {fmtShare(share(s.orders, sourceOrders))}
+                      {fmtNumber(s.orders)} {t("ordini ·")}{" "}{fmtShare(share(s.orders, sourceOrders))}
                     </Typography.Text>
                   </Flex>
                   <Typography.Text type="secondary" style={{ fontSize: 13 }}>
-                    {fmtEuro(s.revenue)} · annullati {fmtShare(share(s.cancelled, s.orders + s.cancelled))}
+                    {fmtEuro(s.revenue)} {t("· annullati")}{" "}{fmtShare(share(s.cancelled, s.orders + s.cancelled))}
                   </Typography.Text>
                 </div>
               ))}
             </Flex>
           </Section>
-          <Section title="Quanto restano fuori le radio">
+          <Section title={t("Quanto restano fuori le radio")}>
             <Statistic
-              value={avg_days_out === null ? "n/d" : avg_days_out < 1 ? String(Math.round(avg_days_out * 24)) : String(avg_days_out).replace(".", ",")}
+              value={avg_days_out === null ? t("n/d") : avg_days_out < 1 ? String(Math.round(avg_days_out * 24)) : String(avg_days_out).replace(".", ",")}
               suffix={avg_days_out === null ? undefined : avg_days_out < 1 ? "ore" : "giorni"}
             />
             <Typography.Text type="secondary" style={{ fontSize: 13 }}>
-              Dalla consegna al ritiro, in media
+              {t("Dalla consegna al ritiro, in media")}
             </Typography.Text>
           </Section>
         </Flex>
       </Col>
       <Col xs={24} lg={8}>
-        <Section title="Carico e puntualità dei rider" note="Spostamenti = consegne + ritiri del periodo." empty={riders.length === 0}>
+        <Section title={t("Carico e puntualità dei rider")} note={t("Spostamenti = consegne + ritiri del periodo.")} empty={riders.length === 0}>
           <Table
             size="small"
             pagination={false}
             dataSource={withKeys(riders)}
             columns={[
-              { title: "Rider", dataIndex: "name", ellipsis: true },
-              { title: "Spostamenti", dataIndex: "stops", align: "right", width: 110 },
+              { title: t("Rider"), dataIndex: "name", ellipsis: true },
+              { title: t("Spostamenti"), dataIndex: "stops", align: "right", width: 110 },
               {
-                title: "Puntuali",
+                title: t("Puntuali"),
                 align: "right",
                 width: 90,
                 render: (_, r) => fmtShare(share(r.on_time, r.delivered)),
