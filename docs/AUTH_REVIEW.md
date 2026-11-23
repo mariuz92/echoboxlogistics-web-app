@@ -1,7 +1,7 @@
 # Sign-in, company creation, invitations and riders: review and plan
 
 Written after reading the code (front end, SQL, `invite-member` function, `supabase/config.toml`, browser tests). Findings marked
-**verify** depend on how the hosted Supabase project behaves and could not be checked from the repository.
+**verify** depend on how the production (self-hosted) Supabase stack is configured and could not be checked from the repository.
 
 ## 1. How it works today
 
@@ -29,7 +29,7 @@ One user belongs to exactly one company (`profiles.id` is the auth user id, with
 
 | # | Flaw | Evidence |
 |---|---|---|
-| F5 | **Invite link lifetime differs from the invitation, and recovery depends on an admin.** The e-mail link lives as long as Supabase's OTP expiry (3600 s in `config.toml`; **verify** on hosted) while the invitation row lasts 7 days. A stale link shows "Invito non valido o scaduto" and only an admin can send a new one. The function also deletes the invitation when the address already exists, even when that person has an account but no company (for example the F1 leftover), a case `bootstrap_profile()` would have resolved at their next sign-in. | `config.toml` `otp_expiry`; `invitations.expires_at`; `invite-member` error branch |
+| F5 | **Invite link lifetime differs from the invitation, and recovery depends on an admin.** The e-mail link lives as long as Supabase's OTP expiry (3600 s in `config.toml`; **verify** on the production stack, `GOTRUE_MAILER_OTP_EXP`) while the invitation row lasts 7 days. A stale link shows "Invito non valido o scaduto" and only an admin can send a new one. The function also deletes the invitation when the address already exists, even when that person has an account but no company (for example the F1 leftover), a case `bootstrap_profile()` would have resolved at their next sign-in. | `config.toml` `otp_expiry`; `invitations.expires_at`; `invite-member` error branch |
 | F6 | **One person, one company.** A second invitation to the same person (freelance rider, consultant, accountant) is refused as "already registered" or silently ignored. Someone who signs in with a different address than the invited one lands on "register your company" and can create an empty company as its admin by mistake. | `profiles` schema; `OnboardingPage` |
 | F7 | **A person who is admin and rider cannot work as a rider.** Navigation and home screen are `isAdmin ? office : rider`, so the rider screen is unreachable for dual roles, even though the database lets them be assigned jobs. | `AppLayout` (`isAdmin ? ADMIN_NAV : RIDER_NAV`), `App.tsx` `Home` |
 | F8 | **No owner, no operator.** Any admin can demote, disable or invite admins (including the founder); the only guard is "at least one active admin". Nobody can suspend a company: `tenants.is_active` is checked only by the public booking functions, so a deactivated company still signs in and works. There is no operator role or screen to create, approve or suspend companies, or to erase a user. | `update_member`; `is_active` used only in `get_public_tenant` / `create_public_order` |
@@ -68,20 +68,20 @@ One user belongs to exactly one company (`profiles.id` is the auth user id, with
 | **1. Remove the dead ends** | Account first, company second: `/register` creates only the account; after confirmation a "create your company" step shows name conflicts inline and offers "I was invited". `accept_invitation()` after the password is set. Keep the invitation when the person exists without a company. Admin and rider switch. Local-only sign-out. Browser tests for each path. | F1, F4, F5 (partly), F7 | M |
 | **2. Close abuse and add ownership** | Sign-up off or gated; `create_company` RPC and an operator table; per-company invite quota and generic error for other companies' accounts; `owner` flag and transfer; `is_active` enforced; ban on disable; consent stored. | F2, F3, F8, F9 | M |
 | **3. Rider experience** | Invite by link or QR (`generateLink`), self-service "send me a new link" on the join page, optional passwordless sign-in, long sessions, installable app. | F5, rider friction | M |
-| **4. Hardening** | MFA for admins, current password to change it, audit log (`member_events`), a checklist of hosted Auth settings (OTP expiry, password policy, confirmations, captcha, SMTP) kept in `docs/DEPLOYMENT.md`. | F10 | S–M |
+| **4. Hardening** | MFA for admins, current password to change it, audit log (`member_events`), a checklist of the production Auth settings (OTP expiry, password policy, confirmations, captcha, SMTP) kept in `docs/DEPLOYMENT.md`. | F10 | S–M |
 | **5. Only if needed** | Memberships (a person in several companies) with a company switcher. | F6 | L |
 
 Phases 1 and 2 change the database (new RPCs, a column, a table), the `invite-member` function and the Team and join screens. Every phase comes with pgTAP and browser tests; the existing sign-up and invitation specs (`e2e/register.spec.ts`, `e2e/team.spec.ts`) change with it.
 
-## 6. To verify on the hosted Supabase project
+## 6. To verify on the production (self-hosted) Supabase stack
 
 - The e-mail OTP expiry that applies to invitation links.
 - What `inviteUserByEmail` does for an address that has an unconfirmed account (does the earlier password survive?).
 - The default scope of `signOut()` in the installed `supabase-js`.
-- That "confirm e-mail", the password policy and the e-mail rate limits on the hosted project match `config.toml`.
+- That "confirm e-mail", the password policy and the e-mail rate limits on the production stack (GoTrue environment variables) match `config.toml`.
 - Which captcha providers the project plan supports.
 
 ## 7. Related: the two domains
 
-The landing page now has no login and no environment variables. With the app on its own domain, Supabase's **Site URL** and
+The landing page now has no login and no environment variables. With the app on its own domain, Supabase's Auth's **Site URL** and
 **Redirect URLs** should list only the app domain. `ALLOWED_ORIGINS` must list the app domain and the landing domain (the contact form).
