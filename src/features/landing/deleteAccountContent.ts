@@ -82,7 +82,7 @@ const it: DeleteContent = {
     {
       what: "Storico degli ordini dell'azienda (consegne, ritiri, canali, importi)",
       why: "Contabilità, fatturazione e gestione di eventuali contestazioni dell'azienda.",
-      how: "Il tuo nome viene tolto: il rider assegnato diventa «utente eliminato». Resta fino a 10 anni se serve per obblighi contabili, poi viene cancellato.",
+      how: "Il tuo nome viene tolto: il rider assegnato diventa «utente eliminato». In Italia resta fino a 10 anni se serve per obblighi contabili, poi viene cancellato.",
     },
     {
       what: "Dati di fatturazione e registri richiesti dalla legge",
@@ -92,7 +92,7 @@ const it: DeleteContent = {
     {
       what: "Copie di sicurezza (backup)",
       why: "Ripristino in caso di guasto.",
-      how: "I dati eliminati escono dai backup man mano che questi vengono sostituiti, entro 35 giorni circa.",
+      how: "I dati eliminati escono dai backup man mano che questi vengono sostituiti, entro 30 giorni.",
     },
   ],
   timingTitle: "Tempi",
@@ -159,7 +159,7 @@ const en: DeleteContent = {
     {
       what: "The company's order history (deliveries, pickups, channels, amounts)",
       why: "Bookkeeping, invoicing and handling any dispute of the company.",
-      how: "Your name is removed: the assigned rider becomes “deleted user”. It stays for up to 10 years where needed for accounting obligations, then it is deleted.",
+      how: "Your name is removed: the assigned rider becomes “deleted user”. In Italy it stays for up to 10 years where needed for accounting obligations, then it is deleted.",
     },
     {
       what: "Invoicing data and records required by law",
@@ -169,7 +169,7 @@ const en: DeleteContent = {
     {
       what: "Backups",
       why: "Recovery after a failure.",
-      how: "Deleted data leaves the backups as they are replaced, within about 35 days.",
+      how: "Deleted data leaves the backups as they are replaced, within 30 days.",
     },
   ],
   timingTitle: "Timing",
@@ -236,7 +236,7 @@ const de: DeleteContent = {
     {
       what: "Auftragshistorie des Unternehmens (Lieferungen, Abholungen, Kanäle, Beträge)",
       why: "Buchhaltung, Rechnungsstellung und Klärung möglicher Streitfälle des Unternehmens.",
-      how: "Ihr Name wird entfernt: Der zugewiesene Fahrer wird zu „gelöschter Nutzer“. Die Daten bleiben bis zu 10 Jahre, wenn buchhalterische Pflichten dies verlangen, und werden dann gelöscht.",
+      how: "Ihr Name wird entfernt: Der zugewiesene Fahrer wird zu „gelöschter Nutzer“. In Italien bleiben die Daten bis zu 10 Jahre, wenn buchhalterische Pflichten dies verlangen, und werden dann gelöscht.",
     },
     {
       what: "Rechnungsdaten und gesetzlich vorgeschriebene Aufzeichnungen",
@@ -246,7 +246,7 @@ const de: DeleteContent = {
     {
       what: "Sicherungskopien (Backups)",
       why: "Wiederherstellung nach einer Störung.",
-      how: "Gelöschte Daten verschwinden aus den Backups, sobald diese ersetzt werden, nach etwa 35 Tagen.",
+      how: "Gelöschte Daten verschwinden aus den Backups, sobald diese ersetzt werden, innerhalb von 30 Tagen.",
     },
   ],
   timingTitle: "Fristen",
@@ -313,7 +313,7 @@ const fr: DeleteContent = {
     {
       what: "Historique des commandes de l'entreprise (livraisons, reprises, canaux, montants)",
       why: "Comptabilité, facturation et traitement d'éventuels litiges de l'entreprise.",
-      how: "Votre nom est retiré : le livreur affecté devient « utilisateur supprimé ». Les données restent jusqu'à 10 ans si des obligations comptables l'exigent, puis sont supprimées.",
+      how: "Votre nom est retiré : le livreur affecté devient « utilisateur supprimé ». En Italie, les données restent jusqu'à 10 ans si des obligations comptables l'exigent, puis sont supprimées.",
     },
     {
       what: "Données de facturation et registres exigés par la loi",
@@ -323,7 +323,7 @@ const fr: DeleteContent = {
     {
       what: "Sauvegardes",
       why: "Restauration après une panne.",
-      how: "Les données supprimées disparaissent des sauvegardes à mesure qu'elles sont remplacées, en 35 jours environ.",
+      how: "Les données supprimées disparaissent des sauvegardes à mesure qu'elles sont remplacées, en 30 jours au plus.",
     },
   ],
   timingTitle: "Délais",
