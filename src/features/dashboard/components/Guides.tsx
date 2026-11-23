@@ -54,7 +54,7 @@ export function Guides({ data }: { data: DashboardInsights }) {
           >
             <Table
               size="small"
-              rowKey="name"
+              rowKey={(_, n) => String(n)}
               pagination={false}
               dataSource={g.win_back}
               locale={{ emptyText: "Nessuna guida inattiva da recuperare" }}
@@ -73,7 +73,7 @@ export function Guides({ data }: { data: DashboardInsights }) {
             <Section title="Chi perde radio" note="Per chi succede più spesso, valuta una cauzione.">
               <Table
                 size="small"
-                rowKey="name"
+                rowKey={(_, n) => String(n)}
                 pagination={false}
                 dataSource={g.losses}
                 columns={[

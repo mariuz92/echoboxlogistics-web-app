@@ -68,7 +68,7 @@ export function Operations({ data }: { data: DashboardInsights }) {
         <Section title="Carico e puntualità dei rider" note="Spostamenti = consegne + ritiri del periodo." empty={riders.length === 0}>
           <Table
             size="small"
-            rowKey="name"
+            rowKey={(_, n) => String(n)}
             pagination={false}
             dataSource={riders}
             columns={[

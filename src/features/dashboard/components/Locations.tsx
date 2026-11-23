@@ -14,7 +14,7 @@ export function Locations({ data }: { data: DashboardInsights }) {
     >
       <Table
         size="small"
-        rowKey="location"
+        rowKey={(_, n) => String(n)}
         pagination={false}
         dataSource={data.locations}
         columns={[

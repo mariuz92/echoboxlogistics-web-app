@@ -17,8 +17,8 @@ export function BarList({ items, ariaLabel }: { items: BarItem[]; ariaLabel: str
   const max = Math.max(1, ...items.map((i) => i.value));
   return (
     <ul aria-label={ariaLabel} style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 12 }}>
-      {items.map((i) => (
-        <li key={i.label}>
+      {items.map((i, n) => (
+        <li key={`${n}-${i.label}`}>
           <div style={{ display: "flex", justifyContent: "space-between", gap: 12, marginBottom: 4 }}>
             <Typography.Text ellipsis style={{ minWidth: 0 }}>
               {i.label}
