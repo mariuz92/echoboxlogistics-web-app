@@ -1,5 +1,6 @@
 /// <reference types="vitest/config" />
-import { rmSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { readdirSync, readFileSync, rmSync } from "node:fs";
 import { resolve } from "node:path";
 import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
@@ -28,12 +29,30 @@ function dropAppOnlyFiles(): Plugin {
   };
 }
 
+/**
+ * A short fingerprint of each landing screenshot (public/images/screens/<id>.webp|jpg), e.g.
+ * { "crop-dashboard": "1eae54f1" }. The landing adds it to the image URL (?v=…), so a replaced
+ * screenshot gets a new address and is never served from a browser or CDN cache that still holds
+ * the old picture under the same name.
+ */
+function screenshotVersions(): Record<string, string> {
+  const dir = resolve(__dirname, "public/images/screens");
+  const hashes: Record<string, ReturnType<typeof createHash>> = {};
+  for (const file of readdirSync(dir).sort()) {
+    const m = /^(.+)\.(webp|jpg)$/.exec(file);
+    if (!m) continue;
+    (hashes[m[1]] ??= createHash("sha1")).update(readFileSync(resolve(dir, file)));
+  }
+  return Object.fromEntries(Object.entries(hashes).map(([id, h]) => [id, h.digest("hex").slice(0, 8)]));
+}
+
 export default defineConfig(({ mode }) => {
   if (mode === "landing") {
     return {
       root: resolve(__dirname, "landing"),
       publicDir: resolve(__dirname, "public"),
       plugins: [react(), dropAppOnlyFiles()],
+      define: { __SHOT_VERSIONS__: JSON.stringify(screenshotVersions()) },
       // Never expose anything from .env files to the marketing site.
       envPrefix: "LANDING_NEVER_",
       server: { port: 5174, host: true, fs: { allow: [resolve(__dirname)] } },

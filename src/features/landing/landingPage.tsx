@@ -35,12 +35,18 @@ const SECTION_SHOTS: Record<SectionId, { shot: ShotId; kind: "tall" | "modal" | 
   stats: { shot: "crop-dashboard", kind: "bleed" },
 };
 
+/** "?v=<fingerprint>" so a changed screenshot is not served from a cache that holds the old one. */
+const version = (id: ShotId) => {
+  const v = typeof __SHOT_VERSIONS__ === "undefined" ? undefined : __SHOT_VERSIONS__[id];
+  return v ? `?v=${v}` : "";
+};
+
 function Shot({ id, alt, eager = false }: { id: ShotId; alt: string; eager?: boolean }) {
   return (
     <picture>
-      <source type="image/webp" srcSet={`/images/screens/${id}.webp`} />
+      <source type="image/webp" srcSet={`/images/screens/${id}.webp${version(id)}`} />
       <img
-        src={`/images/screens/${id}.jpg`}
+        src={`/images/screens/${id}.jpg${version(id)}`}
         alt={alt}
         width={SHOTS[id].w}
         height={SHOTS[id].h}
