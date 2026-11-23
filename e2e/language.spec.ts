@@ -20,7 +20,8 @@ test.describe("interface language", () => {
   test("the language switch on the page changes the language", async ({ page }) => {
     await page.goto("/login");
     await page.getByRole("combobox", { name: "Language / Lingua" }).click();
-    await page.getByRole("option", { name: "English" }).click();
+    // antd also renders a hidden copy of the options for screen readers; the visible one has this title
+    await page.getByTitle("English").click();
     await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
   });
 
