@@ -153,6 +153,12 @@ test.describe("orders (admin)", () => {
     await expect(channelInput(page)).toHaveValue(channelLabel.replace("Canale ", ""));
     await expect(drawer.getByText(`${channelLabel} libero in questi orari`)).toBeVisible();
 
+    await drawer.getByRole("button", { name: "Canali occupati" }).click();
+    const occupied = page.getByRole("dialog", { name: "Canali occupati" });
+    await expect(occupied.getByText(/canal[ei] occupat[oi] in questi orari/)).toBeVisible();
+    await expect(occupied.getByRole("row").filter({ hasText: guide })).toHaveCount(0);
+    await occupied.getByRole("button", { name: "Chiudi", exact: true }).last().click();
+
     await drawer.locator("#radios_count").fill("21");
     await drawer.locator("#notes").fill("Note aggiornate dal test");
     await drawer.getByRole("button", { name: "Salva modifiche" }).click();
@@ -260,6 +266,20 @@ test.describe("orders (admin)", () => {
     await expect(occupied.getByRole("row").filter({ hasText: guide })).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(occupied).toBeHidden();
+
+    await page.getByRole("button", { name: "Nuovo ordine" }).click();
+    const drawer = page.getByRole("dialog", { name: "Nuovo ordine" });
+    const channel = drawer.locator("#radio_channel");
+    const range = await drawer.getByText(/I tuoi canali vanno da \d+ a \d+/).innerText();
+    const max = Number(range.match(/a (\d+)\./)?.[1]);
+    await expect(channel).toHaveAttribute("max", String(max));
+    await channel.fill(String(max + 1));
+    await expect(drawer.getByText(new RegExp(`Inserisci un numero intero da \\d+ a ${max}\\.`))).toBeVisible();
+    await drawer.getByRole("button", { name: "Canali occupati" }).click();
+    await expect(occupied.getByRole("row").filter({ hasText: guide })).toContainText("33");
+    await expect(occupied.getByLabel("Giorno")).toHaveCount(0);
+    await occupied.getByRole("button", { name: "Chiudi", exact: true }).last().click();
+    await closeDrawer(page);
 
     // disable channel 34 in the settings
     await page.goto("/settings");

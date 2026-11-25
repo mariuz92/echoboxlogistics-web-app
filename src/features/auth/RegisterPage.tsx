@@ -1,8 +1,10 @@
 import { useRegister } from "@refinedev/core";
-import { Alert, Button, Checkbox, Col, Form, Input, Row } from "antd";
+import { Alert, Button, Checkbox, Col, Form, Input, Row, Typography } from "antd";
 import { Link } from "react-router";
 import { AuthShell } from "./AuthShell";
 import { confirmPasswordRule, passwordRules, phoneRules } from "./validators";
+import { usePlatformSettings } from "../platform/runtime";
+import { FullPageSpinner } from "../../shared/components/Screens";
 import type { RegisterParams } from "../../providers/auth-provider";
 import { t } from "../../i18n";
 
@@ -13,6 +15,18 @@ interface RegisterValues extends RegisterParams {
 
 export function RegisterPage() {
   const { mutate: register, isPending } = useRegister<RegisterParams>();
+  const { settings, isPending: settingsPending } = usePlatformSettings();
+
+  if (settingsPending) return <FullPageSpinner />;
+  if (settings.operator_only_companies) {
+    return (
+      <AuthShell title={t("Accesso su invito")} footer={<Link to="/login">{t("Torna all’accesso")}</Link>}>
+        <Typography.Text type="secondary">
+          {t("Per accedere alla tua azienda, apri il link di invito che hai ricevuto via email.")}
+        </Typography.Text>
+      </AuthShell>
+    );
+  }
 
   return (
     <AuthShell

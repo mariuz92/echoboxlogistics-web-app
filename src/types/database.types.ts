@@ -486,6 +486,28 @@ export type Database = {
       }
     }
     Functions: {
+      accept_platform_invitation: {
+        Args: never
+        Returns: {
+          avatar_url: string | null
+          created_at: string
+          disabled: boolean
+          email: string
+          full_name: string
+          id: string
+          last_login_at: string | null
+          phone: string | null
+          roles: Database["public"]["Enums"]["app_role"][]
+          tenant_id: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "profiles"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       admin_set_status: {
         Args: {
           p_order_id: string
@@ -585,6 +607,13 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      claim_push_deliveries: {
+        Args: { p_limit?: number }
+        Returns: {
+          delivery_id: string
+          lease_id: string
+        }[]
+      }
       create_public_order: {
         Args: {
           p_delivery_address: string
@@ -599,6 +628,17 @@ export type Database = {
           p_slug: string
         }
         Returns: string
+      }
+      finish_push_delivery: {
+        Args: {
+          p_code?: string
+          p_delivery_id: string
+          p_lease_id: string
+          p_result: string
+          p_retry_after?: number
+          p_token?: string
+        }
+        Returns: undefined
       }
       get_channel_board: {
         Args: { p_from: string; p_to: string }
@@ -622,6 +662,72 @@ export type Database = {
           slug: string
           timezone: string
         }[]
+      }
+      platform_company_access: { Args: never; Returns: string }
+      platform_console_action: {
+        Args: { p_action: string; p_values: Json }
+        Returns: Json
+      }
+      platform_console_snapshot: {
+        Args: { p_search?: string; p_tenant_id?: string }
+        Returns: Json
+      }
+      platform_finish_invitation: {
+        Args: { p_attempt_id: string; p_invitation_id: string; p_state: string }
+        Returns: boolean
+      }
+      platform_issue_detail: { Args: { p_issue_id: string }; Returns: Json }
+      platform_issue_queue: {
+        Args: {
+          p_offset?: number
+          p_search?: string
+          p_severity?: string
+          p_source?: string
+          p_state?: string
+          p_tenant_id?: string
+        }
+        Returns: Json
+      }
+      platform_issue_triage: {
+        Args: {
+          p_assignee_id?: string
+          p_issue_id: string
+          p_reason: string
+          p_severity: string
+          p_state: string
+          p_version: number
+        }
+        Returns: undefined
+      }
+      platform_operator_status: { Args: never; Returns: string }
+      platform_order_history: {
+        Args: { p_order_id: string; p_tenant_id: string }
+        Returns: Json
+      }
+      platform_pending_invitation: { Args: never; Returns: Json }
+      platform_runtime_settings: { Args: never; Returns: Json }
+      read_push_delivery: {
+        Args: { p_delivery_id: string; p_lease_id: string }
+        Returns: {
+          expires_at: string
+          kind: string
+          leg: string
+          order_id: string
+          token: string
+        }[]
+      }
+      register_push_device: {
+        Args: { p_device_id: string; p_platform: string; p_token: string }
+        Returns: undefined
+      }
+      report_platform_issue: {
+        Args: {
+          p_area: string
+          p_build?: string
+          p_code: string
+          p_source: string
+        }
+        Returns: string
       }
       rider_order_action: {
         Args: { p_action: string; p_lost?: number; p_order_id: string }
@@ -661,6 +767,10 @@ export type Database = {
         }
       }
       touch_login: { Args: never; Returns: undefined }
+      unregister_push_device: {
+        Args: { p_device_id: string }
+        Returns: undefined
+      }
       update_member: {
         Args: {
           p_disabled?: boolean

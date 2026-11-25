@@ -158,3 +158,7 @@ patched `picomatch` is released.
 | Login works but the app says the account is not linked to a company | The user signed up without `company_name` and has no invitation: register a company or invite them |
 | `curl http://localhost:8080` hangs on Windows | curl resolves `localhost` to IPv6 first; use `127.0.0.1` |
 | Invitation link opens `/login` instead of `/join` | The redirect URL is not in Supabase *Auth → URL Configuration* |
+
+## Superadmin console
+
+Run `npm run dev:console` from the web checkout. The console runs on port 5175 and reads the same local Supabase URL and public key as the customer web app. Use a dedicated confirmed local Auth account and provision it with the SQL in the [deployment instructions](DEPLOYMENT.md#5-deploy-the-superadmin-console). Complete authenticator enrollment on first sign-in. `npm run build:console` writes the static bundle to `dist-console/`.

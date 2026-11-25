@@ -21,8 +21,7 @@ interface JoinValues {
 /**
  * Landing page of the invitation email.
  * The link signs the invitee in; here they choose a password and confirm their
- * details. The membership itself is created by public.bootstrap_profile(),
- * which matches the invitation on the (verified) email address.
+ * details. Operator invitations become active after explicit acceptance.
  */
 export function JoinPage() {
   const { message } = App.useApp();
@@ -30,6 +29,7 @@ export function JoinPage() {
   const { refresh } = useCurrentUser();
   const [state, setState] = useState<"checking" | "ready" | "invalid">("checking");
   const [saving, setSaving] = useState(false);
+  const [explicit, setExplicit] = useState(false);
   const [companyName, setCompanyName] = useState<string>("");
   const [initial, setInitial] = useState<Partial<JoinValues>>({});
 
@@ -50,6 +50,18 @@ export function JoinPage() {
       if (current.kind === "ready") {
         setCompanyName(current.tenant.name);
         setInitial({ name: current.profile.full_name, phone: current.profile.phone ?? "" });
+        setState("ready");
+      } else if (current.kind === "pending_invite") {
+        const { data, error } = await supabase.rpc("platform_pending_invitation");
+        if (!active) return;
+        const details = data as { company?: string; full_name?: string | null } | null;
+        if (error || !details?.company) {
+          setState("invalid");
+          return;
+        }
+        setCompanyName(details.company);
+        setInitial({ name: details.full_name ?? "" });
+        setExplicit(true);
         setState("ready");
       } else {
         setState("invalid");
@@ -78,6 +90,10 @@ export function JoinPage() {
         data: { full_name: values.name.trim(), phone: values.phone?.trim() || undefined },
       });
       if (error) throw error;
+      if (explicit) {
+        const { error: acceptanceError } = await supabase.rpc("accept_platform_invitation");
+        if (acceptanceError) throw acceptanceError;
+      }
 
       const current = await loadCurrentUser(true);
       if (current.kind === "ready") {

@@ -81,6 +81,13 @@ describe("channelWindowEnd", () => {
     expect(channelWindowEnd("2026-07-10T08:00:00.000Z", null, tz)).toBe("2026-07-10T22:00:00.000Z");
   });
 
+  it.each([
+    ["2026-03-29T07:00:00.000Z", "2026-03-29T22:00:00.000Z"],
+    ["2026-10-25T08:00:00.000Z", "2026-10-25T23:00:00.000Z"],
+  ])("uses the next midnight's offset when the clocks change on %s", (delivery, midnight) => {
+    expect(channelWindowEnd(delivery, null, tz)).toBe(midnight);
+  });
+
   it("never lasts less than a minute", () => {
     expect(channelWindowEnd("2026-07-10T08:00:00.000Z", "2026-07-10T08:00:00.000Z", tz)).toBe("2026-07-10T08:01:00.000Z");
   });

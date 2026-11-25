@@ -50,6 +50,7 @@ export const authProvider: AuthProvider = {
       void supabase.rpc("touch_login");
       return { success: true, redirectTo: "/" };
     }
+    if (current.kind === "pending_invite") return { success: true, redirectTo: "/join" };
     if (current.kind === "needs_company") {
       return { success: true, redirectTo: "/onboarding" };
     }
@@ -62,6 +63,12 @@ export const authProvider: AuthProvider = {
   register: async ({ email, password, companyName, name, phoneNumber }: RegisterParams) => {
     if (!email || !password || !companyName?.trim()) {
       return authError(t("Compila tutti i campi obbligatori."), t("Registrazione non riuscita"));
+    }
+
+    const { data: settings, error: settingsError } = await supabase.rpc("platform_runtime_settings");
+    if (settingsError) return authError(getErrorMessage(settingsError), t("Registrazione non riuscita"));
+    if (settings && typeof settings === "object" && "operator_only_companies" in settings && settings.operator_only_companies) {
+      return authError(getErrorMessage("invitation_required"), t("Registrazione non riuscita"));
     }
 
     const { data, error } = await supabase.auth.signUp({
@@ -141,6 +148,7 @@ export const authProvider: AuthProvider = {
   check: async () => {
     const current = await loadCurrentUser();
     if (current.kind === "ready") return { authenticated: true };
+    if (current.kind === "pending_invite") return { authenticated: false, redirectTo: "/join" };
     if (current.kind === "needs_company") {
       return { authenticated: false, redirectTo: "/onboarding" };
     }

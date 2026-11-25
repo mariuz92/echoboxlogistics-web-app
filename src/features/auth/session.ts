@@ -1,14 +1,16 @@
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "../../lib/supabase";
 import { getErrorMessage } from "../../lib/errors";
+import type { AccessMode } from "../platform/api";
 import type { Profile, Tenant } from "../../types/domain";
 import { t } from "../../i18n";
 
 export type CurrentUserResult =
   | { kind: "signed_out" }
-  | { kind: "ready"; session: Session; profile: Profile; tenant: Tenant }
+  | { kind: "ready"; session: Session; profile: Profile; tenant: Tenant; accessMode: AccessMode }
   /** Signed in, but not attached to any company yet (e.g. first Google login). */
   | { kind: "needs_company"; session: Session }
+  | { kind: "pending_invite"; session: Session }
   | {
       kind: "blocked";
       session: Session | null;
@@ -42,6 +44,7 @@ async function fetchCurrentUser(session: Session): Promise<CurrentUserResult> {
   if (!profile) {
     const { data: created, error: bootstrapError } = await supabase.rpc("bootstrap_profile");
     if (bootstrapError) {
+      if (bootstrapError.message === "invitation_pending") return { kind: "pending_invite", session };
       if (bootstrapError.message === "no_company") {
         return { kind: "needs_company", session };
       }
@@ -70,6 +73,17 @@ async function fetchCurrentUser(session: Session): Promise<CurrentUserResult> {
     };
   }
 
+  const { data: accessMode, error: accessError } = await supabase.rpc("platform_company_access");
+  if (accessError) {
+    return { kind: "blocked", session, reason: "error", message: getErrorMessage(accessError) };
+  }
+  if (accessMode === "suspended") {
+    return {
+      kind: "blocked", session, reason: "disabled", code: "company_suspended",
+      message: getErrorMessage("company_suspended"),
+    };
+  }
+
   // 3) Company
   const { data: tenant, error: tenantError } = await supabase
     .from("tenants")
@@ -81,7 +95,7 @@ async function fetchCurrentUser(session: Session): Promise<CurrentUserResult> {
     return { kind: "blocked", session, reason: "error", message: getErrorMessage(tenantError) };
   }
 
-  return { kind: "ready", session, profile, tenant };
+  return { kind: "ready", session, profile, tenant, accessMode: accessMode as AccessMode };
 }
 
 /**

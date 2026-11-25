@@ -1,5 +1,5 @@
 import type { Database, Tables } from "./database.types";
-import { dayjs } from "../lib/dates";
+import { dayjs, getPeriodRange } from "../lib/dates";
 import { t } from "../i18n";
 
 export type OrderStatus = Database["public"]["Enums"]["order_status"];
@@ -193,7 +193,7 @@ export const channelCount = (s: Pick<ChannelSettings, "channel_min" | "channel_m
  */
 export function channelWindowEnd(deliveryIso: string, pickupIso: string | null | undefined, tz: string): string {
   const delivery = dayjs(deliveryIso);
-  const end = pickupIso ? dayjs(pickupIso) : dayjs(deliveryIso).tz(tz).startOf("day").add(1, "day");
+  const end = dayjs(pickupIso ?? getPeriodRange(delivery.tz(tz), "day", tz).to);
   const min = delivery.add(1, "minute");
   return (end.isBefore(min) ? min : end).toISOString();
 }

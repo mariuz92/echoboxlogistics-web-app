@@ -36,3 +36,6 @@ yarn-error.log*
 
 # Marketing site build output
 dist-landing
+
+# Operator console output
+/dist-console

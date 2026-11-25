@@ -1,0 +1,21 @@
+# Apply after compose.echobox.yml on the pinned Supabase bundle.
+services:
+  api-gw:
+    depends_on: !override
+      auth:
+        condition: service_healthy
+      rest:
+        condition: service_healthy
+      realtime:
+        condition: service_healthy
+
+  studio:
+    profiles: [studio]
+  meta:
+    profiles: [studio]
+  storage:
+    profiles: [storage]
+  imgproxy:
+    profiles: [storage]
+  supavisor:
+    profiles: [pooler]

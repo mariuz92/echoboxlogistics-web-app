@@ -18,6 +18,13 @@ const MESSAGES: Record<string, string> = {
   // Onboarding / auth
   company_exists:
     t("Esiste già un'azienda con questo nome. Chiedi a un amministratore di invitarti."),
+  company_suspended: t("L’azienda è sospesa. Contatta il supporto EchoBox."),
+  write_not_applied: t("L’operazione non è consentita o il record non è più disponibile."),
+  company_access_restricted: t("Questa operazione non è disponibile con l’accesso attuale dell’azienda."),
+  invitation_required: t("Per accedere a un’azienda è necessario un invito."),
+  invitation_unavailable: t("L’invito non è valido o è scaduto."),
+  invitation_password_required: t("Completa la scelta della password prima di accettare l’invito."),
+  transfer_company_owner_first: t("Trasferisci prima la proprietà dell’azienda."),
   no_company:
     t("Il tuo account non è collegato a nessuna azienda. Registra la tua azienda o chiedi un invito."),
   email_not_confirmed: t("Conferma prima il tuo indirizzo email."),

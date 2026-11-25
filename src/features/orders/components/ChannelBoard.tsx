@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { App, Button, DatePicker, Flex, Input, InputNumber, Modal, Switch, Table, Typography } from "antd";
+import { Alert, App, Button, DatePicker, Flex, Input, InputNumber, Modal, Switch, Table, Typography } from "antd";
 import { SaveOutlined } from "@ant-design/icons";
 import { useQueryClient } from "@tanstack/react-query";
 import { useReadyUser } from "../../../providers/current-user";
 import { getErrorMessage } from "../../../lib/errors";
-import { dayjs, fmtDateTime, fmtTime, isoToWallClock, type Dayjs } from "../../../lib/dates";
+import { dayjs, fmtDateTime, fmtTime, getPeriodRange, isoToWallClock, type DateRange, type Dayjs } from "../../../lib/dates";
 import { StatusTag } from "../../../shared/components/StatusTag";
 import { MAX_CHANNELS, channelCount, formatChannelList, parseChannelList, type ChannelUse } from "../../../types/domain";
 import { updateTenant } from "../../settings/api";
@@ -15,11 +15,6 @@ interface ChannelBoardProps {
   open: boolean;
   onClose: () => void;
 }
-
-const dayBounds = (day: Dayjs, tz: string) => {
-  const from = dayjs.tz(day.format("YYYY-MM-DD"), tz);
-  return { from: from.toISOString(), to: from.add(1, "day").toISOString() };
-};
 
 /**
  * Radio channel settings, for any equipment (1 to 10,000 channels). Channels are
@@ -176,10 +171,12 @@ export function ChannelSettings({ open, onClose }: ChannelBoardProps) {
 }
 
 /**
- * Occupied radio channels on a day: who has which channel and when. A channel is
- * occupied from delivery to pickup (or to the end of the day without a pickup).
+ * Lists channel use for a selected day or for the schedule in the order form.
  */
-export function OccupiedChannels({ open, onClose }: ChannelBoardProps) {
+export function OccupiedChannels({ open, onClose, period, excludeOrderId }: ChannelBoardProps & {
+  period?: DateRange;
+  excludeOrderId?: string;
+}) {
   const { timezone } = useReadyUser();
   const [day, setDay] = useState<Dayjs>(() => isoToWallClock(new Date().toISOString(), timezone));
   const [search, setSearch] = useState("");
@@ -188,8 +185,9 @@ export function OccupiedChannels({ open, onClose }: ChannelBoardProps) {
     if (open) setSearch("");
   }, [open]);
 
-  const range = useMemo(() => dayBounds(day, timezone), [day, timezone]);
-  const { data: uses = [], isFetching } = useChannelBoard(range, open);
+  const range = useMemo(() => period ?? getPeriodRange(day, "day", timezone), [period, day, timezone]);
+  const { data, isPlaceholderData, isFetching, isError, refetch } = useChannelBoard(range, open);
+  const uses = isPlaceholderData ? [] : (data ?? []).filter((use) => use.order_id !== excludeOrderId);
 
   const q = search.trim().toLowerCase();
   const rows = q
@@ -208,13 +206,19 @@ export function OccupiedChannels({ open, onClose }: ChannelBoardProps) {
     >
       <Flex vertical gap={12}>
         <Flex align="center" gap={8} wrap>
-          <DatePicker
-            aria-label={t("Giorno")}
-            value={day}
-            onChange={(d) => d && setDay(d)}
-            format="DD/MM/YYYY"
-            allowClear={false}
-          />
+          {period ? (
+            <Typography.Text strong>
+              {fmtDateTime(range.from, timezone)} – {fmtDateTime(range.to, timezone)}
+            </Typography.Text>
+          ) : (
+            <DatePicker
+              aria-label={t("Giorno")}
+              value={day}
+              onChange={(d) => d && setDay(d)}
+              format="DD/MM/YYYY"
+              allowClear={false}
+            />
+          )}
           <Input.Search
             aria-label={t("Cerca canale o guida")}
             placeholder={t("Canale o guida")}
@@ -223,20 +227,35 @@ export function OccupiedChannels({ open, onClose }: ChannelBoardProps) {
             onChange={(e) => setSearch(e.target.value)}
             style={{ maxWidth: 240 }}
           />
-          <Typography.Text type="secondary">
-            {tn(channels, "{n} canale occupato in questa giornata", "{n} canali occupati in questa giornata")}
-          </Typography.Text>
+          {data && !isPlaceholderData && !isError && (
+            <Typography.Text type="secondary">
+              {period
+                ? tn(channels, "{n} canale occupato in questi orari", "{n} canali occupati in questi orari")
+                : tn(channels, "{n} canale occupato in questa giornata", "{n} canali occupati in questa giornata")}
+            </Typography.Text>
+          )}
         </Flex>
         <Typography.Text type="secondary">
           {t("Un canale è occupato dalla consegna al ritiro, o fino a fine giornata se il ritiro non è pianificato.")}
         </Typography.Text>
-        <Table<ChannelUse>
+        {isError ? (
+          <Alert
+            type="warning"
+            showIcon
+            title={t("Impossibile caricare i canali occupati.")}
+            action={<Button size="small" onClick={() => void refetch()}>{t("Riprova")}</Button>}
+          />
+        ) : <Table<ChannelUse>
           size="small"
           rowKey={(u) => `${u.channel}-${u.order_id}`}
           dataSource={rows}
           loading={isFetching && uses.length === 0}
           pagination={rows.length > 10 ? { pageSize: 10, size: "small", showSizeChanger: false } : false}
-          locale={{ emptyText: q ? t("Nessun canale occupato corrisponde alla ricerca") : t("Nessun canale occupato in questa giornata") }}
+          locale={{ emptyText: q
+            ? t("Nessun canale occupato corrisponde alla ricerca")
+            : period ? t("Nessun canale occupato in questi orari") : t("Nessun canale occupato in questa giornata")
+          }}
+          scroll={{ x: 520 }}
           columns={[
             { title: t("Canale"), dataIndex: "channel", width: 80 },
             { title: t("Guida"), dataIndex: "guide_name", ellipsis: true },
@@ -252,7 +271,7 @@ export function OccupiedChannels({ open, onClose }: ChannelBoardProps) {
             },
             { title: t("Stato"), dataIndex: "status", render: (s) => <StatusTag status={s} /> },
           ]}
-        />
+        />}
       </Flex>
     </Modal>
   );

@@ -1,6 +1,6 @@
 # TODO
 
-Backlog agreed on 2026-11-20. Nothing here is built yet. The reasoning and the evidence behind the auth items are in
+Backlog agreed on 2026-11-20. Checked items are implemented in this repository. The reasoning and the evidence behind the auth items are in
 [AUTH_REVIEW.md](AUTH_REVIEW.md) (flaw ids F1 to F10 refer to it).
 
 ## Decisions taken
@@ -16,25 +16,43 @@ Backlog agreed on 2026-11-20. Nothing here is built yet. The reasoning and the e
 
 ## 1. Superadmin panel (operator console)
 
-A separate app on its own domain, like the landing page, with its own sign-in and mandatory two-step verification. Access is
-limited to a `platform_admins` table. The browser never holds the service-role key: every privileged action is an Edge Function
-that first checks the caller is a platform admin.
+The [Superadmin requirements](SUPERADMIN.md) cover the complete console, including company subscriptions, web and mobile diagnostics, configuration, and delivery stages.
 
-- [ ] `platform_admins` table, a sign-in for operators, and the separate build and deployment (`npm run build:console`).
-- [ ] Companies: list, create (name + first admin's e-mail → invited as owner), suspend and reactivate. Suspension is enforced in `private.current_tenant_id()` (F8).
-- [ ] People: list members of a company, add or remove admins, disable (also bans the Auth account, F9), resend or revoke invitations, force-attach an existing account to a company.
-- [ ] **Logs**: a `system_events` / audit table written by the functions and triggers (company created, invitation sent or failed, member changed, sign-in blocked, function error) with a screen to filter it. Link out to the Supabase dashboard for raw logs.
-- [ ] **Fix-it tools**: accounts with no company (the F1 leftovers), invitations stuck or expired, companies with no active admin, failed e-mails.
-- [ ] Contact-form inbox (`contact_messages`) with the `handled` flag.
-- [ ] Every operator action is written to the audit log. "View as" a company, if added, is logged and read-only.
+A separate web build uses the main app's visual style. Privileged SQL RPCs require a verified platform operator and MFA. The Edge Function sends invitations after the same authorization check.
+
+- [x] Private operator table, mandatory two-step verification, separate build and Docker Compose deployment files.
+- [x] Create and suspend companies in Supabase, invite the first owner, invite and disable staff, resend, renew or revoke operator invitations, and transfer ownership to an active admin.
+- [x] Assign manual plans, set trial and renewal dates, grace and closeout states, and record manual payments. Enforce access in the Supabase app and public booking.
+- [x] Console controls for company creation, global booking pause and a web notice.
+- [x] Hide company creation on customer registration and onboarding pages when the console-only setting is active.
+- [ ] Enable **Creazione aziende solo dalla console** in production and verify owner invitation acceptance.
+- [x] Group signed-in web errors, review active orders and overdue pickups, handle landing inquiries, and inspect the platform audit trail.
+- [x] Search and filter the support queue, assign issues to operators, and record triage and resolutions. Open a company's issue queue and inspect the timeline of an open order.
+- [x] Share the main app's navigation shell and order display across both builds. Preserve support links and issue filters across reloads and browser history.
+- [x] Add and disable platform operators from verified accounts and prevent self-disable.
+- [ ] Apply migrations and deploy to the EchoBox server. Provision the first production operator and verify TOTP, real email delivery, and custom DNS.
+- [ ] Exercise production invitation retries, account recovery, and subscription closeout with two pilot companies before turning off public signup.
+- [ ] Account recovery queue, platform-wide Auth revocation, role delegation, time-limited case access and data exports.
+- [x] Flutter Auth, data and Realtime are on Supabase in [the mobile feature branch](https://github.com/mariuz92/echoboxlogistics_mobile/tree/03e673e790fbe385aaa1082b3e7ab02dadf5c19a). Firebase is used for push.
+- [x] Align Flutter order forms with company channel ranges, disabled channels, and schedule-based availability. [Mobile channel update](https://github.com/mariuz92/echoboxlogistics_mobile/commit/0cbc65b6cac7f44891c8c3d607d0a37f46509ce5)
+- [x] Enforce the company’s channel range in the web order form and show occupied channels for the order’s schedule.
+- [ ] Pilot web and Flutter against the same EchoBox Supabase project. Verify channel bookings across both clients, operator invites, and company access messages.
+- [x] Add the Supabase queue and Firebase sender for rider assignments and reminders.
+- [ ] Deploy rider push and verify receipt on an iPhone and an Android phone.
+- [ ] Add Flutter diagnostics, a notification history in Superadmin, and shared multi-company access.
+- [ ] Incident notifications, external uptime checks, backup status, error reports before sign-in, and raw log aggregation.
+- [ ] Pick a provider for automated company subscription payments. Compare Stripe Billing and Mollie for EUR card and SEPA payments. Keep manual bank transfer available for annual and pilot invoices.
+- [ ] Give company owners a billing screen and show payment method, last payment, next charge, invoices and failed payments in Superadmin. Reconcile provider events with the subscription and keep the existing grace and closeout rules.
+- [ ] Plan quotas, version policies and staged feature rollout.
 
 ## 2. Accounts and invitations (phases 1 and 2 of AUTH_REVIEW.md)
 
 - [ ] **Deprecate sign-up:** remove `/register` and the "create a company" step of `/onboarding`, stop reading `company_name` from user metadata in `bootstrap_profile()`, set `DISABLE_SIGNUP=true` on the Auth service (invitations keep working), and drop the Google "create a company" path. Companies come only from the operator panel (F1, F2).
-- [ ] `accept_invitation()` called only after the person has finished the join step; nobody is active before that (F4).
+- [x] Operator-issued invitations activate on explicit acceptance after the join step.
+- [ ] Move legacy company-admin invitations to explicit acceptance (F4).
 - [ ] Keep an invitation when the person already has an account without a company (F5).
 - [ ] Invite quotas per company and a generic answer that does not reveal who has an account elsewhere (F3).
-- [ ] `owner` role: cannot be demoted or disabled except by transfer (F8).
+- [x] Protect company ownership assigned by the operator. The owner remains an admin until ownership is transferred (F8).
 - [ ] Store consent to terms and privacy with version and timestamp (F2).
 - [ ] Office and rider switch for a person who has both roles (F7).
 - [ ] `signOut` for the current device only; current password required to change it; two-step verification option for admins (F10).
@@ -78,6 +96,8 @@ booking is created for that company only, and the page shows that company's iden
 
 ## 8. Host the web app on my own server
 
+- [x] Provide full and lean Compose configurations for a separate EchoBox stack on the shared Docker server.
+- [ ] Provision an independent EchoBox Supabase stack and verify it alongside the existing Docker instance using the [self-hosting plan](DEPLOYMENT.md#5-self-hosted-supabase-on-a-shared-docker-server).
 - [ ] Run the app from the Docker image on your own server behind a TLS reverse proxy; point the app's hostname to it with a DNS record. The landing page stays on Cloudflare Pages.
 - [ ] Auth `SITE_URL` and `ADDITIONAL_REDIRECT_URLS`: the app domain only. `ALLOWED_ORIGINS` (Edge Functions): app domain and landing domain.
 - [ ] Booking links and invitation e-mails must use the app's new domain (they are built from the app's public URL).

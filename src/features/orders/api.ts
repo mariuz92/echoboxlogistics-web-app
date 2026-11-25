@@ -84,13 +84,15 @@ export type OrderPatch = Omit<
 >;
 
 export async function updateOrder(id: string, patch: OrderPatch): Promise<void> {
-  const { error } = await supabase.from("orders").update(patch).eq("id", id);
+  const { data, error } = await supabase.from("orders").update(patch).eq("id", id).select("id").maybeSingle();
   if (error) throw error;
+  if (!data) throw new Error("write_not_applied");
 }
 
 export async function deleteOrder(id: string): Promise<void> {
-  const { error } = await supabase.from("orders").delete().eq("id", id);
+  const { data, error } = await supabase.from("orders").delete().eq("id", id).select("id").maybeSingle();
   if (error) throw error;
+  if (!data) throw new Error("write_not_applied");
 }
 
 /** Assigns a rider to one leg of the order; `riderId = null` removes the assignment. */

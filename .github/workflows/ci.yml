@@ -50,6 +50,9 @@ jobs:
       - name: Landing build (no environment variables)
         run: npm run build:landing
 
+      - name: Superadmin console build
+        run: npm run build:console
+
       - name: Audit runtime dependencies
         run: npm run audit:prod
 
