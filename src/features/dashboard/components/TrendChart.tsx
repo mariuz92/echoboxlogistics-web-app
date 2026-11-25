@@ -6,12 +6,13 @@ import { fmtEuro } from "../utils";
 import type { DashboardInsights } from "../api";
 import { Section } from "./Section";
 import { useChartStyle } from "./chartStyle";
+import { t } from "../../../i18n";
 
 type Metric = "revenue" | "orders" | "radios";
 const METRICS: { value: Metric; label: string }[] = [
-  { value: "revenue", label: "Incasso" },
-  { value: "orders", label: "Ordini" },
-  { value: "radios", label: "Radio" },
+  { value: "revenue", label: t("Incasso") },
+  { value: "orders", label: t("Ordini") },
+  { value: "radios", label: t("Radio") },
 ];
 const fmt = (metric: Metric, v: number) => (metric === "revenue" ? fmtEuro(v) : fmtNumber(v));
 
@@ -35,8 +36,8 @@ export function TrendChart({ data }: { data: DashboardInsights }) {
 
   return (
     <Section
-      title="Gli ultimi 12 mesi"
-      note="Il mese scelto è in evidenza; la linea è la media dei mesi completi."
+      title={t("Gli ultimi 12 mesi")}
+      note={t("Il mese scelto è in evidenza; la linea è la media dei mesi completi.")}
       extra={<Segmented size="small" options={METRICS} value={metric} onChange={(v) => setMetric(v as Metric)} />}
       height={280}
       empty={rows.every((r) => r.orders === 0)}
@@ -61,11 +62,11 @@ export function TrendChart({ data }: { data: DashboardInsights }) {
                 <div style={{ ...s.tooltip, padding: "8px 12px" }}>
                   <Typography.Text strong style={{ textTransform: "capitalize" }}>
                     {r.full}
-                    {r.current && data.in_progress ? " (in corso)" : ""}
+                    {r.current && data.in_progress ? t(" (in corso)") : ""}
                   </Typography.Text>
-                  <div>Incasso: {fmtEuro(r.revenue)}</div>
-                  <div>Ordini: {fmtNumber(r.orders)}</div>
-                  <div>Radio: {fmtNumber(r.radios)}</div>
+                  <div>{t("Incasso: {n}", { n: fmtEuro(r.revenue) })}</div>
+                  <div>{t("Ordini: {n}", { n: fmtNumber(r.orders) })}</div>
+                  <div>{t("Radio: {n}", { n: fmtNumber(r.radios) })}</div>
                 </div>
               );
             }}
@@ -79,8 +80,8 @@ export function TrendChart({ data }: { data: DashboardInsights }) {
         </BarChart>
       </ResponsiveContainer>
       <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-        {average !== null ? `Media mensile: ${fmt(metric, average)}` : ""}
-        {data.in_progress ? " · il mese in corso è parziale" : ""}
+        {average !== null ? t("Media mensile: {value}", { value: fmt(metric, average) }) : ""}
+        {data.in_progress ? t(" · il mese in corso è parziale") : ""}
       </Typography.Text>
     </Section>
   );

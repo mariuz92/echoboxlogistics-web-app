@@ -1,6 +1,7 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { Button, Flex, Result } from "antd";
 import { reportWebIssue } from "../../features/platform/runtime";
+import { t } from "../../i18n";
 
 interface State {
   error: Error | null;
@@ -26,11 +27,11 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, State> {
       <Flex align="center" justify="center" style={{ minHeight: "100vh", padding: 24 }}>
         <Result
           status="error"
-          title="Qualcosa è andato storto"
-          subTitle="Si è verificato un errore imprevisto. Ricarica la pagina; se il problema persiste contatta il supporto."
+          title={t("Qualcosa è andato storto")}
+          subTitle={t("Si è verificato un errore imprevisto. Ricarica la pagina; se il problema persiste contatta il supporto.")}
           extra={
             <Button type="primary" onClick={() => window.location.assign("/")}>
-              Ricarica
+              {t("Ricarica")}
             </Button>
           }
         />

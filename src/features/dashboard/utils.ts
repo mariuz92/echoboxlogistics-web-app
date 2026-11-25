@@ -1,5 +1,6 @@
 import { dayjs, fmtNumber } from "../../lib/dates";
 import type { DashboardInsights, PeriodFigures } from "./api";
+import { numberLocale, t, tn } from "../../i18n";
 
 /**
  * Percentage change between two periods.
@@ -11,10 +12,14 @@ export function pctChange(current: number, previous: number): number | null {
   return ((current - previous) / previous) * 100;
 }
 
+/** One decimal, in the language's own format ("12,3" or "12.3"). */
+export const dec1 = (value: number): string =>
+  new Intl.NumberFormat(numberLocale(), { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(value);
+
 export function formatPct(value: number | null): string {
-  if (value === null) return "n/d";
+  if (value === null) return t("n/d");
   const sign = value > 0 ? "+" : "";
-  return `${sign}${value.toFixed(1).replace(".", ",")}%`;
+  return `${sign}${dec1(value)}%`;
 }
 
 /** A share (0-100) with no decimals, "n/d" without a base. */
@@ -22,16 +27,16 @@ export function share(part: number, whole: number): number | null {
   return whole > 0 ? (part / whole) * 100 : null;
 }
 
-export const fmtShare = (value: number | null): string => (value === null ? "n/d" : `${Math.round(value)}%`);
+export const fmtShare = (value: number | null): string => (value === null ? t("n/d") : `${Math.round(value)}%`);
 
 /** Whole euros: totals do not need cents. */
 export const fmtEuro = (value: number): string =>
-  new Intl.NumberFormat("it-IT", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(value);
+  new Intl.NumberFormat(numberLocale(), { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(value);
 
 export const lossRate = (lost: number, radios: number): number => (radios > 0 ? (lost / radios) * 100 : 0);
 
-export const WEEKDAYS = ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"];
-const WEEKDAYS_LONG = ["lunedì", "martedì", "mercoledì", "giovedì", "venerdì", "sabato", "domenica"];
+export const WEEKDAYS = [t("Lun"), t("Mar"), t("Mer"), t("Gio"), t("Ven"), t("Sab"), t("Dom")];
+const WEEKDAYS_LONG = [t("lunedì"), t("martedì"), t("mercoledì"), t("giovedì"), t("venerdì"), t("sabato"), t("domenica")];
 
 /** Share of deliveries within 10 minutes of the scheduled time (null when none was recorded). */
 export const punctuality = (p: Pick<PeriodFigures, "delivered" | "on_time">): number | null =>
@@ -53,6 +58,7 @@ export interface Insight {
 
 const dayLabel = (date: string) => dayjs(date).format("ddd D MMM");
 const MONTH = (ym: string) => dayjs(`${ym}-01`).format("MMMM");
+const joinAnd = (items: string[]) => items.join(t(" e "));
 
 /**
  * Plain-language findings, worth acting on, derived from the figures. Warnings first.
@@ -62,20 +68,25 @@ export function buildInsights(d: DashboardInsights): Insight[] {
   const out: Insight[] = [];
   const cur = d.current;
   const prev = d.previous;
-  const against = d.in_progress ? "agli stessi giorni del mese scorso" : "al mese scorso";
+  const against = d.in_progress ? t("agli stessi giorni del mese scorso") : t("al mese scorso");
 
   // 1. revenue and orders against the previous period
   const dRev = pctChange(cur.revenue, prev.revenue);
   const dOrd = pctChange(cur.orders, prev.orders);
   if (dRev !== null) {
     const tone: Tone = dRev >= 3 ? "good" : dRev <= -5 ? "warn" : "info";
-    let text = `${formatPct(dRev)} rispetto ${against} (${fmtEuro(cur.revenue)} contro ${fmtEuro(prev.revenue)}).`;
+    let text = t("{change} rispetto {against} ({current} contro {previous}).", {
+      change: formatPct(dRev),
+      against,
+      current: fmtEuro(cur.revenue),
+      previous: fmtEuro(prev.revenue),
+    });
     if (dOrd !== null && dOrd >= 3 && dRev < 0) {
-      text += " Gli ordini crescono ma l'incasso no: i gruppi sono più piccoli o i prezzi più bassi.";
+      text += t(" Gli ordini crescono ma l'incasso no: i gruppi sono più piccoli o i prezzi più bassi.");
     } else if (dOrd !== null && dOrd <= -3 && dRev > 0) {
-      text += " Meno ordini ma più incasso: stai lavorando con gruppi più grandi.";
+      text += t(" Meno ordini ma più incasso: stai lavorando con gruppi più grandi.");
     }
-    out.push({ key: "revenue", tone, title: dRev >= 0 ? "Incasso in crescita" : "Incasso in calo", text });
+    out.push({ key: "revenue", tone, title: dRev >= 0 ? t("Incasso in crescita") : t("Incasso in calo"), text });
   }
 
   // 2. which months are strong and weak (complete months only)
@@ -87,8 +98,11 @@ export function buildInsights(d: DashboardInsights): Insight[] {
     out.push({
       key: "seasonality",
       tone: "info",
-      title: "Stagionalità",
-      text: `I mesi più forti degli ultimi 12 sono ${best.join(" e ")}, i più deboli ${worst.join(" e ")}. Concentra ferie e manutenzione delle radio nei mesi bassi, assunzioni e scorte in anticipo su quelli alti.`,
+      title: t("Stagionalità"),
+      text: t(
+        "I mesi più forti degli ultimi 12 sono {best}, i più deboli {worst}. Concentra ferie e manutenzione delle radio nei mesi bassi, assunzioni e scorte in anticipo su quelli alti.",
+        { best: joinAnd(best), worst: joinAnd(worst) },
+      ),
     });
   }
 
@@ -100,16 +114,20 @@ export function buildInsights(d: DashboardInsights): Insight[] {
       out.push({
         key: "capacity",
         tone: "warn",
-        title: "Canali quasi esauriti",
-        text: `${dayLabel(peakDay.date)}: ${peakDay.groups} gruppi in contemporanea su ${d.capacity.channels} canali (${fmtShare(occupancy)}). Oltre questa soglia rischi di rifiutare prenotazioni: valuta altri canali o altre radio.`,
+        title: t("Canali quasi esauriti"),
+        text: t(
+          "{day}: {groups} gruppi in contemporanea su {channels} canali ({share}). Oltre questa soglia rischi di rifiutare prenotazioni: valuta altri canali o altre radio.",
+          { day: dayLabel(peakDay.date), groups: peakDay.groups, channels: d.capacity.channels, share: fmtShare(occupancy) },
+        ),
       });
     } else {
-      out.push({
-        key: "capacity",
-        tone: "info",
-        title: "Quante radio ti servono",
-        text: `Il giorno di punta (${dayLabel(peakDay.date)}) hanno lavorato insieme ${fmtNumber(peakDay.radios)} radio e ${peakDay.groups} gruppi: è la flotta minima per reggere il mese${occupancy !== null && d.capacity.exclusive ? `, e usa il ${fmtShare(occupancy)} dei canali` : ""}.`,
-      });
+      const base = t(
+        "Il giorno di punta ({day}) hanno lavorato insieme {radios} radio e {groups} gruppi: è la flotta minima per reggere il mese",
+        { day: dayLabel(peakDay.date), radios: fmtNumber(peakDay.radios), groups: peakDay.groups },
+      );
+      const channels =
+        occupancy !== null && d.capacity.exclusive ? t(", e usa il {share} dei canali", { share: fmtShare(occupancy) }) : "";
+      out.push({ key: "capacity", tone: "info", title: t("Quante radio ti servono"), text: `${base}${channels}.` });
     }
   }
 
@@ -119,8 +137,11 @@ export function buildInsights(d: DashboardInsights): Insight[] {
     out.push({
       key: "peak-hour",
       tone: "info",
-      title: "Fascia più carica",
-      text: `${WEEKDAYS_LONG[slot.weekday - 1]} alle ${slot.hour}:00 si concentra il lavoro (${slot.count} consegne e ritiri nel mese). Lì servono più rider, e sono ore da non lasciare scoperte.`,
+      title: t("Fascia più carica"),
+      text: t(
+        "{weekday} alle {hour}:00 si concentra il lavoro ({count} consegne e ritiri nel mese). Lì servono più rider, e sono ore da non lasciare scoperte.",
+        { weekday: WEEKDAYS_LONG[slot.weekday - 1], hour: slot.hour, count: slot.count },
+      ),
     });
   }
   const riders = d.operations.riders;
@@ -132,8 +153,11 @@ export function buildInsights(d: DashboardInsights): Insight[] {
       out.push({
         key: "balance",
         tone: "warn",
-        title: "Lavoro non bilanciato",
-        text: `${top.name} fa il ${fmtShare(topShare)} degli spostamenti con ${riders.length} rider attivi. Ridistribuire riduce i ritardi e il rischio se manca.`,
+        title: t("Lavoro non bilanciato"),
+        text: t(
+          "{name} fa il {share} degli spostamenti con {riders} rider attivi. Ridistribuire riduce i ritardi e il rischio se manca.",
+          { name: top.name, share: fmtShare(topShare), riders: riders.length },
+        ),
       });
     }
   }
@@ -147,15 +171,18 @@ export function buildInsights(d: DashboardInsights): Insight[] {
       out.push({
         key: "concentration",
         tone: "warn",
-        title: "Troppo peso su poche guide",
-        text: `Le prime 3 guide portano il ${fmtShare(top3Share)} dell'incasso. Se una smette, te ne accorgi: fidelizzale (condizioni, priorità) e lavora su nuovi clienti.`,
+        title: t("Troppo peso su poche guide"),
+        text: t(
+          "Le prime 3 guide portano il {share} dell'incasso. Se una smette, te ne accorgi: fidelizzale (condizioni, priorità) e lavora su nuovi clienti.",
+          { share: fmtShare(top3Share) },
+        ),
       });
     } else {
       out.push({
         key: "concentration",
         tone: "good",
-        title: "Clientela ben distribuita",
-        text: `Le prime 3 guide portano il ${fmtShare(top3Share)} dell'incasso: nessuna dipendenza pericolosa.`,
+        title: t("Clientela ben distribuita"),
+        text: t("Le prime 3 guide portano il {share} dell'incasso: nessuna dipendenza pericolosa.", { share: fmtShare(top3Share) }),
       });
     }
   }
@@ -164,16 +191,21 @@ export function buildInsights(d: DashboardInsights): Insight[] {
     out.push({
       key: "win-back",
       tone: "warn",
-      title: "Guide da riconquistare",
-      text: `${d.guides.win_back.length} guide che hanno ordinato più volte non prenotano da oltre 45 giorni (${fmtEuro(value)} di incasso storico). Una telefonata costa meno di un nuovo cliente.`,
+      title: t("Guide da riconquistare"),
+      text: t(
+        "{count} guide che hanno ordinato più volte non prenotano da oltre 45 giorni ({value} di incasso storico). Una telefonata costa meno di un nuovo cliente.",
+        { count: d.guides.win_back.length, value: fmtEuro(value) },
+      ),
     });
   }
   if (d.guides.new > 0) {
     out.push({
       key: "new-guides",
       tone: "good",
-      title: "Nuovi clienti",
-      text: `${d.guides.new} ${d.guides.new === 1 ? "guida ha ordinato" : "guide hanno ordinato"} per la prima volta${d.in_progress ? " finora" : ""}, per ${fmtEuro(d.guides.new_revenue)}.`,
+      title: t("Nuovi clienti"),
+      text: d.in_progress
+        ? tn(d.guides.new, "{n} guida ha ordinato per la prima volta finora, per {value}.", "{n} guide hanno ordinato per la prima volta finora, per {value}.", { value: fmtEuro(d.guides.new_revenue) })
+        : tn(d.guides.new, "{n} guida ha ordinato per la prima volta, per {value}.", "{n} guide hanno ordinato per la prima volta, per {value}.", { value: fmtEuro(d.guides.new_revenue) }),
     });
   }
 
@@ -181,14 +213,12 @@ export function buildInsights(d: DashboardInsights): Insight[] {
   const lossPct = lossRate(cur.lost, cur.radios);
   if (cur.lost > 0 && lossPct >= 1.5) {
     const worst = d.guides.losses[0];
-    out.push({
-      key: "losses",
-      tone: "warn",
-      title: "Radio perse",
-      text: `${cur.lost} radio perse (${lossPct.toFixed(1).replace(".", ",")}% di quelle consegnate).${
-        worst && worst.lost >= 2 ? ` ${worst.name} da sola ne ha perse ${worst.lost}: valuta una cauzione per chi perde più spesso.` : ""
-      }`,
-    });
+    const base = t("{lost} radio perse ({pct}% di quelle consegnate).", { lost: cur.lost, pct: dec1(lossPct) });
+    const who =
+      worst && worst.lost >= 2
+        ? t(" {name} da sola ne ha perse {lost}: valuta una cauzione per chi perde più spesso.", { name: worst.name, lost: worst.lost })
+        : "";
+    out.push({ key: "losses", tone: "warn", title: t("Radio perse"), text: `${base}${who}` });
   }
   const onTime = punctuality(cur);
   if (onTime !== null && cur.delivered >= 20 && onTime < 90) {
@@ -196,22 +226,26 @@ export function buildInsights(d: DashboardInsights): Insight[] {
       .filter((r) => r.delivered >= 15)
       .sort((a, b) => a.on_time / a.delivered - b.on_time / b.delivered)[0];
     const lateShare = late ? (late.on_time / late.delivered) * 100 : 100;
-    out.push({
-      key: "punctuality",
-      tone: "warn",
-      title: "Consegne in ritardo",
-      text: `Solo il ${fmtShare(onTime)} delle consegne è arrivato entro 10 minuti dall'orario.${
-        late && lateShare < onTime - 5 ? ` Il dato più basso è di ${late.name} (${fmtShare(lateShare)}): guarda se i suoi giri sono troppo fitti.` : ""
-      }`,
-    });
+    const base = t("Solo il {share} delle consegne è arrivato entro 10 minuti dall'orario.", { share: fmtShare(onTime) });
+    const who =
+      late && lateShare < onTime - 5
+        ? t(" Il dato più basso è di {name} ({share}): guarda se i suoi giri sono troppo fitti.", {
+            name: late.name,
+            share: fmtShare(lateShare),
+          })
+        : "";
+    out.push({ key: "punctuality", tone: "warn", title: t("Consegne in ritardo"), text: `${base}${who}` });
   }
   const cancelRate = share(cur.cancelled, cur.booked);
   if (cancelRate !== null && cur.booked >= 30 && cancelRate >= 6) {
     out.push({
       key: "cancellations",
       tone: "warn",
-      title: "Molti annullamenti",
-      text: `Il ${fmtShare(cancelRate)} degli ordini è stato annullato (${cur.cancelled} su ${cur.booked}). Capire quando e perché aiuta a chiedere una conferma o una caparra.`,
+      title: t("Molti annullamenti"),
+      text: t(
+        "Il {share} degli ordini è stato annullato ({cancelled} su {booked}). Capire quando e perché aiuta a chiedere una conferma o una caparra.",
+        { share: fmtShare(cancelRate), cancelled: cur.cancelled, booked: cur.booked },
+      ),
     });
   }
 
@@ -223,8 +257,11 @@ export function buildInsights(d: DashboardInsights): Insight[] {
     out.push({
       key: "last-minute",
       tone: "warn",
-      title: "Prenotazioni last minute",
-      text: `Il ${fmtShare(lastMinute)} degli ordini arriva con meno di 24 ore di anticipo: tieni dei rider flessibili e valuta un supplemento per le richieste all'ultimo momento.`,
+      title: t("Prenotazioni last minute"),
+      text: t(
+        "Il {share} degli ordini arriva con meno di 24 ore di anticipo: tieni dei rider flessibili e valuta un supplemento per le richieste all'ultimo momento.",
+        { share: fmtShare(lastMinute) },
+      ),
     });
   }
 

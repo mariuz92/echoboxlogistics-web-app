@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Card, Empty, Typography } from "antd";
+import { t } from "../../../i18n";
 
 /** A titled block of the dashboard: the title says what question the figure answers. */
 export function Section({
@@ -27,7 +28,7 @@ export function Section({
         </Typography.Paragraph>
       )}
       <div style={height ? { width: "100%", height } : undefined}>
-        {empty ? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Nessun dato nel periodo" /> : children}
+        {empty ? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t("Nessun dato nel periodo")} /> : children}
       </div>
     </Card>
   );

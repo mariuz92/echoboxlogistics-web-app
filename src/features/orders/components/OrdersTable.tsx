@@ -26,6 +26,7 @@ import {
 import { getStatusActions, isPickupOverdue, needsAssignment } from "../orderActions";
 import { useMembers, useOrderMutations, useRiderActivity } from "../hooks";
 import type { DrawerMode } from "./OrderDrawer";
+import { numberLocale, t, tn } from "../../../i18n";
 
 /** Submenu titles bubble to the table row (which opens the details drawer): stop them. */
 const stopTitleClick = ({ domEvent }: { domEvent: React.SyntheticEvent }) => domEvent.stopPropagation();
@@ -68,8 +69,8 @@ export function OrdersTable({ orders, loading, anchorDay, onOpen }: OrdersTableP
         onSuccess: () =>
           void message.success(
             riderId
-              ? `${leg === "delivery" ? "Consegna" : "Ritiro"} assegnato a ${riderName}`
-              : "Assegnazione rimossa",
+              ? leg === "delivery" ? t("Consegna assegnata a {name}", { name: riderName ?? "" }) : t("Ritiro assegnato a {name}", { name: riderName ?? "" })
+              : t("Assegnazione rimossa"),
           ),
       },
     );
@@ -81,10 +82,10 @@ export function OrdersTable({ orders, loading, anchorDay, onOpen }: OrdersTableP
 
     if (riderId && getAssignBlocker(order) === "pickup_details_missing") {
       modal.confirm({
-        title: "Ritiro non pianificato",
-        content: "Imposta data/ora e luogo del ritiro prima di assegnare un rider. Vuoi modificare l'ordine ora?",
-        okText: "Modifica ordine",
-        cancelText: "Annulla",
+        title: t("Ritiro non pianificato"),
+        content: t("Imposta data/ora e luogo del ritiro prima di assegnare un rider. Vuoi modificare l'ordine ora?"),
+        okText: t("Modifica ordine"),
+        cancelText: t("Annulla"),
         onOk: () => onOpen(order, "edit"),
       });
       return;
@@ -94,16 +95,16 @@ export function OrdersTable({ orders, loading, anchorDay, onOpen }: OrdersTableP
     const current = leg === "delivery" ? order.delivery_rider : order.pickup_rider;
     if (riderId && current && current.id !== riderId) {
       modal.confirm({
-        title: "Riassegnare l'ordine?",
-        content: `Al momento è assegnato a ${current.full_name}. Vuoi passarlo a ${rider?.full_name}?`,
-        okText: "Riassegna",
-        cancelText: "Annulla",
+        title: t("Riassegnare l'ordine?"),
+        content: t("Al momento è assegnato a {current}. Vuoi passarlo a {next}?", { current: current.full_name, next: rider?.full_name ?? "" }),
+        okText: t("Riassegna"),
+        cancelText: t("Annulla"),
         onOk: () => runAssign(order, leg, riderId, rider?.full_name),
       });
       return;
     }
     if (riderId && current?.id === riderId) {
-      void message.info(`Già assegnato a ${current.full_name}`);
+      void message.info(t("Già assegnato a {name}", { name: current.full_name }));
       return;
     }
     runAssign(order, leg, riderId, rider?.full_name);
@@ -111,30 +112,30 @@ export function OrdersTable({ orders, loading, anchorDay, onOpen }: OrdersTableP
 
   const confirmDelete = (order: Order) =>
     modal.confirm({
-      title: "Eliminare definitivamente l'ordine?",
-      content: `${order.guide_name} · ${fmtDateTime(order.delivery_at, timezone)}. L'operazione non può essere annullata. Per tenere traccia dell'ordine usa "Annulla ordine".`,
-      okText: "Elimina",
+      title: t("Eliminare definitivamente l'ordine?"),
+      content: t("{summary}. L'operazione non può essere annullata. Per tenere traccia dell'ordine usa \"Annulla ordine\".", { summary: `${order.guide_name} · ${fmtDateTime(order.delivery_at, timezone)}` }),
+      okText: t("Elimina"),
       okButtonProps: { danger: true },
-      cancelText: "Indietro",
+      cancelText: t("Indietro"),
       onOk: () =>
-        remove.mutateAsync(order.id).then(() => void message.success("Ordine eliminato")),
+        remove.mutateAsync(order.id).then(() => void message.success(t("Ordine eliminato"))),
     });
 
   const menuFor = (order: Order): MenuProps["items"] => {
     const leg = getAssignableLeg(order);
     const currentRider = leg === "delivery" ? order.delivery_rider : leg === "pickup" ? order.pickup_rider : null;
-    const legLabel = leg === "pickup" ? "ritiro" : "consegna";
+    const legLabel = leg === "pickup" ? t("ritiro") : t("consegna");
 
     const assignChildren: MenuProps["items"] =
       riders.length === 0
-        ? [{ key: "add-rider", icon: <UserAddOutlined />, label: "Aggiungi un rider", onClick: () => navigate("/riders") }]
+        ? [{ key: "add-rider", icon: <UserAddOutlined />, label: t("Aggiungi un rider"), onClick: () => navigate("/riders") }]
         : [
             ...riders.map((rider) => ({
               key: `rider-${rider.id}`,
               label: (
                 <Flex justify="space-between" align="center" gap={12}>
                   <span>{rider.full_name}</span>
-                  {busyRiders.has(rider.id) && <Badge status="processing" text="Occupato" />}
+                  {busyRiders.has(rider.id) && <Badge status="processing" text={t("Occupato")} />}
                 </Flex>
               ),
               disabled: currentRider?.id === rider.id,
@@ -146,7 +147,7 @@ export function OrdersTable({ orders, loading, anchorDay, onOpen }: OrdersTableP
                   {
                     key: "unassign",
                     icon: <UserDeleteOutlined />,
-                    label: "Rimuovi assegnazione",
+                    label: t("Rimuovi assegnazione"),
                     onClick: () => handleAssign(order, null),
                   },
                 ]
@@ -159,9 +160,9 @@ export function OrdersTable({ orders, loading, anchorDay, onOpen }: OrdersTableP
       danger: action.danger,
       onClick: () => {
         const run = () =>
-          setStatus.mutateAsync({ orderId: order.id, status: action.status }).then(() => void message.success("Stato aggiornato"));
+          setStatus.mutateAsync({ orderId: order.id, status: action.status }).then(() => void message.success(t("Stato aggiornato")));
         if (action.confirm) {
-          modal.confirm({ title: action.label + "?", content: action.confirm, okText: "Conferma", cancelText: "Indietro", onOk: run });
+          modal.confirm({ title: action.label + "?", content: action.confirm, okText: t("Conferma"), cancelText: t("Indietro"), onOk: run });
         } else {
           void run().catch(() => undefined);
         }
@@ -169,14 +170,14 @@ export function OrdersTable({ orders, loading, anchorDay, onOpen }: OrdersTableP
     }));
 
     return [
-      { key: "view", icon: <EyeOutlined />, label: "Dettagli", onClick: () => onOpen(order, "view") },
-      { key: "edit", icon: <EditOutlined />, label: "Modifica", onClick: () => onOpen(order, "edit") },
+      { key: "view", icon: <EyeOutlined />, label: t("Dettagli"), onClick: () => onOpen(order, "view") },
+      { key: "edit", icon: <EditOutlined />, label: t("Modifica"), onClick: () => onOpen(order, "edit") },
       { type: "divider" },
       leg
         ? {
             key: "assign",
             icon: <UserAddOutlined />,
-            label: currentRider ? `Cambia rider (${legLabel})` : `Assegna ${legLabel}`,
+            label: currentRider ? t("Cambia rider ({leg})", { leg: legLabel }) : t("Assegna {leg}", { leg: legLabel }),
             children: assignChildren,
             // submenu titles bubble to the row too (opening the drawer): stop them
             onTitleClick: stopTitleClick,
@@ -184,9 +185,9 @@ export function OrdersTable({ orders, loading, anchorDay, onOpen }: OrdersTableP
         : {
             key: "assign",
             icon: <UserAddOutlined />,
-            label: "Assegna rider",
+            label: t("Assegna rider"),
             disabled: true,
-            title: "Non assegnabile in questo stato",
+            title: t("Non assegnabile in questo stato"),
           },
       ...(statusItems && statusItems.length
         ? [
@@ -194,24 +195,24 @@ export function OrdersTable({ orders, loading, anchorDay, onOpen }: OrdersTableP
             {
               key: "status",
               icon: <SwapOutlined />,
-              label: "Cambia stato",
+              label: t("Cambia stato"),
               children: statusItems,
               onTitleClick: stopTitleClick,
             },
           ]
         : []),
       { type: "divider" },
-      { key: "delete", icon: <DeleteOutlined />, label: "Elimina", danger: true, onClick: () => confirmDelete(order) },
+      { key: "delete", icon: <DeleteOutlined />, label: t("Elimina"), danger: true, onClick: () => confirmDelete(order) },
     ];
   };
 
   const columns: TableProps<Order>["columns"] = [
     {
-      title: "Guida",
+      title: t("Guida"),
       key: "guide",
       width: 200,
       fixed: "left",
-      sorter: (a, b) => a.guide_name.localeCompare(b.guide_name, "it"),
+      sorter: (a, b) => a.guide_name.localeCompare(b.guide_name, numberLocale()),
       render: (_, order) => (
         <Flex vertical>
           <Typography.Text strong className="ellipsis-cell">
@@ -226,7 +227,7 @@ export function OrdersTable({ orders, loading, anchorDay, onOpen }: OrdersTableP
       ),
     },
     {
-      title: "Stato",
+      title: t("Stato"),
       key: "status",
       width: 170,
       sorter: (a, b) => ORDER_STATUS_FLOW.indexOf(a.status) - ORDER_STATUS_FLOW.indexOf(b.status),
@@ -234,12 +235,12 @@ export function OrdersTable({ orders, loading, anchorDay, onOpen }: OrdersTableP
         <Flex gap={6} align="center" wrap>
           <StatusTag status={order.status} />
           {isPickupOverdue(order) && (
-            <Tooltip title="Ritiro in ritardo">
+            <Tooltip title={t("Ritiro in ritardo")}>
               <WarningOutlined style={{ color: "#dc2626" }} />
             </Tooltip>
           )}
           {order.source === "public_form" && (
-            <Tooltip title="Ricevuto dal modulo pubblico">
+            <Tooltip title={t("Ricevuto dal modulo pubblico")}>
               <GlobalOutlined style={{ color: "#64748b" }} />
             </Tooltip>
           )}
@@ -247,7 +248,7 @@ export function OrdersTable({ orders, loading, anchorDay, onOpen }: OrdersTableP
       ),
     },
     {
-      title: "Consegna",
+      title: t("Consegna"),
       key: "delivery",
       width: 230,
       defaultSortOrder: "ascend",
@@ -266,7 +267,7 @@ export function OrdersTable({ orders, loading, anchorDay, onOpen }: OrdersTableP
       ),
     },
     {
-      title: "Ritiro",
+      title: t("Ritiro"),
       key: "pickup",
       width: 230,
       sorter: (a, b) => dayjs(a.pickup_at ?? 0).valueOf() - dayjs(b.pickup_at ?? 0).valueOf(),
@@ -278,40 +279,40 @@ export function OrdersTable({ orders, loading, anchorDay, onOpen }: OrdersTableP
             </Typography.Text>
             <Tooltip title={order.pickup_address}>
               <Typography.Text type="secondary" className="ellipsis-cell" style={{ fontSize: 12 }}>
-                {order.pickup_address ?? "Luogo da definire"}
+                {order.pickup_address ?? t("Luogo da definire")}
               </Typography.Text>
             </Tooltip>
           </Flex>
         ) : (
-          <Typography.Text type="secondary">Non pianificato</Typography.Text>
+          <Typography.Text type="secondary">{t("Non pianificato")}</Typography.Text>
         ),
     },
     {
-      title: "Rider",
+      title: t("Rider"),
       key: "riders",
       width: 190,
       render: (_, order) => (
         <Flex vertical gap={4} align="flex-start">
           {order.delivery_rider ? (
             <Tag color="blue" variant="filled" style={{ margin: 0 }}>
-              C · {order.delivery_rider.full_name}
+              {t("C ·")}{" "}{order.delivery_rider.full_name}
             </Tag>
           ) : null}
           {order.pickup_rider ? (
             <Tag color="purple" variant="filled" style={{ margin: 0 }}>
-              R · {order.pickup_rider.full_name}
+              {t("R ·")}{" "}{order.pickup_rider.full_name}
             </Tag>
           ) : null}
           {!order.delivery_rider && !order.pickup_rider && (
             <Typography.Text type={needsAssignment(order) ? "warning" : "secondary"}>
-              {needsAssignment(order) ? "Da assegnare" : "—"}
+              {needsAssignment(order) ? t("Da assegnare") : "—"}
             </Typography.Text>
           )}
         </Flex>
       ),
     },
     {
-      title: "Radio",
+      title: t("Radio"),
       key: "radios",
       width: 130,
       align: "right",
@@ -325,17 +326,17 @@ export function OrdersTable({ orders, loading, anchorDay, onOpen }: OrdersTableP
             )}
           </Typography.Text>
           {order.radio_channel !== null ? (
-            <Tag style={{ margin: 0 }}>Canale {order.radio_channel}</Tag>
+            <Tag style={{ margin: 0 }}>{t("Canale")}{" "}{order.radio_channel}</Tag>
           ) : (
             <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-              nessun canale
+              {t("nessun canale")}
             </Typography.Text>
           )}
         </Flex>
       ),
     },
     {
-      title: "Saldo",
+      title: t("Saldo"),
       key: "balance",
       width: 110,
       align: "right",
@@ -345,7 +346,7 @@ export function OrdersTable({ orders, loading, anchorDay, onOpen }: OrdersTableP
           <Typography.Text>{fmtMoney(Number(order.balance))}</Typography.Text>
           {order.invoice_required && (
             <Tag color="gold" variant="filled" style={{ margin: 0 }}>
-              Fattura
+              {t("Fattura")}
             </Tag>
           )}
         </Flex>
@@ -371,7 +372,7 @@ export function OrdersTable({ orders, loading, anchorDay, onOpen }: OrdersTableP
         >
           <Button
             type="text"
-            aria-label="Azioni ordine"
+            aria-label={t("Azioni ordine")}
             icon={<MoreOutlined />}
             onClick={(e) => e.stopPropagation()}
           />
@@ -393,9 +394,9 @@ export function OrdersTable({ orders, loading, anchorDay, onOpen }: OrdersTableP
         defaultPageSize: 25,
         showSizeChanger: true,
         pageSizeOptions: [25, 50, 100, 200],
-        showTotal: (total) => `${total} ordini`,
+        showTotal: (total) => tn(total, "{n} ordine", "{n} ordini"),
       }}
-      locale={{ emptyText: "Nessun ordine nel periodo selezionato" }}
+      locale={{ emptyText: t("Nessun ordine nel periodo selezionato") }}
       rowClassName={(order) =>
         [
           "clickable-row",

@@ -5,6 +5,7 @@ import { fmtTime, wallClockToIso, type Dayjs } from "../../../lib/dates";
 import { channelConflicts, channelWindowEnd } from "../../../types/domain";
 import { useChannelBoard } from "../hooks";
 import { OccupiedChannels } from "./ChannelBoard";
+import { t } from "../../../i18n";
 
 interface ChannelPickerProps {
   /** The order being edited: it does not occupy its own channel. */
@@ -44,32 +45,32 @@ export function ChannelPicker({ orderId }: ChannelPickerProps) {
   if (channel == null) {
     status = {
       type: "secondary",
-      text: `Facoltativo. I tuoi canali vanno da ${min} a ${max}.`,
+      text: t("Facoltativo. I tuoi canali vanno da {min} a {max}.", { min, max }),
       blocking: false,
     };
   } else if (!inRange) {
     status = {
       type: "danger",
-      text: `Inserisci un numero intero da ${min} a ${max}.`,
+      text: t("Inserisci un numero intero da {min} a {max}.", { min, max }),
       blocking: true,
     };
   } else if (tenant.disabled_channels.includes(channel)) {
-    status = { type: "danger", text: `Il canale ${channel} è disabilitato.`, blocking: true };
+    status = { type: "danger", text: t("Il canale {channel} è disabilitato.", { channel }), blocking: true };
   } else if (!slot) {
-    status = { type: "secondary", text: "Indica gli orari dell’ordine per controllare il canale.", blocking: false };
+    status = { type: "secondary", text: t("Indica gli orari dell’ordine per controllare il canale."), blocking: false };
   } else if (isError) {
-    status = { type: "warning", text: "Disponibilità non verificata. EchoBox controllerà il canale al salvataggio.", blocking: false };
+    status = { type: "warning", text: t("Disponibilità non verificata. EchoBox controllerà il canale al salvataggio."), blocking: false };
   } else if (!data || isPlaceholderData) {
-    status = { type: "secondary", text: "Verifica disponibilità del canale…", blocking: false };
+    status = { type: "secondary", text: t("Verifica disponibilità del canale…"), blocking: false };
   } else if (conflicts.length) {
     const who = conflicts
       .map((c) => `${c.guide_name} (${fmtTime(c.delivery_at, timezone)}–${fmtTime(c.busy_until, timezone)})`)
       .join(", ");
     status = tenant.channels_exclusive
-      ? { type: "danger", text: `Canale ${channel} occupato da ${who}.`, blocking: true }
-      : { type: "warning", text: `Canale ${channel} già usato in questi orari da ${who}.`, blocking: false };
+      ? { type: "danger", text: t("Canale {channel} occupato da {who}.", { channel, who }), blocking: true }
+      : { type: "warning", text: t("Canale {channel} già usato in questi orari da {who}.", { channel, who }), blocking: false };
   } else {
-    status = { type: "success", text: `Canale ${channel} libero in questi orari.`, blocking: false };
+    status = { type: "success", text: t("Canale {channel} libero in questi orari.", { channel }), blocking: false };
   }
 
   // The form validator reads the latest status without re-creating the rules.
@@ -79,13 +80,13 @@ export function ChannelPicker({ orderId }: ChannelPickerProps) {
   return (
     <>
       <Form.Item
-        label="Canale"
+        label={t("Canale")}
         htmlFor="radio_channel"
         help={
           <Flex id="radio_channel_status" vertical gap={2} style={{ paddingBottom: 12 }}>
             <Typography.Text type={status.type}>{status.text}</Typography.Text>
             {!slot && channel == null && (
-              <Typography.Text type="secondary">Indica gli orari dell’ordine per vedere i canali occupati.</Typography.Text>
+              <Typography.Text type="secondary">{t("Indica gli orari dell’ordine per vedere i canali occupati.")}</Typography.Text>
             )}
           </Flex>
         }
@@ -105,13 +106,13 @@ export function ChannelPicker({ orderId }: ChannelPickerProps) {
               min={min}
               max={max}
               step={1}
-              placeholder="Numero"
+              placeholder={t("Numero")}
               aria-describedby="radio_channel_status"
               style={{ width: 144, maxWidth: "100%" }}
             />
           </Form.Item>
           <Button onClick={() => setOccupiedOpen(true)} disabled={!slot}>
-            Canali occupati
+            {t("Canali occupati")}
           </Button>
         </Flex>
       </Form.Item>

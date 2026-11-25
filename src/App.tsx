@@ -5,6 +5,7 @@ import routerProvider, { NavigateToResource } from "@refinedev/react-router";
 import { App as AntdApp, ConfigProvider } from "antd";
 import { MutationCache, QueryCache } from "@tanstack/react-query";
 import { reportWebIssue } from "./features/platform/runtime";
+import enGB from "antd/locale/en_GB";
 import itIT from "antd/locale/it_IT";
 
 import { isSupabaseConfigured } from "./config/env";
@@ -33,6 +34,7 @@ import { JoinPage } from "./features/auth/JoinPage";
 import { OnboardingPage } from "./features/auth/OnboardingPage";
 import { OrdersPage } from "./features/orders/OrdersPage";
 import { RiderJobsPage } from "./features/orders/RiderJobsPage";
+import { getLang, t } from "./i18n";
 
 // Heavy / rarely used screens are split into their own chunks.
 const DashboardPage = lazy(() => import("./features/dashboard/DashboardPage"));
@@ -58,7 +60,7 @@ const RESOURCES = [
 
 function AdminOnly({ children }: { children: ReactNode }) {
   const { isAdmin } = useCurrentUser();
-  return isAdmin ? <>{children}</> : <AccessDenied message="Questa sezione è riservata agli amministratori." />;
+  return isAdmin ? <>{children}</> : <AccessDenied message={t("Questa sezione è riservata agli amministratori.")} />;
 }
 
 /** Orders for admins, "my jobs" for riders. */
@@ -230,7 +232,7 @@ function RefineApp() {
 function Themed({ children }: { children: ReactNode }) {
   const { mode } = useThemeMode();
   return (
-    <ConfigProvider theme={getTheme(mode)} locale={itIT}>
+    <ConfigProvider theme={getTheme(mode)} locale={getLang() === "en" ? enGB : itIT}>
       <AntdApp>{children}</AntdApp>
     </ConfigProvider>
   );

@@ -1,3 +1,4 @@
+import { getLang } from "../../i18n";
 import { useState } from "react";
 import { Input } from "antd";
 import { Autocomplete, useJsApiLoader, type Libraries } from "@react-google-maps/api";
@@ -38,7 +39,7 @@ function PlacesAddressInput(props: AddressInputProps) {
     id: "google-maps-script",
     googleMapsApiKey: env.googleMapsApiKey ?? "",
     libraries: LIBRARIES,
-    language: "it",
+    language: getLang(),
   });
 
   // If Google Maps cannot load, the field still works as a plain text input.

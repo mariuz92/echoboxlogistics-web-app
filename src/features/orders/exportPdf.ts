@@ -1,5 +1,6 @@
 import { fmtDateTime } from "../../lib/dates";
 import { ORDER_STATUS_META, type Order } from "../../types/domain";
+import { t } from "../../i18n";
 
 /** Exports the given orders as a landscape PDF. jsPDF is loaded on demand (it is large). */
 export async function exportOrdersPdf(orders: Order[], timezone: string, title: string) {
@@ -10,7 +11,7 @@ export async function exportOrdersPdf(orders: Order[], timezone: string, title: 
 
   const doc = new JsPdf({ orientation: "landscape" });
   doc.setFontSize(14);
-  doc.text(`Ordini · ${title}`, 14, 14);
+  doc.text(`${t("Ordini")} · ${title}`, 14, 14);
 
   autoTable(doc, {
     startY: 20,
@@ -18,17 +19,17 @@ export async function exportOrdersPdf(orders: Order[], timezone: string, title: 
     headStyles: { fillColor: [29, 95, 168] },
     head: [
       [
-        "Guida",
-        "Telefono",
-        "Stato",
-        "Consegna",
-        "Luogo consegna",
-        "Rider consegna",
-        "Ritiro",
-        "Luogo ritiro",
-        "Rider ritiro",
-        "Radio",
-        "Canale",
+        t("Guida"),
+        t("Telefono"),
+        t("Stato"),
+        t("Consegna"),
+        t("Luogo consegna"),
+        t("Rider consegna"),
+        t("Ritiro"),
+        t("Luogo ritiro"),
+        t("Rider ritiro"),
+        t("Radio"),
+        t("Canale"),
       ],
     ],
     body: orders.map((o) => [
@@ -47,5 +48,5 @@ export async function exportOrdersPdf(orders: Order[], timezone: string, title: 
   });
 
   const stamp = new Date().toISOString().slice(0, 10);
-  doc.save(`ordini_${stamp}.pdf`);
+  doc.save(`${t("ordini")}_${stamp}.pdf`);
 }

@@ -10,6 +10,8 @@ import { CONFIG } from "../config/configuration";
 import { useCurrentUser } from "../providers/current-user";
 import { usePlatformSettings } from "../features/platform/runtime";
 import { WorkspaceLayout } from "./WorkspaceLayout";
+import { t } from "../i18n";
+import { LanguageSwitch } from "../i18n/LanguageSwitch";
 
 interface NavItem {
   key: string;
@@ -18,16 +20,16 @@ interface NavItem {
 }
 
 const ADMIN_NAV: NavItem[] = [
-  { key: "/", label: "Ordini", icon: <ProfileOutlined /> },
-  { key: "/calendar", label: "Calendario", icon: <CalendarOutlined /> },
-  { key: "/dashboard", label: "Dashboard", icon: <BarChartOutlined /> },
-  { key: "/riders", label: "Team e rider", icon: <TeamOutlined /> },
-  { key: "/guides", label: "Guide", icon: <SolutionOutlined /> },
-  { key: "/settings", label: "Impostazioni", icon: <SettingOutlined /> },
+  { key: "/", label: t("Ordini"), icon: <ProfileOutlined /> },
+  { key: "/calendar", label: t("Calendario"), icon: <CalendarOutlined /> },
+  { key: "/dashboard", label: t("Dashboard"), icon: <BarChartOutlined /> },
+  { key: "/riders", label: t("Team e rider"), icon: <TeamOutlined /> },
+  { key: "/guides", label: t("Guide"), icon: <SolutionOutlined /> },
+  { key: "/settings", label: t("Impostazioni"), icon: <SettingOutlined /> },
 ];
 
 const RIDER_NAV: NavItem[] = [
-  { key: "/", label: "Le mie consegne", icon: <ProfileOutlined /> },
+  { key: "/", label: t("Le mie consegne"), icon: <ProfileOutlined /> },
 ];
 
 function selectedKey(pathname: string, items: NavItem[]): string {
@@ -55,9 +57,9 @@ export function AppLayout() {
 
   const userMenu: MenuProps = {
     items: [
-      { key: "profile", icon: <UserOutlined />, label: "Il mio profilo" },
+      { key: "profile", icon: <UserOutlined />, label: t("Il mio profilo") },
       { type: "divider" },
-      { key: "logout", icon: <LogoutOutlined />, label: "Esci", danger: true },
+      { key: "logout", icon: <LogoutOutlined />, label: t("Esci"), danger: true },
     ],
     onClick: ({ key }) => {
       if (key === "profile") navigate("/profile");
@@ -67,16 +69,16 @@ export function AppLayout() {
 
   return (
     <WorkspaceLayout title={tenant?.name ?? CONFIG.appName} items={menuItems} selectedKey={current}
-      onNavigate={navigate} account={{
+      onNavigate={navigate} actions={<LanguageSwitch />} account={{
         name: profile?.full_name || profile?.email,
         avatarUrl: profile?.avatar_url ?? undefined,
-        role: isAdmin ? "Amministratore" : "Rider",
+        role: isAdmin ? t("Amministratore") : t("Rider"),
         roleColor: isAdmin ? "blue" : undefined,
         menu: userMenu,
       }}>
       {settings.notice && <Alert type="info" showIcon title={settings.notice} style={{ marginBottom: 16 }} />}
-      {access === "read_only" && <Alert type="warning" showIcon title="L’azienda ha accesso in sola lettura." style={{ marginBottom: 16 }} />}
-      {access === "closeout" && <Alert type="warning" showIcon title="Puoi completare gli incarichi già in corso." style={{ marginBottom: 16 }} />}
+      {access === "read_only" && <Alert type="warning" showIcon title={t("L’azienda ha accesso in sola lettura.")} style={{ marginBottom: 16 }} />}
+      {access === "closeout" && <Alert type="warning" showIcon title={t("Puoi completare gli incarichi già in corso.")} style={{ marginBottom: 16 }} />}
       <Outlet />
     </WorkspaceLayout>
   );

@@ -72,7 +72,35 @@ const id = (kind, n) => {
   return `${s.slice(0, 8)}-${s.slice(8, 12)}-${s.slice(12, 16)}-${s.slice(16, 20)}-${s.slice(20, 32)}`;
 };
 
-export function buildDemo(now) {
+// Free text of the demo company in English, for the English screenshots (names and places stay as they are).
+const EN_TEXT = {
+  "Consegnare al capogruppo all'ingresso": "Hand over to the group leader at the entrance",
+  "Gruppo da crociera, rientro in nave alle 17:00": "Cruise group, back on the ship at 5 pm",
+  "Chiamare la guida 10 minuti prima": "Call the guide 10 minutes before",
+  "Scuola: 2 classi, servono auricolari monouso": "School: 2 classes, single-use earpieces needed",
+  "Fattura intestata all'agenzia": "Invoice to the agency",
+  "Lasciare le radio alla reception dell'hotel": "Leave the radios at the hotel reception",
+  "Gruppo tedesco, tour in lingua": "German group, tour in their language",
+  "La guida riporta le radio in sede entro venerdì": "The guide brings the radios back to the office by Friday",
+  "Tour annullato per sciopero dei trasporti": "Tour cancelled because of a transport strike",
+  "Preferisce consegna 15 minuti prima": "Prefers delivery 15 minutes early",
+  "Gruppi tedeschi, fattura all'agenzia": "German groups, invoice to the agency",
+  "Noleggio radioguide per gruppi turistici a Roma e dintorni": "Radio guide rental for tour groups in Rome and surroundings",
+};
+const translateDemo = (db) => {
+  const tr = (v) => (typeof v === "string" && EN_TEXT[v] ? EN_TEXT[v] : v);
+  db.tenant.description = tr(db.tenant.description);
+  for (const g of db.guides) g.notes = tr(g.notes);
+  for (const o of db.orders) o.notes = tr(o.notes);
+  return db;
+};
+
+export function buildDemo(now, lang = "it") {
+  const db = buildDemoData(now);
+  return lang === "en" ? translateDemo(db) : db;
+}
+
+function buildDemoData(now) {
   const rnd = mulberry32(20261119);
   const pick = (arr) => arr[Math.floor(rnd() * arr.length)];
   const between = (lo, hi) => lo + Math.floor(rnd() * (hi - lo + 1));

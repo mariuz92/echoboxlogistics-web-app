@@ -177,7 +177,7 @@ test.describe("orders (admin)", () => {
     await openRowMenu(page, guide);
     await page.getByRole("menuitem", { name: "Assegna consegna" }).click();
     await page.getByRole("menuitem", { name: /Luca Rider/ }).click();
-    await expect(page.getByText("Consegna assegnato a Luca Rider")).toBeVisible();
+    await expect(page.getByText("Consegna assegnata a Luca Rider")).toBeVisible();
     await expect(rowOf(page, guide).getByText("Consegna assegnata")).toBeVisible();
     await expect(rowOf(page, guide).getByText(/C · Luca Rider/)).toBeVisible();
 

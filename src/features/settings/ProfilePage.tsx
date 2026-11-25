@@ -8,9 +8,10 @@ import { usePageTitle } from "../../shared/hooks/usePageTitle";
 import { ROLE_LABELS } from "../../types/domain";
 import { confirmPasswordRule, passwordRules, phoneRules } from "../auth/validators";
 import { changePassword, updateOwnProfile } from "./api";
+import { t } from "../../i18n";
 
 export function ProfilePage() {
-  usePageTitle("Profilo");
+  usePageTitle(t("Profilo"));
   const { message } = App.useApp();
   const { profile, tenant, timezone, refresh } = useReadyUser();
   const [savingProfile, setSavingProfile] = useState(false);
@@ -25,7 +26,7 @@ export function ProfilePage() {
         phone: values.phone?.trim() || null,
       });
       await refresh();
-      void message.success("Profilo aggiornato");
+      void message.success(t("Profilo aggiornato"));
     } catch (error) {
       void message.error(getErrorMessage(error));
     } finally {
@@ -38,7 +39,7 @@ export function ProfilePage() {
     try {
       await changePassword(password);
       passwordForm.resetFields();
-      void message.success("Password aggiornata");
+      void message.success(t("Password aggiornata"));
     } catch (error) {
       void message.error(getErrorMessage(error));
     } finally {
@@ -48,54 +49,54 @@ export function ProfilePage() {
 
   return (
     <>
-      <PageHeader title="Il mio profilo" subtitle={profile.email} />
+      <PageHeader title={t("Il mio profilo")} subtitle={profile.email} />
 
       <Row gutter={[16, 16]}>
         <Col xs={24} lg={12}>
           <Flex vertical gap={16}>
-            <Card title="Dati personali">
+            <Card title={t("Dati personali")}>
               <Form
                 layout="vertical"
                 requiredMark="optional"
                 onFinish={saveProfile}
                 initialValues={{ full_name: profile.full_name, phone: profile.phone ?? "" }}
               >
-                <Form.Item label="Email">
+                <Form.Item label={t("Email")}>
                   <Input value={profile.email} disabled />
                 </Form.Item>
                 <Form.Item
-                  label="Nome e cognome"
+                  label={t("Nome e cognome")}
                   name="full_name"
-                  rules={[{ required: true, whitespace: true, message: "Inserisci il tuo nome" }]}
+                  rules={[{ required: true, whitespace: true, message: t("Inserisci il tuo nome") }]}
                 >
                   <Input autoComplete="name" />
                 </Form.Item>
-                <Form.Item label="Telefono" name="phone" rules={phoneRules}>
+                <Form.Item label={t("Telefono")} name="phone" rules={phoneRules}>
                   <Input autoComplete="tel" />
                 </Form.Item>
                 <Button type="primary" htmlType="submit" loading={savingProfile}>
-                  Salva
+                  {t("Salva")}
                 </Button>
               </Form>
             </Card>
 
-            <Card title="Account">
+            <Card title={t("Account")}>
               <Descriptions
                 column={1}
                 size="small"
                 items={[
-                  { key: "company", label: "Azienda", children: tenant.name },
+                  { key: "company", label: t("Azienda"), children: tenant.name },
                   {
                     key: "roles",
-                    label: "Ruoli",
+                    label: t("Ruoli"),
                     children: profile.roles.map((r) => (
                       <Tag key={r} color={r === "admin" ? "blue" : "default"}>
                         {ROLE_LABELS[r]}
                       </Tag>
                     )),
                   },
-                  { key: "last", label: "Ultimo accesso", children: fmtDateTime(profile.last_login_at, timezone) },
-                  { key: "since", label: "Iscritto dal", children: fmtDateTime(profile.created_at, timezone) },
+                  { key: "last", label: t("Ultimo accesso"), children: fmtDateTime(profile.last_login_at, timezone) },
+                  { key: "since", label: t("Iscritto dal"), children: fmtDateTime(profile.created_at, timezone) },
                 ]}
               />
             </Card>
@@ -103,22 +104,22 @@ export function ProfilePage() {
         </Col>
 
         <Col xs={24} lg={12}>
-          <Card title="Cambia password">
+          <Card title={t("Cambia password")}>
             <Form form={passwordForm} layout="vertical" requiredMark={false} onFinish={savePassword}>
-              <Form.Item label="Nuova password" name="password" rules={passwordRules} hasFeedback>
+              <Form.Item label={t("Nuova password")} name="password" rules={passwordRules} hasFeedback>
                 <Input.Password autoComplete="new-password" />
               </Form.Item>
               <Form.Item
-                label="Conferma password"
+                label={t("Conferma password")}
                 name="confirm"
                 dependencies={["password"]}
-                rules={[{ required: true, message: "Conferma la password" }, confirmPasswordRule()]}
+                rules={[{ required: true, message: t("Conferma la password") }, confirmPasswordRule()]}
                 hasFeedback
               >
                 <Input.Password autoComplete="new-password" />
               </Form.Item>
               <Button type="primary" htmlType="submit" loading={savingPassword}>
-                Aggiorna password
+                {t("Aggiorna password")}
               </Button>
             </Form>
           </Card>

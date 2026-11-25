@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { env } from "../../config/env";
 import type { Database, Json } from "../../types/database.types";
 import type { OrderStatus } from "../../types/domain";
+import { t } from "../../i18n";
 
 export const platformClient = createClient<Database>(
   env.supabaseUrl ?? "http://localhost:54321",
@@ -220,32 +221,32 @@ export async function sendInvite(id: string) {
 }
 
 const MESSAGES: Record<string, string> = {
-  operator_access_denied: "Accesso riservato agli operatori con verifica in due passaggi.",
-  company_access_restricted: "L’azienda non può ricevere nuovi inviti con lo stato attuale.",
-  account_has_company: "Questo account è già associato a un’azienda.",
-  invite_in_another_company: "Esiste già un invito valido per questo indirizzo in un’altra azienda.",
-  revoke_previous_invitation: "Revoca prima l’invito esistente per questo indirizzo.",
-  invitation_retry_unavailable: "Invio in corso o limite di tentativi raggiunto. Riprova più tardi.",
-  invitation_unavailable: "L’invito è stato accettato, revocato o è scaduto.",
-  invitation_result_unavailable: "Impossibile confermare l’esito dell’invio. Controlla lo stato prima di riprovare.",
-  invitation_site_not_configured: "Configura l’indirizzo dell’app per inviare gli inviti.",
-  transfer_company_owner_first: "Trasferisci prima la proprietà dell’azienda.",
-  owner_must_be_active_admin: "Scegli un amministratore attivo con email verificata.",
-  last_admin: "L’azienda deve mantenere almeno un amministratore attivo.",
-  rider_has_active_orders: "Questo rider ha incarichi in corso.",
-  plan_unavailable: "Seleziona un piano disponibile.",
-  operator_verified_account_required: "L’indirizzo deve appartenere a un account verificato e attivo.",
-  operator_cannot_disable_self: "Un altro operatore deve disabilitare il tuo accesso.",
-  invalid_timezone: "Inserisci un fuso orario IANA valido, ad esempio Europe/Rome.",
-  issue_not_found: "La segnalazione non è più disponibile.",
-  issue_triage_changed: "La segnalazione è cambiata. Chiudi la modifica e riaprila per usare i dati aggiornati.",
-  issue_assignee_unavailable: "L’operatore selezionato non è disponibile. Aggiorna la pagina e scegli un altro operatore.",
-  order_not_found: "L’ordine non è disponibile per questa azienda.",
+  operator_access_denied: t("Accesso riservato agli operatori con verifica in due passaggi."),
+  company_access_restricted: t("L’azienda non può ricevere nuovi inviti con lo stato attuale."),
+  account_has_company: t("Questo account è già associato a un’azienda."),
+  invite_in_another_company: t("Esiste già un invito valido per questo indirizzo in un’altra azienda."),
+  revoke_previous_invitation: t("Revoca prima l’invito esistente per questo indirizzo."),
+  invitation_retry_unavailable: t("Invio in corso o limite di tentativi raggiunto. Riprova più tardi."),
+  invitation_unavailable: t("L’invito è stato accettato, revocato o è scaduto."),
+  invitation_result_unavailable: t("Impossibile confermare l’esito dell’invio. Controlla lo stato prima di riprovare."),
+  invitation_site_not_configured: t("Configura l’indirizzo dell’app per inviare gli inviti."),
+  transfer_company_owner_first: t("Trasferisci prima la proprietà dell’azienda."),
+  owner_must_be_active_admin: t("Scegli un amministratore attivo con email verificata."),
+  last_admin: t("L’azienda deve mantenere almeno un amministratore attivo."),
+  rider_has_active_orders: t("Questo rider ha incarichi in corso."),
+  plan_unavailable: t("Seleziona un piano disponibile."),
+  operator_verified_account_required: t("L’indirizzo deve appartenere a un account verificato e attivo."),
+  operator_cannot_disable_self: t("Un altro operatore deve disabilitare il tuo accesso."),
+  invalid_timezone: t("Inserisci un fuso orario IANA valido, ad esempio Europe/Rome."),
+  issue_not_found: t("La segnalazione non è più disponibile."),
+  issue_triage_changed: t("La segnalazione è cambiata. Chiudi la modifica e riaprila per usare i dati aggiornati."),
+  issue_assignee_unavailable: t("L’operatore selezionato non è disponibile. Aggiorna la pagina e scegli un altro operatore."),
+  order_not_found: t("L’ordine non è disponibile per questa azienda."),
 };
 
 export function actionError(error: unknown) {
   const message = (error as { message?: string } | null)?.message;
   const code = (error as { code?: string } | null)?.code;
   return MESSAGES[message ?? ""] ??
-    (code === "23505" ? "Esiste già un record con questi dati." : "Operazione non riuscita. Controlla i dati e riprova.");
+    (code === "23505" ? t("Esiste già un record con questi dati.") : t("Operazione non riuscita. Controlla i dati e riprova."));
 }

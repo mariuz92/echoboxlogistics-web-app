@@ -9,6 +9,7 @@ import { StatusTag } from "../../../shared/components/StatusTag";
 import { MAX_CHANNELS, channelCount, formatChannelList, parseChannelList, type ChannelUse } from "../../../types/domain";
 import { updateTenant } from "../../settings/api";
 import { queryKeys, useChannelBoard } from "../hooks";
+import { numberLocale, t, tn } from "../../../i18n";
 
 interface ChannelBoardProps {
   open: boolean;
@@ -42,9 +43,9 @@ export function ChannelSettings({ open, onClose }: ChannelBoardProps) {
   const count = max >= min ? channelCount({ channel_min: min, channel_max: max }) : 0;
   const rangeError =
     max < min
-      ? "L'ultimo canale deve essere uguale o successivo al primo."
+      ? t("L'ultimo canale deve essere uguale o successivo al primo.")
       : count > MAX_CHANNELS
-        ? `Al massimo ${MAX_CHANNELS.toLocaleString("it-IT")} canali.`
+        ? t("Al massimo {n} canali.", { n: MAX_CHANNELS.toLocaleString(numberLocale()) })
         : null;
 
   const parsedDisabled = useMemo(() => parseChannelList(disabledText), [disabledText]);
@@ -71,7 +72,7 @@ export function ChannelSettings({ open, onClose }: ChannelBoardProps) {
       });
       await refresh();
       void queryClient.invalidateQueries({ queryKey: queryKeys.channels });
-      void message.success("Canali aggiornati");
+      void message.success(t("Canali aggiornati"));
       onClose();
     } catch (error) {
       void message.error(getErrorMessage(error));
@@ -82,14 +83,14 @@ export function ChannelSettings({ open, onClose }: ChannelBoardProps) {
 
   return (
     <Modal
-      title="Canali radio"
+      title={t("Canali radio")}
       open={open}
       onCancel={onClose}
       width={460}
       destroyOnHidden
       footer={
         <Flex justify="flex-end" gap={8}>
-          <Button onClick={onClose}>Chiudi</Button>
+          <Button onClick={onClose}>{t("Chiudi")}</Button>
           <Button
             type="primary"
             icon={<SaveOutlined />}
@@ -97,19 +98,19 @@ export function ChannelSettings({ open, onClose }: ChannelBoardProps) {
             loading={saving}
             disabled={!dirty || Boolean(rangeError) || parsedDisabled === null}
           >
-            Salva
+            {t("Salva")}
           </Button>
         </Flex>
       }
     >
             <Flex vertical gap={20}>
               <div>
-                <Typography.Text strong>Numerazione</Typography.Text>
+                <Typography.Text strong>{t("Numerazione")}</Typography.Text>
                 <Flex align="center" gap={8} style={{ marginTop: 6 }}>
-                  <span>dal</span>
+                  <span>{t("dal")}</span>
                   <InputNumber
                     id="channel_min"
-                    aria-label="Primo canale"
+                    aria-label={t("Primo canale")}
                     min={0}
                     max={99999}
                     precision={0}
@@ -117,10 +118,10 @@ export function ChannelSettings({ open, onClose }: ChannelBoardProps) {
                     onChange={(v) => setMin(v ?? 0)}
                     style={{ width: 96 }}
                   />
-                  <span>al</span>
+                  <span>{t("al")}</span>
                   <InputNumber
                     id="channel_max"
-                    aria-label="Ultimo canale"
+                    aria-label={t("Ultimo canale")}
                     min={0}
                     max={99999}
                     precision={0}
@@ -131,28 +132,28 @@ export function ChannelSettings({ open, onClose }: ChannelBoardProps) {
                 </Flex>
                 <Typography.Text type={rangeError ? "danger" : "secondary"} style={{ display: "block", marginTop: 6 }}>
                   {rangeError ??
-                    `${count.toLocaleString("it-IT")} ${count === 1 ? "canale" : "canali"}. Qualsiasi radioguida: da 1 a 10.000 canali.`}
+                    tn(count, "{n} canale. Qualsiasi radioguida: da 1 a 10.000 canali.", "{n} canali. Qualsiasi radioguida: da 1 a 10.000 canali.", { n: count.toLocaleString(numberLocale()) })}
                 </Typography.Text>
               </div>
 
               <div>
                 <Flex align="center" justify="space-between" gap={12}>
-                  <Typography.Text strong>Un gruppo per canale</Typography.Text>
-                  <Switch id="channels_exclusive" checked={exclusive} onChange={setExclusive} aria-label="Un gruppo per canale" />
+                  <Typography.Text strong>{t("Un gruppo per canale")}</Typography.Text>
+                  <Switch id="channels_exclusive" checked={exclusive} onChange={setExclusive} aria-label={t("Un gruppo per canale")} />
                 </Flex>
                 <Typography.Text type="secondary" style={{ display: "block", marginTop: 6 }}>
                   {exclusive
-                    ? "Un canale occupato da un gruppo non può essere dato a un altro gruppo negli stessi orari."
-                    : "Più gruppi possono usare lo stesso canale insieme: l'ordine lo segnala ma non lo blocca."}
+                    ? t("Un canale occupato da un gruppo non può essere dato a un altro gruppo negli stessi orari.")
+                    : t("Più gruppi possono usare lo stesso canale insieme: l'ordine lo segnala ma non lo blocca.")}
                 </Typography.Text>
               </div>
 
               <div>
-                <Typography.Text strong>Canali disabilitati</Typography.Text>
+                <Typography.Text strong>{t("Canali disabilitati")}</Typography.Text>
                 <Input
                   id="disabled_channels"
-                  aria-label="Canali disabilitati"
-                  placeholder="Es. 13, 20-22"
+                  aria-label={t("Canali disabilitati")}
+                  placeholder={t("Es. 13, 20-22")}
                   value={disabledText}
                   onChange={(e) => setDisabledText(e.target.value)}
                   status={parsedDisabled === null ? "error" : undefined}
@@ -160,8 +161,8 @@ export function ChannelSettings({ open, onClose }: ChannelBoardProps) {
                 />
                 <Typography.Text type={parsedDisabled === null ? "danger" : "secondary"} style={{ display: "block", marginTop: 6 }}>
                   {parsedDisabled === null
-                    ? "Scrivi numeri o intervalli separati da virgole, per esempio 13, 20-22."
-                    : "Canali guasti o riservati: non possono essere usati negli ordini."}
+                    ? t("Scrivi numeri o intervalli separati da virgole, per esempio 13, 20-22.")
+                    : t("Canali guasti o riservati: non possono essere usati negli ordini.")}
                 </Typography.Text>
               </div>
             </Flex>
@@ -196,12 +197,12 @@ export function OccupiedChannels({ open, onClose, period, excludeOrderId }: Chan
 
   return (
     <Modal
-      title="Canali occupati"
+      title={t("Canali occupati")}
       open={open}
       onCancel={onClose}
       width={760}
       destroyOnHidden
-      footer={<Button onClick={onClose}>Chiudi</Button>}
+      footer={<Button onClick={onClose}>{t("Chiudi")}</Button>}
     >
       <Flex vertical gap={12}>
         <Flex align="center" gap={8} wrap>
@@ -211,7 +212,7 @@ export function OccupiedChannels({ open, onClose, period, excludeOrderId }: Chan
             </Typography.Text>
           ) : (
             <DatePicker
-              aria-label="Giorno"
+              aria-label={t("Giorno")}
               value={day}
               onChange={(d) => d && setDay(d)}
               format="DD/MM/YYYY"
@@ -219,8 +220,8 @@ export function OccupiedChannels({ open, onClose, period, excludeOrderId }: Chan
             />
           )}
           <Input.Search
-            aria-label="Cerca canale o guida"
-            placeholder="Canale o guida"
+            aria-label={t("Cerca canale o guida")}
+            placeholder={t("Canale o guida")}
             allowClear
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -228,19 +229,21 @@ export function OccupiedChannels({ open, onClose, period, excludeOrderId }: Chan
           />
           {data && !isPlaceholderData && !isError && (
             <Typography.Text type="secondary">
-              {channels} {channels === 1 ? "canale occupato" : "canali occupati"} {period ? "in questi orari" : "in questa giornata"}
+              {period
+                ? tn(channels, "{n} canale occupato in questi orari", "{n} canali occupati in questi orari")
+                : tn(channels, "{n} canale occupato in questa giornata", "{n} canali occupati in questa giornata")}
             </Typography.Text>
           )}
         </Flex>
         <Typography.Text type="secondary">
-          Un canale è occupato dalla consegna al ritiro, o fino a fine giornata se il ritiro non è pianificato.
+          {t("Un canale è occupato dalla consegna al ritiro, o fino a fine giornata se il ritiro non è pianificato.")}
         </Typography.Text>
         {isError ? (
           <Alert
             type="warning"
             showIcon
-            title="Impossibile caricare i canali occupati."
-            action={<Button size="small" onClick={() => void refetch()}>Riprova</Button>}
+            title={t("Impossibile caricare i canali occupati.")}
+            action={<Button size="small" onClick={() => void refetch()}>{t("Riprova")}</Button>}
           />
         ) : <Table<ChannelUse>
           size="small"
@@ -249,15 +252,15 @@ export function OccupiedChannels({ open, onClose, period, excludeOrderId }: Chan
           loading={isFetching && uses.length === 0}
           pagination={rows.length > 10 ? { pageSize: 10, size: "small", showSizeChanger: false } : false}
           locale={{ emptyText: q
-            ? "Nessun canale occupato corrisponde alla ricerca"
-            : period ? "Nessun canale occupato in questi orari" : "Nessun canale occupato in questa giornata"
+            ? t("Nessun canale occupato corrisponde alla ricerca")
+            : period ? t("Nessun canale occupato in questi orari") : t("Nessun canale occupato in questa giornata")
           }}
           scroll={{ x: 520 }}
           columns={[
-            { title: "Canale", dataIndex: "channel", width: 80 },
-            { title: "Guida", dataIndex: "guide_name", ellipsis: true },
+            { title: t("Canale"), dataIndex: "channel", width: 80 },
+            { title: t("Guida"), dataIndex: "guide_name", ellipsis: true },
             {
-              title: "Occupato",
+              title: t("Occupato"),
               key: "when",
               render: (_, u) =>
                 `${fmtDateTime(u.delivery_at, timezone)} – ${
@@ -266,7 +269,7 @@ export function OccupiedChannels({ open, onClose, period, excludeOrderId }: Chan
                     : fmtDateTime(u.busy_until, timezone)
                 }`,
             },
-            { title: "Stato", dataIndex: "status", render: (s) => <StatusTag status={s} /> },
+            { title: t("Stato"), dataIndex: "status", render: (s) => <StatusTag status={s} /> },
           ]}
         />}
       </Flex>

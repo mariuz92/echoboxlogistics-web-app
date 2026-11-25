@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Card, Flex, Typography, theme as antdTheme } from "antd";
 import { Brand } from "../../layout/Brand";
 import { brand } from "../../config/theme";
+import { LanguageSwitch } from "../../i18n/LanguageSwitch";
 
 interface AuthShellProps {
   title: string;
@@ -23,10 +24,14 @@ export function AuthShell({ title, subtitle, children, footer, width = 440 }: Au
       gap={20}
       style={{
         minHeight: "100vh",
-        padding: "32px 16px",
+        padding: "56px 16px 32px",
+        position: "relative",
         background: `radial-gradient(1200px 500px at 50% -10%, ${brand.navyLight} 0%, ${brand.navy} 60%)`,
       }}
     >
+      <div style={{ position: "absolute", top: 16, right: 16 }}>
+        <LanguageSwitch onDark />
+      </div>
       <Brand to={false} onDark />
 
       <Card
