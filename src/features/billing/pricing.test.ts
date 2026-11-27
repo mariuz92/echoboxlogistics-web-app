@@ -87,6 +87,14 @@ describe("parsePublicPlans", () => {
     expect(plans!.map((p) => p.highlighted)).toEqual([true, false]);
   });
 
+  it("shows three choices at most, in the order received", () => {
+    const four = ["a1", "b1", "c1", "d1"].map((code, i) => row({ code, name: `Plan ${code}`, highlighted: i === 3 }));
+    const plans = parsePublicPlans(four);
+    expect(plans!.map((p) => p.code)).toEqual(["a1", "b1", "c1"]);
+    // The badge was on the fourth plan, which is not shown: nothing carries it.
+    expect(plans!.some((p) => p.highlighted)).toBe(false);
+  });
+
   it("rejects anything unexpected so the page keeps its own prices", () => {
     expect(parsePublicPlans(null)).toBeNull();
     expect(parsePublicPlans([])).toBeNull();

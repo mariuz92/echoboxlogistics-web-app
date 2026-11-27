@@ -77,6 +77,9 @@ export function priceSaving(plan: PricePlan): { listPrice: number; saving: numbe
   return { listPrice, saving, percent: Math.round((saving / listPrice) * 100), perMonth: round2(plan.priceYear / 12) };
 }
 
+/** The price list has three choices: the landing page shows the first three published plans. */
+export const MAX_PUBLIC_PLANS = 3;
+
 const money = (value: unknown): value is number => typeof value === "number" && Number.isFinite(value) && value >= 0;
 const limit = (value: unknown): value is number | null => value === null || (typeof value === "number" && Number.isInteger(value) && value >= 0);
 
@@ -106,7 +109,8 @@ export function parsePublicPlans(data: unknown): PricePlan[] | null {
     });
   }
   if (new Set(plans.map((p) => p.code)).size !== plans.length) return null;
-  // At most one plan carries the badge.
-  const first = plans.findIndex((p) => p.highlighted);
-  return plans.map((p, i) => ({ ...p, highlighted: i === first }));
+  // Three choices at most, and at most one of them carries the badge.
+  const shown = plans.slice(0, MAX_PUBLIC_PLANS);
+  const first = shown.findIndex((p) => p.highlighted);
+  return shown.map((p, i) => ({ ...p, highlighted: i === first }));
 }

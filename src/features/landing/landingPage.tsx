@@ -384,7 +384,7 @@ function Pricing({ t, lang, plans }: { t: Dict; lang: Lang; plans: readonly Pric
           )}
         </div>
 
-        <div className="lp-plans" style={{ "--plans": Math.min(plans.length, plans.length <= 4 ? 4 : 3) } as CSSProperties}>
+        <div className="lp-plans" style={{ "--plans": plans.length } as CSSProperties}>
           {plans.map((plan) => {
             const tagline = p.plans[plan.code as keyof typeof p.plans]?.tagline ?? plan.description;
             const yearly = view === "year";

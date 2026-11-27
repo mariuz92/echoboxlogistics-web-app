@@ -132,8 +132,9 @@ with no deploy:
 1. The `public-plans` Edge Function returns the plans that are **available and visible to customers** ("Visibile ai clienti e
    sul sito" in the plan editor), in their display order. Custom plans and archived plans are never published.
 2. The landing page shows them: price, yearly price with its discount, included riders and orders (or "unlimited"), extras, and the
-   calculator. The yearly switch and the badge on it are computed from the real prices. With a different number of plans the grid
-   adapts (up to six).
+   calculator. The yearly switch and the badge on it are computed from the real prices. The price list has **three choices**: the
+   site shows the first three published plans (by "Ordine", then name); Piani warns you if you publish more. Bigger or special needs go
+   through the "piano su misura" contact box, not a fourth plan.
 3. **Piani -> Evidenzia** chooses the plan that carries the "Il più scelto" badge (one at a time; Pro by default).
 4. The answer is cached for 5 minutes by browsers and the CDN.
 

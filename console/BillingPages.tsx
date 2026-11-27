@@ -11,6 +11,7 @@ import {
   type BillingRequest, type Company, type NoticeKind, type Plan, type Snapshot,
 } from "../src/features/platform/api";
 import { estimateFromPlan } from "../src/features/billing/estimate";
+import { MAX_PUBLIC_PLANS } from "../src/features/billing/pricing";
 import { baseFee, planChangeKind, remainingMonths, upgradeDifference, yearlyRefund } from "../src/features/billing/proration";
 import { limitLevel, type EstimateLine, type InvoiceLine, type InvoiceStatus } from "../src/features/billing/types";
 import {
@@ -104,10 +105,16 @@ export function Plans({ snapshot, overview, edit }: { snapshot: Snapshot; overvi
   }
 
   const defaults = overview?.trial_defaults;
+  // Same order as the site: display order, then name.
+  const published = snapshot.plans.filter((p) => p.available && p.is_public)
+    .sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name));
+  const hidden = published.slice(MAX_PUBLIC_PLANS);
   return <>
     <PageHeader title="Piani" subtitle="Prezzi e limiti dei piani. I piani disponibili e visibili ai clienti compaiono anche sul sito, con il calcolatore: i cambi qui si vedono sul sito entro pochi minuti."
       actions={<Button type="primary" onClick={() => open()}>Crea piano</Button>} />
     <Flex vertical gap={16}>
+      {hidden.length > 0 && <Alert type="warning" showIcon
+        title={`Il sito mostra solo i primi ${MAX_PUBLIC_PLANS} piani pubblicati (secondo “Ordine”). Non compaiono: ${hidden.map((p) => p.name).join(", ")}. Archivia un piano o spegni “Visibile ai clienti e sul sito” per sceglierne tre.`} />}
       <Card><Table rowKey="code" scroll={{ x: 960 }} pagination={false} dataSource={snapshot.plans} columns={[
         { title: "Piano", render: (_, p: Plan) => <Flex vertical>
           <Typography.Text strong>{p.name}{!p.is_public && <Tag style={{ marginLeft: 8 }}>Su misura</Tag>}</Typography.Text>
