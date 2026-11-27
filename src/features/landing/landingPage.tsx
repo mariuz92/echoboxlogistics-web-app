@@ -371,6 +371,7 @@ function Pricing({ t, lang }: { t: Dict; lang: Lang }) {
           })}
         </div>
         <p className="lp-pricing-note">{p.everyPlan} {p.vat}</p>
+        <p className="lp-pricing-note">{p.yearlyTerms}</p>
 
         <div className="lp-calc" id="calculator">
           <div className="lp-calc-intro">

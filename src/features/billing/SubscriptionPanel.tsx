@@ -8,6 +8,7 @@ import { t } from "../../i18n";
 import { cancelPlanChangeRequest, requestPlanChange } from "./api";
 import { money } from "./alerts";
 import { estimateFromPlan } from "./estimate";
+import { planChangeKind } from "./proration";
 import { useCompanyBilling } from "./useBilling";
 import {
   limitLevel, type BillingInterval, type CompanyBilling, type EstimateLine, type Invoice, type InvoiceLine,
@@ -189,6 +190,7 @@ export function SubscriptionView({ billing }: { billing: CompanyBilling }) {
   const { subscription: sub, plan, request, last_response: reply } = billing;
   const planName = (code: string) => billing.plans.find((p) => p.code === code)?.name ?? code;
   const endLabel = sub?.state === "trial" ? t("Prova fino al") : t("Prossimo rinnovo");
+  const change = plan && sub && chosen ? planChangeKind(plan, sub.interval, chosen, interval) : "upgrade";
   const recentReply = reply && dayjs(reply.handled_at).isAfter(dayjs().subtract(14, "day"));
 
   return (
@@ -216,6 +218,9 @@ export function SubscriptionView({ billing }: { billing: CompanyBilling }) {
                 { key: "plan", label: t("Piano"), children: <Flex gap={8}><strong>{plan.name}</strong>{sub.forever && <Tag color="purple">{t("Per sempre")}</Tag>}</Flex> },
                 { key: "state", label: t("Stato"), children: <Tag color={sub.state === "active" ? "green" : sub.state === "trial" ? "blue" : "orange"}>{stateLabel(sub.state)}</Tag> },
                 { key: "interval", label: t("Fatturazione"), children: sub.interval === "year" ? t("Annuale") : t("Mensile") },
+                ...(sub.next_plan_code ? [{ key: "next", label: t("Cambio programmato"), children: t("Dal rinnovo del {date}: piano {plan} ({interval})", {
+                  date: day(sub.ends_at), plan: planName(sub.next_plan_code), interval: sub.next_billing_interval === "year" ? t("annuale") : t("mensile"),
+                }) }] : []),
                 { key: "end", label: sub.forever ? t("Scadenza") : endLabel, children: sub.forever ? t("Nessuna scadenza") : day(sub.ends_at) },
                 ...(sub.billing_email ? [{ key: "email", label: t("Email di fatturazione"), children: sub.billing_email }] : []),
               ]} />
@@ -241,6 +246,9 @@ export function SubscriptionView({ billing }: { billing: CompanyBilling }) {
         <Typography.Paragraph type="secondary" style={{ margin: "16px 0 0" }}>
           {t("Il cambio di piano viene applicato da EchoBox dopo la tua richiesta. Hai bisogno di un piano su misura? Scrivici dalla richiesta.")}
         </Typography.Paragraph>
+        <Typography.Paragraph type="secondary" style={{ margin: "8px 0 0" }}>
+          {t("Piano annuale: si paga in anticipo. Se disdici rimborsiamo il canone dei mesi interi che restano, non i rider e gli ordini extra già usati. Un upgrade si paga per i mesi rimanenti; un downgrade vale dal rinnovo.")}
+        </Typography.Paragraph>
       </Card>
 
       <Invoices invoices={billing.invoices} />
@@ -256,8 +264,11 @@ export function SubscriptionView({ billing }: { billing: CompanyBilling }) {
                 period: interval === "year" ? t("all’anno") : t("al mese"),
               })}
             </Typography.Text>
-            {plan && chosen.price_month < plan.price_month && (
-              <Alert type="warning" showIcon title={t("Con un piano più piccolo i limiti inclusi si abbassano: gli eventuali extra vengono fatturati.")} />
+            {change === "downgrade" && (
+              <Alert type="warning" showIcon title={t("Il passaggio a un piano più piccolo parte dal prossimo rinnovo e ha limiti inclusi più bassi: gli eventuali extra vengono fatturati.")} />
+            )}
+            {change === "upgrade" && sub?.interval === "year" && interval === "year" && (
+              <Alert type="info" showIcon title={t("L’upgrade parte subito: si paga la differenza del canone per i mesi interi che restano dell’anno.")} />
             )}
             <Input.TextArea rows={3} maxLength={500} showCount value={note} onChange={(e) => setNote(e.target.value)}
               placeholder={t("Nota per EchoBox (facoltativa)")} aria-label={t("Nota per EchoBox")} />

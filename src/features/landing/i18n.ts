@@ -50,6 +50,8 @@ export interface Pricing {
   extraRider: string;
   extraOrders: string;
   everyPlan: string;
+  /** Yearly plan: refund, upgrade and downgrade terms. */
+  yearlyTerms: string;
   cta: string;
   custom: { title: string; text: string; cta: string };
   calc: {
@@ -269,6 +271,8 @@ const it: Dict = {
     extraRider: "Rider in più: {price} al mese",
     extraOrders: "Ordini in più: {price} ogni {block}",
     everyPlan: "Tutti i piani includono tutte le funzioni: ordini, canali radio, modulo di prenotazione, app per i rider, notifiche e statistiche.",
+    yearlyTerms:
+      "Piano annuale: si paga in anticipo. Se disdici ti rimborsiamo il canone dei mesi interi che restano, non i rider e gli ordini extra già usati. Un upgrade si paga per i mesi rimanenti; un downgrade vale dal rinnovo.",
     cta: "Richiedi una demo",
     custom: {
       title: "Servono più rider o un piano su misura?",
@@ -490,6 +494,8 @@ const en: Dict = {
     extraRider: "Extra riders: {price} per month",
     extraOrders: "Extra orders: {price} per {block}",
     everyPlan: "Every plan has every feature: orders, radio channels, booking form, rider app, notifications and statistics.",
+    yearlyTerms:
+      "Yearly plan: paid in advance. If you cancel we refund the base fee for the whole months left, not the extra riders and orders already used. An upgrade is paid for the remaining months; a downgrade starts at the renewal.",
     cta: "Request a demo",
     custom: {
       title: "Need more riders or a custom plan?",
@@ -711,6 +717,8 @@ const de: Dict = {
     extraRider: "Weiterer Fahrer: {price} pro Monat",
     extraOrders: "Weitere Aufträge: {price} pro {block}",
     everyPlan: "Jeder Tarif enthält alle Funktionen: Aufträge, Funkkanäle, Buchungsformular, Fahrer-App, Benachrichtigungen und Statistiken.",
+    yearlyTerms:
+      "Jahrestarif: Zahlung im Voraus. Bei Kündigung erstatten wir die Grundgebühr für die verbleibenden vollen Monate, nicht die bereits genutzten zusätzlichen Fahrer und Aufträge. Ein Upgrade wird für die restlichen Monate berechnet; ein Downgrade gilt ab der Verlängerung.",
     cta: "Demo vereinbaren",
     custom: {
       title: "Mehr Fahrer oder ein individueller Tarif?",
@@ -932,6 +940,8 @@ const fr: Dict = {
     extraRider: "Livreur supplémentaire : {price} par mois",
     extraOrders: "Commandes supplémentaires : {price} par {block}",
     everyPlan: "Toutes les formules incluent toutes les fonctions : commandes, canaux radio, formulaire de réservation, application livreur, notifications et statistiques.",
+    yearlyTerms:
+      "Formule annuelle : payée d'avance. En cas de résiliation, nous remboursons le forfait des mois entiers restants, pas les livreurs et commandes supplémentaires déjà utilisés. Une montée en gamme se paie pour les mois restants ; une baisse de formule s'applique au renouvellement.",
     cta: "Réserver une démo",
     custom: {
       title: "Besoin de plus de livreurs ou d'une formule sur mesure ?",

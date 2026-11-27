@@ -11,6 +11,7 @@ import {
   type BillingRequest, type Company, type NoticeKind, type Plan, type Snapshot,
 } from "../src/features/platform/api";
 import { estimateFromPlan } from "../src/features/billing/estimate";
+import { baseFee, planChangeKind, remainingMonths, upgradeDifference, yearlyRefund } from "../src/features/billing/proration";
 import { limitLevel, type EstimateLine, type InvoiceLine, type InvoiceStatus } from "../src/features/billing/types";
 import {
   accessTag, date, DATE, dateInput, day, money, REQUIRED, SUBSCRIPTION, UsageBar, type OpenEditor,
@@ -277,13 +278,80 @@ function noticeEditor(edit: OpenEditor, company?: { id: string; name: string }, 
   });
 }
 
-function requestEditor(request: BillingRequest, decision: "approved" | "rejected", edit: OpenEditor, plans: Plan[]) {
+/**
+ * Approving or rejecting a plan request. Policy for a company that is paying:
+ * an upgrade applies at once (yearly plans pay the base-fee difference for the whole months left),
+ * a downgrade starts at the next renewal.
+ */
+function requestEditor(
+  request: BillingRequest, decision: "approved" | "rejected", edit: OpenEditor, plans: Plan[], company?: BillingCompany,
+) {
+  const current = plans.find((p) => p.code === company?.plan_code);
+  const next = plans.find((p) => p.code === request.to_plan);
+  const paying = !!company && (company.state === "active" || company.state === "past_due") && !company.forever && !!company.ends_at;
+  const kind = current && next && company?.billing_interval
+    ? planChangeKind(current, company.billing_interval, next, request.billing_interval) : "upgrade";
+  const months = remainingMonths(company?.ends_at);
+  const difference = decision === "approved" && paying && kind === "upgrade" && current && next
+    && company?.billing_interval === "year" && request.billing_interval === "year" ? upgradeDifference(current, next, months) : 0;
+
+  let note = "";
+  if (decision === "approved" && paying && kind === "downgrade") {
+    note = ` È un downgrade: il nuovo piano parte dal rinnovo del ${day(company?.ends_at)}. Non ci sono rimborsi.`;
+  } else if (decision === "approved" && paying && kind === "upgrade" && company?.billing_interval === "month") {
+    note = " Il piano parte subito e il nuovo prezzo vale dalla prossima fattura mensile.";
+  } else if (decision === "approved" && difference > 0) {
+    note = ` Il piano parte subito. A metà anno si paga la differenza del canone per i mesi interi rimasti (${months}): ${money(difference, next?.currency)}.`;
+  } else if (decision === "approved") {
+    note = " Il piano viene applicato subito; emetti poi la fattura.";
+  }
+  const base = {
+    title: decision === "approved" ? "Approva cambio piano" : "Rifiuta cambio piano",
+    description: `${request.company_name}: ${planName(plans, request.from_plan)} → ${planName(plans, request.to_plan)} (${INTERVAL[request.billing_interval].toLowerCase()}).${note}`,
+  };
+  const reply = <Form.Item name="response" label="Messaggio per il cliente (opzionale)"><Input.TextArea rows={2} maxLength={500} /></Form.Item>;
+  const reason = decision === "approved" ? "Cambio piano approvato" : "Cambio piano rifiutato";
+
+  if (difference > 0 && current && next && company) {
+    edit({
+      ...base, values: { create_invoice: true, reason },
+      submit: async (fields) => {
+        await submitAction("handle_plan_request", { request_id: request.id, decision, response: fields.response, reason: fields.reason });
+        if (fields.create_invoice) {
+          await submitAction("create_invoice", {
+            tenant_id: request.tenant_id, period_start: dayjs().format("YYYY-MM-DD"), period_end: dayjs(company.ends_at).format("YYYY-MM-DD"),
+            status: "issued", reason: "Conguaglio upgrade",
+            lines: [{ code: "upgrade", label: `Upgrade ${current.name} → ${next.name}: differenza per ${months} mesi`, quantity: 1, unit_price: difference, amount: difference }],
+          });
+        }
+      },
+      fields: <>{reply}<Form.Item name="create_invoice" label={`Emetti la fattura di conguaglio (${money(difference, next.currency)})`} valuePropName="checked"><Switch /></Form.Item></>,
+    });
+    return;
+  }
+  edit({ ...base, action: "handle_plan_request", values: { request_id: request.id, decision, reason }, fields: reply });
+}
+
+/** Cancelling: a yearly plan refunds the base fee of the whole months left, never riders or orders. */
+function cancelEditor(company: Company, plan: Plan | undefined, sub: NonNullable<Snapshot["subscription"]>, edit: OpenEditor) {
+  const yearly = sub.billing_interval === "year" && !sub.forever && !!sub.ends_at;
+  const months = yearly ? remainingMonths(sub.ends_at) : 0;
+  const paid = plan ? baseFee(plan, "year") : 0;
+  const suggested = yearly ? yearlyRefund(paid, months) : 0;
   edit({
-    title: decision === "approved" ? "Approva cambio piano" : "Rifiuta cambio piano", action: "handle_plan_request",
-    values: { request_id: request.id, decision, reason: decision === "approved" ? "Cambio piano approvato" : "Cambio piano rifiutato" },
-    description: `${request.company_name}: ${planName(plans, request.from_plan)} → ${planName(plans, request.to_plan)} (${INTERVAL[request.billing_interval].toLowerCase()}).`
-      + (decision === "approved" ? " Il piano viene applicato subito; emetti poi la fattura." : ""),
-    fields: <Form.Item name="response" label="Messaggio per il cliente (opzionale)"><Input.TextArea rows={2} maxLength={500} /></Form.Item>,
+    title: "Disdici abbonamento", action: "cancel_subscription", dates: ["closeout_until"],
+    values: { tenant_id: company.id, refund_amount: suggested, reason: "Disdetta richiesta dal cliente" },
+    description: (yearly
+      ? `Piano annuale (${money(paid, plan?.currency)}): restano ${months} mesi interi, quindi rimborso = ${money(paid, plan?.currency)} × ${months}/12 = ${money(suggested, plan?.currency)}. `
+        + "Un mese iniziato conta come usato; rider e ordini extra non si rimborsano. Cambia l’importo se il canone pagato era diverso. "
+      : "Piano mensile o per sempre: di norma nessun rimborso. ")
+      + "L’azienda passa in sola lettura (o in chiusura incarichi fino alla data indicata). Il rimborso resta registrato tra i pagamenti.",
+    fields: <>
+      <Form.Item name="refund_amount" label="Rimborso (€)" extra="Non può superare quanto incassato e non ancora rimborsato.">
+        <InputNumber min={0} precision={2} style={{ width: "100%" }} />
+      </Form.Item>
+      <Form.Item name="closeout_until" label="Chiusura incarichi fino a (facoltativo)"><Input type="datetime-local" /></Form.Item>
+    </>,
   });
 }
 
@@ -359,7 +427,8 @@ export function Billing({ overview, snapshot, edit, openCompany }: {
         ]} /></Card> },
       { key: "payments", label: "Pagamenti", children: <Card><Table rowKey="id" scroll={{ x: 560 }} dataSource={overview.payments} columns={[
         { title: "Azienda", render: (_, r) => link(r.tenant_id, r.company_name) },
-        { title: "Importo", render: (_, r) => money(r.amount, r.currency) },
+        { title: "Tipo", render: (_, r) => r.kind === "refund" ? <Tag color="red">Rimborso</Tag> : <Tag color="green">Pagamento</Tag> },
+        { title: "Importo", render: (_, r) => (r.kind === "refund" ? "−" : "") + money(r.amount, r.currency) },
         { title: "Riferimento", dataIndex: "reference" },
         { title: "Data", render: (_, r) => date(r.paid_at) },
       ]} /></Card> },
@@ -371,8 +440,8 @@ export function Billing({ overview, snapshot, edit, openCompany }: {
           { title: "Richiesta il", render: (_, r) => date(r.created_at) },
           { title: "Stato", render: (_, r) => <Tag color={REQUEST[r.status][1]}>{REQUEST[r.status][0]}</Tag> },
           { title: "Azioni", render: (_, r) => r.status === "open" && <Flex gap={6}>
-            <Button size="small" type="primary" onClick={() => requestEditor(r, "approved", edit, snapshot.plans)}>Approva</Button>
-            <Button size="small" danger onClick={() => requestEditor(r, "rejected", edit, snapshot.plans)}>Rifiuta</Button>
+            <Button size="small" type="primary" onClick={() => requestEditor(r, "approved", edit, snapshot.plans, overview.companies.find((c) => c.id === r.tenant_id))}>Approva</Button>
+            <Button size="small" danger onClick={() => requestEditor(r, "rejected", edit, snapshot.plans, overview.companies.find((c) => c.id === r.tenant_id))}>Rifiuta</Button>
           </Flex> },
         ]} /></Card> },
       { key: "notices", label: "Email", children: <Card><Table<BillingNotice> rowKey="id" scroll={{ x: 640 }} dataSource={overview.notices} columns={[
@@ -412,6 +481,7 @@ export function CompanyBilling({ snapshot, company, overview, overviewFailed, ed
           <Form.Item name="days" label="Giorni" rules={REQUIRED}><InputNumber min={1} max={365} precision={0} style={{ width: "100%" }} /></Form.Item>
         </>,
       })}>Avvia prova</Button>
+      {sub && ["trial", "active", "past_due"].includes(sub.state) && <Button danger onClick={() => cancelEditor(company, plan, sub, edit)}>Disdici</Button>}
       <Button type="primary" disabled={!snapshot.plans.some((p) => p.available || p.code === sub?.plan_code)}
         onClick={() => subscriptionEditor(company, snapshot, edit)}>Modifica abbonamento</Button>
     </Flex>}>
@@ -421,6 +491,8 @@ export function CompanyBilling({ snapshot, company, overview, overviewFailed, ed
           {sub ? SUBSCRIPTION[sub.state] : "—"}{sub?.forever && <Tag color="purple">Per sempre</Tag>}
         </Flex> },
         { key: "interval", label: "Fatturazione", children: sub ? INTERVAL[sub.billing_interval] : "—" },
+        ...(sub?.next_plan_code ? [{ key: "next", label: "Cambio programmato", children:
+          `${planName(snapshot.plans, sub.next_plan_code)} (${INTERVAL[sub.next_billing_interval ?? "month"].toLowerCase()}) dal rinnovo del ${day(sub.ends_at)}` }] : []),
         { key: "ends", label: "Data fine o rinnovo", children: sub?.forever ? "Nessuna scadenza" : date(sub?.ends_at ?? null) },
         { key: "grace", label: "Tolleranza fino a", children: date(sub?.grace_until ?? null) },
         { key: "closeout", label: "Chiusura incarichi fino a", children: date(sub?.closeout_until ?? null) },
@@ -465,8 +537,8 @@ export function CompanyBilling({ snapshot, company, overview, overviewFailed, ed
       { title: "Nota", render: (_, r) => r.note || "—" },
       { title: "Stato", render: (_, r) => <Tag color={REQUEST[r.status][1]}>{REQUEST[r.status][0]}</Tag> },
       { title: "Azioni", render: (_, r) => r.status === "open" && <Flex gap={6}>
-        <Button size="small" type="primary" onClick={() => requestEditor(r, "approved", edit, snapshot.plans)}>Approva</Button>
-        <Button size="small" danger onClick={() => requestEditor(r, "rejected", edit, snapshot.plans)}>Rifiuta</Button>
+        <Button size="small" type="primary" onClick={() => requestEditor(r, "approved", edit, snapshot.plans, row)}>Approva</Button>
+        <Button size="small" danger onClick={() => requestEditor(r, "rejected", edit, snapshot.plans, row)}>Rifiuta</Button>
       </Flex> },
     ]} /></Card>}
 
@@ -481,9 +553,11 @@ export function CompanyBilling({ snapshot, company, overview, overviewFailed, ed
         <Form.Item name="paid_at" label="Data pagamento" rules={REQUIRED}><Input type="datetime-local" /></Form.Item>
       </>,
     })}>Registra pagamento</Button>}>
-      <Table rowKey="id" scroll={{ x: 500 }} dataSource={snapshot.payments} columns={[
+      <Table rowKey="id" scroll={{ x: 500 }} dataSource={overview ? overview.payments.filter((p) => p.tenant_id === company.id)
+        : snapshot.payments.map((p) => ({ ...p, kind: "payment" as const, tenant_id: company.id, company_name: company.name }))} columns={[
         { title: "Riferimento", dataIndex: "reference" },
-        { title: "Importo", render: (_, r) => money(r.amount, r.currency) },
+        { title: "Tipo", render: (_, r) => r.kind === "refund" ? <Tag color="red">Rimborso</Tag> : <Tag color="green">Pagamento</Tag> },
+        { title: "Importo", render: (_, r) => (r.kind === "refund" ? "−" : "") + money(r.amount, r.currency) },
         { title: "Data", render: (_, r) => date(r.paid_at) },
       ]} />
     </Card>

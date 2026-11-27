@@ -1,7 +1,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
-select plan(78);
+select plan(97);
 
 -- Fixtures: an operator, company A (owner + 4 riders), another company B with its own admin.
 insert into auth.users (id, email, email_confirmed_at, encrypted_password, raw_user_meta_data)
@@ -210,6 +210,69 @@ select throws_ok($$select public.platform_billing_action('delete_invoice', jsonb
 select lives_ok($$select public.platform_billing_action('delete_invoice', jsonb_build_object(
   'invoice_id', (select id from private.company_invoices where tenant_id = 'dddd0000-0000-4000-8000-0000000000a1' and status = 'draft'),
   'reason', 'Remove draft'))$$);
+
+-- Downgrades wait for the renewal, upgrades apply at once -----------------------------
+set local request.jwt.claim.sub = 'dddd0000-0000-4000-8000-000000000002';
+set local request.jwt.claims = '{"sub":"dddd0000-0000-4000-8000-000000000002","aal":"aal1"}';
+select lives_ok($$select public.request_plan_change('starter', 'month', 'Smaller team')$$,
+  'the company asks for a smaller plan');
+set local request.jwt.claim.sub = 'dddd0000-0000-4000-8000-000000000001';
+set local request.jwt.claims = '{"sub":"dddd0000-0000-4000-8000-000000000001","aal":"aal2"}';
+select is(public.platform_billing_action('handle_plan_request', jsonb_build_object(
+  'request_id', (select id from private.plan_change_requests where status = 'open'),
+  'decision', 'approved', 'reason', 'Downgrade at renewal'))->>'effective', 'renewal',
+  'a downgrade of a paying company is scheduled for the renewal');
+select is((select plan_code || '/' || next_plan_code from private.company_subscriptions
+  where tenant_id = 'dddd0000-0000-4000-8000-0000000000a1'), 'pro/starter', 'the current plan stays until the renewal');
+set local request.jwt.claim.sub = 'dddd0000-0000-4000-8000-000000000002';
+set local request.jwt.claims = '{"sub":"dddd0000-0000-4000-8000-000000000002","aal":"aal1"}';
+select is(public.company_billing()->'subscription'->>'next_plan_code', 'starter', 'the company sees the scheduled change');
+set local request.jwt.claim.sub = 'dddd0000-0000-4000-8000-000000000001';
+set local request.jwt.claims = '{"sub":"dddd0000-0000-4000-8000-000000000001","aal":"aal2"}';
+-- The term is about to end: renewals are paid at the end of a term.
+update private.company_subscriptions set ends_at = now() + interval '1 day'
+where tenant_id = 'dddd0000-0000-4000-8000-0000000000a1';
+select lives_ok($$select public.platform_billing_action('create_invoice', jsonb_build_object(
+  'tenant_id', 'dddd0000-0000-4000-8000-0000000000a1', 'period_start', '2027-11-01', 'period_end', '2027-11-30',
+  'lines', '[{"code":"base","label":"Starter monthly","quantity":1,"unit_price":29,"amount":29}]'::jsonb,
+  'reason', 'Renewal invoice'))$$);
+select lives_ok($$select public.platform_billing_action('set_invoice_status', jsonb_build_object(
+  'invoice_id', (select id from private.company_invoices where tenant_id = 'dddd0000-0000-4000-8000-0000000000a1' and status = 'issued'),
+  'status', 'paid', 'extend_subscription', true, 'reason', 'Renewal received'))$$);
+select is((select plan_code || '/' || billing_interval from private.company_subscriptions
+  where tenant_id = 'dddd0000-0000-4000-8000-0000000000a1'), 'starter/month', 'the scheduled plan starts with the renewal');
+select ok((select next_plan_code is null and next_billing_interval is null from private.company_subscriptions
+  where tenant_id = 'dddd0000-0000-4000-8000-0000000000a1'), 'the schedule is cleared once applied');
+select ok((select ends_at > now() + interval '27 days' and ends_at < now() + interval '34 days'
+  from private.company_subscriptions where tenant_id = 'dddd0000-0000-4000-8000-0000000000a1'),
+  'the renewal runs for one month of the new interval');
+set local request.jwt.claim.sub = 'dddd0000-0000-4000-8000-000000000002';
+set local request.jwt.claims = '{"sub":"dddd0000-0000-4000-8000-000000000002","aal":"aal1"}';
+select lives_ok($$select public.request_plan_change('pro', 'year', 'Growing again')$$, 'the company asks for a bigger plan');
+set local request.jwt.claim.sub = 'dddd0000-0000-4000-8000-000000000001';
+set local request.jwt.claims = '{"sub":"dddd0000-0000-4000-8000-000000000001","aal":"aal2"}';
+select is(public.platform_billing_action('handle_plan_request', jsonb_build_object(
+  'request_id', (select id from private.plan_change_requests where status = 'open'),
+  'decision', 'approved', 'reason', 'Upgrade'))->>'effective', 'now', 'an upgrade applies at once');
+select is((select plan_code || '/' || billing_interval from private.company_subscriptions
+  where tenant_id = 'dddd0000-0000-4000-8000-0000000000a1'), 'pro/year', 'the bigger plan is active');
+
+-- Cancelling: refunds are bounded by what was paid -----------------------------------------
+select throws_ok($$select public.platform_billing_action('cancel_subscription', jsonb_build_object(
+  'tenant_id', 'dddd0000-0000-4000-8000-0000000000a1', 'refund_amount', 5000, 'reason', 'Too much'))$$, 'P0001', 'refund_exceeds_payments',
+  'a refund cannot exceed the payments received');
+select lives_ok($$select public.platform_billing_action('cancel_subscription', jsonb_build_object(
+  'tenant_id', 'dddd0000-0000-4000-8000-0000000000a1', 'refund_amount', 400, 'reason', 'Customer cancelled'))$$);
+select is((select state from private.company_subscriptions where tenant_id = 'dddd0000-0000-4000-8000-0000000000a1'), 'cancelled', 'the subscription is cancelled');
+select is(private.company_access_mode('dddd0000-0000-4000-8000-0000000000a1'), 'read_only', 'a cancelled company is read-only');
+select is((select count(*) from private.subscription_payments
+  where tenant_id = 'dddd0000-0000-4000-8000-0000000000a1' and kind = 'refund' and amount = 400)::integer, 1, 'the refund is recorded');
+select throws_ok($$select public.platform_billing_action('cancel_subscription', jsonb_build_object(
+  'tenant_id', 'dddd0000-0000-4000-8000-0000000000a1', 'refund_amount', 500, 'reason', 'Refund twice'))$$, 'P0001', 'refund_exceeds_payments',
+  'what was already refunded is not refunded again');
+select throws_ok($$select public.platform_billing_action('cancel_subscription', jsonb_build_object(
+  'tenant_id', 'dddd0000-0000-4000-8000-0000000000c1', 'reason', 'Nothing to cancel'))$$, 'P0001', 'subscription_not_found',
+  'a company without a subscription has nothing to cancel');
 
 -- Reminders ------------------------------------------------------------------------
 select lives_ok($$select public.platform_billing_action('send_notice', jsonb_build_object(

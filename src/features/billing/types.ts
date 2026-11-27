@@ -84,6 +84,9 @@ export interface CompanySubscription {
   closeout_until: string | null;
   billing_email: string | null;
   started_at: string;
+  /** A downgrade agreed during the term, applied at the renewal. */
+  next_plan_code: string | null;
+  next_billing_interval: BillingInterval | null;
 }
 
 export interface PlanRequest {

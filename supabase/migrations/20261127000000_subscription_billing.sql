@@ -51,7 +51,11 @@ alter table private.company_subscriptions
   add column provider text not null default 'manual' check (provider ~ '^[a-z][a-z0-9_]{1,29}$'),
   add column provider_customer_id text check (char_length(provider_customer_id) <= 120),
   add column provider_subscription_id text check (char_length(provider_subscription_id) <= 120),
-  add column started_at timestamptz not null default now();
+  add column started_at timestamptz not null default now(),
+  -- A downgrade approved during the term takes effect at the next renewal.
+  add column next_plan_code text references private.platform_plans(code),
+  add column next_billing_interval text check (next_billing_interval in ('month', 'year')),
+  add constraint next_plan_complete check ((next_plan_code is null) = (next_billing_interval is null));
 
 -- "Forever" is only meaningful for an active subscription without an end date.
 create function private.normalize_subscription()
@@ -132,7 +136,9 @@ create table private.company_invoices (
 create index company_invoices_status_idx on private.company_invoices(status, due_at);
 
 alter table private.subscription_payments
-  add column invoice_id uuid references private.company_invoices(id) on delete set null;
+  add column invoice_id uuid references private.company_invoices(id) on delete set null,
+  -- A refund is stored as a positive amount with kind 'refund'.
+  add column kind text not null default 'payment' check (kind in ('payment', 'refund'));
 
 create table private.plan_change_requests (
   id uuid primary key default gen_random_uuid(),
@@ -367,7 +373,8 @@ begin
     'subscription', (select jsonb_build_object(
       'plan_code', s.plan_code, 'state', s.state, 'interval', s.billing_interval, 'forever', s.forever,
       'ends_at', s.ends_at, 'grace_until', s.grace_until, 'closeout_until', s.closeout_until,
-      'billing_email', s.billing_email, 'started_at', s.started_at)
+      'billing_email', s.billing_email, 'started_at', s.started_at,
+      'next_plan_code', s.next_plan_code, 'next_billing_interval', s.next_billing_interval)
       from private.company_subscriptions s where s.tenant_id = v_tenant),
     'plan', (select to_jsonb(p) - 'available' - 'is_public' - 'sort_order'
       from private.platform_plans p join private.company_subscriptions s on s.plan_code = p.code
@@ -456,7 +463,8 @@ begin
   insert into private.company_subscriptions(tenant_id, plan_code, state, billing_interval)
   values (p_tenant, p_plan, 'active', p_interval)
   on conflict (tenant_id) do update set plan_code = excluded.plan_code,
-    billing_interval = excluded.billing_interval, updated_at = now()
+    billing_interval = excluded.billing_interval, next_plan_code = null, next_billing_interval = null,
+    updated_at = now()
   returning to_jsonb(company_subscriptions) into v_after;
   return v_after;
 end;
@@ -484,6 +492,9 @@ declare
   v_slug text;
   v_active boolean;
   v_users uuid[];
+  v_sub private.company_subscriptions;
+  v_down boolean := false;
+  v_refund numeric;
 begin
   if v_reason is null or char_length(v_reason) > 500 then raise exception 'operator_reason_required'; end if;
   if v_interval not in ('month', 'year') then raise exception 'invalid_interval'; end if;
@@ -522,7 +533,7 @@ begin
       v_ends := nullif(p_values->>'ends_at', '')::timestamptz;
       if v_forever and v_state <> 'active' then raise exception 'forever_requires_active'; end if;
       if v_state = 'trial' and v_ends is null then raise exception 'trial_needs_end_date'; end if;
-      insert into private.company_subscriptions(tenant_id, plan_code, state, billing_interval, forever, ends_at,
+      insert into private.company_subscriptions as cs(tenant_id, plan_code, state, billing_interval, forever, ends_at,
         grace_until, closeout_until, billing_email, notes)
       values (v_tenant, p_values->>'plan_code', v_state, v_interval, v_forever, v_ends,
         nullif(p_values->>'grace_until', '')::timestamptz, nullif(p_values->>'closeout_until', '')::timestamptz,
@@ -530,8 +541,11 @@ begin
       on conflict (tenant_id) do update set plan_code = excluded.plan_code, state = excluded.state,
         billing_interval = excluded.billing_interval, forever = excluded.forever, ends_at = excluded.ends_at,
         grace_until = excluded.grace_until, closeout_until = excluded.closeout_until,
-        billing_email = excluded.billing_email, notes = excluded.notes, updated_at = now()
-      returning to_jsonb(company_subscriptions) into v_after;
+        billing_email = excluded.billing_email, notes = excluded.notes,
+        next_plan_code = case when excluded.plan_code is distinct from cs.plan_code then null else cs.next_plan_code end,
+        next_billing_interval = case when excluded.plan_code is distinct from cs.plan_code then null else cs.next_billing_interval end,
+        updated_at = now()
+      returning to_jsonb(cs) into v_after;
 
     when 'start_trial' then
       perform 1 from public.tenants t where t.id = v_tenant for update;
@@ -544,7 +558,8 @@ begin
       insert into private.company_subscriptions(tenant_id, plan_code, state, ends_at)
       values (v_tenant, p_values->>'plan_code', 'trial', now() + make_interval(days => (p_values->>'days')::integer))
       on conflict (tenant_id) do update set plan_code = excluded.plan_code, state = 'trial',
-        ends_at = excluded.ends_at, forever = false, grace_until = null, closeout_until = null, updated_at = now()
+        ends_at = excluded.ends_at, forever = false, grace_until = null, closeout_until = null,
+        next_plan_code = null, next_billing_interval = null, updated_at = now()
       returning to_jsonb(company_subscriptions) into v_after;
 
     when 'save_trial_defaults' then
@@ -601,6 +616,10 @@ begin
         end if;
         -- Paying renews the subscription by one interval.
         if coalesce((p_values->>'extend_subscription')::boolean, false) then
+          -- A downgrade agreed during the term starts with the renewal.
+          update private.company_subscriptions s set plan_code = s.next_plan_code,
+            billing_interval = s.next_billing_interval, next_plan_code = null, next_billing_interval = null
+          where s.tenant_id = v_tenant and s.next_plan_code is not null;
           update private.company_subscriptions s set state = 'active', grace_until = null, closeout_until = null,
             ends_at = case when s.forever then null else
               greatest(coalesce(s.ends_at, now()), now()) +
@@ -636,11 +655,52 @@ begin
         if not exists (select 1 from private.platform_plans p where p.code = v_req.to_plan and p.available) then
           raise exception 'plan_unavailable';
         end if;
-        perform private.apply_plan(v_tenant, v_req.to_plan, v_req.billing_interval);
+        select * into v_sub from private.company_subscriptions s where s.tenant_id = v_tenant for update;
+        -- A downgrade (cheaper plan, or yearly -> monthly on the same plan) waits for the renewal when the
+        -- company is paying and has a term running. Everything else applies at once.
+        if found and v_sub.state in ('active', 'past_due') and not v_sub.forever and v_sub.ends_at is not null then
+          v_down := (v_sub.plan_code <> v_req.to_plan and
+              (select p.price_month from private.platform_plans p where p.code = v_req.to_plan) <
+              (select p.price_month from private.platform_plans p where p.code = v_sub.plan_code))
+            or (v_sub.plan_code = v_req.to_plan and v_sub.billing_interval = 'year' and v_req.billing_interval = 'month');
+        end if;
+        if v_down then
+          update private.company_subscriptions s set next_plan_code = v_req.to_plan,
+            next_billing_interval = v_req.billing_interval, updated_at = now() where s.tenant_id = v_tenant;
+        else
+          perform private.apply_plan(v_tenant, v_req.to_plan, v_req.billing_interval);
+        end if;
       end if;
       update private.plan_change_requests r set status = v_state, handled_at = now(), handled_by = v_actor,
         response = nullif(left(btrim(p_values->>'response'), 500), '')
       where r.id = v_target returning to_jsonb(r) into v_after;
+      v_after := v_after || jsonb_build_object('effective',
+        case when v_state <> 'approved' then null when v_down then 'renewal' else 'now' end);
+
+    when 'cancel_subscription' then
+      perform 1 from public.tenants t where t.id = v_tenant for update;
+      if not found then raise exception 'company_not_found'; end if;
+      select * into v_sub from private.company_subscriptions s where s.tenant_id = v_tenant for update;
+      if not found then raise exception 'subscription_not_found'; end if;
+      v_before := to_jsonb(v_sub);
+      v_refund := coalesce(nullif(p_values->>'refund_amount', '')::numeric, 0);
+      if v_refund < 0 then raise exception 'invalid_amount'; end if;
+      -- Never refund more than was actually paid.
+      if v_refund > (select coalesce(sum(case p.kind when 'refund' then -p.amount else p.amount end), 0)
+          from private.subscription_payments p where p.tenant_id = v_tenant) then
+        raise exception 'refund_exceeds_payments';
+      end if;
+      update private.company_subscriptions s set state = 'cancelled', forever = false, ends_at = now(),
+        grace_until = null, closeout_until = nullif(p_values->>'closeout_until', '')::timestamptz,
+        next_plan_code = null, next_billing_interval = null, updated_at = now()
+      where s.tenant_id = v_tenant returning to_jsonb(s) into v_after;
+      if v_refund > 0 then
+        insert into private.subscription_payments(tenant_id, actor_id, amount, currency, reference, paid_at, kind)
+        values (v_tenant, v_actor, v_refund,
+          (select p.currency from private.platform_plans p where p.code = v_sub.plan_code),
+          'REFUND-' || to_char(now(), 'YYYYMMDD') || '-' || substr(gen_random_uuid()::text, 1, 6), now(), 'refund');
+        v_after := v_after || jsonb_build_object('refund', v_refund);
+      end if;
 
     when 'send_notice' then
       perform 1 from public.tenants t where t.id = v_tenant;
@@ -712,7 +772,8 @@ begin
         private.tenant_usage(t.id) as usage, p.included_orders, p.included_riders, p.currency,
         (select coalesce(sum(i.amount), 0) from private.company_invoices i
           where i.tenant_id = t.id and i.status = 'issued') as unpaid,
-        (select max(pay.paid_at) from private.subscription_payments pay where pay.tenant_id = t.id) as last_paid_at
+        (select max(pay.paid_at) from private.subscription_payments pay
+          where pay.tenant_id = t.id and pay.kind = 'payment') as last_paid_at
       from public.tenants t
       left join private.company_subscriptions s on s.tenant_id = t.id
       left join private.platform_plans p on p.code = s.plan_code
@@ -723,7 +784,7 @@ begin
       from private.company_invoices i join public.tenants t on t.id = i.tenant_id
       order by i.created_at desc, i.id limit 200) i), '[]'::jsonb),
     'payments', coalesce((select jsonb_agg(p order by p.paid_at desc, p.id) from (
-      select p.id, p.tenant_id, t.name as company_name, p.amount, p.currency, p.reference, p.paid_at
+      select p.id, p.tenant_id, t.name as company_name, p.kind, p.amount, p.currency, p.reference, p.paid_at
       from private.subscription_payments p join public.tenants t on t.id = p.tenant_id
       order by p.paid_at desc, p.id limit 100) p), '[]'::jsonb),
     'requests', coalesce((select jsonb_agg(r order by (r.status = 'open') desc, r.created_at desc) from (

@@ -45,6 +45,8 @@ export interface Subscription {
   closeout_until: string | null;
   billing_email: string | null;
   notes: string;
+  next_plan_code: string | null;
+  next_billing_interval: BillingInterval | null;
 }
 export interface Member {
   id: string;
@@ -208,13 +210,15 @@ export type ConsoleAction =
 /** Plans, subscriptions, invoices, requests and notices (platform_billing_action). */
 export type BillingAction =
   | "save_plan" | "save_subscription" | "start_trial" | "save_trial_defaults" | "create_invoice"
-  | "set_invoice_status" | "delete_invoice" | "handle_plan_request" | "send_notice" | "delete_company";
+  | "set_invoice_status" | "delete_invoice" | "handle_plan_request" | "send_notice" | "delete_company"
+  | "cancel_subscription";
 
 export type Action = ConsoleAction | BillingAction;
 
 const BILLING_ACTIONS: ReadonlySet<string> = new Set<BillingAction>([
   "save_plan", "save_subscription", "start_trial", "save_trial_defaults", "create_invoice",
   "set_invoice_status", "delete_invoice", "handle_plan_request", "send_notice", "delete_company",
+  "cancel_subscription",
 ]);
 
 export async function submitAction(action: Action, values: Record<string, Json | undefined>) {
@@ -248,6 +252,7 @@ export interface BillingCompany {
 export interface BillingInvoice extends Invoice { tenant_id: string; company_name: string; created_at: string }
 export interface BillingPayment {
   id: string;
+  kind: "payment" | "refund";
   tenant_id: string;
   company_name: string;
   amount: number;
@@ -354,6 +359,8 @@ const MESSAGES: Record<string, string> = {
   suspend_company_first: t("Sospendi l’azienda prima di rimuoverla."),
   confirmation_mismatch: t("Lo slug inserito non corrisponde."),
   company_has_billing_history: t("L’azienda ha fatture o pagamenti da conservare: puoi solo sospenderla."),
+  refund_exceeds_payments: t("Il rimborso supera quanto è stato incassato e non ancora rimborsato."),
+  subscription_not_found: t("L’azienda non ha un abbonamento."),
 };
 
 export function actionError(error: unknown) {

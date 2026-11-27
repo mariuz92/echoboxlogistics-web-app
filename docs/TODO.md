@@ -150,3 +150,4 @@ The plans, limits, invoices, requests, notices, console pages, customer screen a
 - [ ] Hard limits per plan (block new orders), only if soft limits turn out to be abused.
 - [ ] Billing e-mails in German and French, and per-company language.
 - [ ] Companies that already exist have no subscription (full access): assign them a plan or a forever subscription from the console.
+- [ ] Add the yearly terms (refund of whole months left, upgrade difference, downgrade at renewal) to the legal terms page `/terms` after a lawyer has read them.

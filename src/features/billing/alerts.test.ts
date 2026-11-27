@@ -20,7 +20,7 @@ function billing(
     access_mode: "full",
     subscription: {
       plan_code: "starter", state, interval: "month", forever: false, ends_at, grace_until, closeout_until: null,
-      billing_email: null, started_at: "2026-10-01T00:00:00Z",
+      billing_email: null, started_at: "2026-10-01T00:00:00Z", next_plan_code: null, next_billing_interval: null,
     },
     plan: starter, usage: usage(10, 1), estimate: null, plans: [starter], invoices: [], request: null, last_response: null,
     ...rest,
