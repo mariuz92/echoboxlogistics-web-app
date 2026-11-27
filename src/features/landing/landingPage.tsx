@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
-import { ArrowRightOutlined, CloseOutlined, MenuOutlined } from "@ant-design/icons";
+import { ArrowRightOutlined, CheckOutlined, CloseOutlined, MenuOutlined } from "@ant-design/icons";
 import { CONFIG } from "../../config/configuration";
 import { getLandingConfig } from "./config";
 import { DICTS, LANGS, LANG_NAMES, SECTION_IDS, detectLang, rememberLang, type Dict, type Lang, type SectionId } from "./i18n";
 import { DELETE_CONTENT } from "./deleteAccountContent";
+import { PRICE_PLANS, cheapestPlan, monthlyCost, type PriceInterval } from "../billing/pricing";
 import "./landing.css";
 
 /** Screenshots in public/images/screens (made by scripts/screenshots/capture.mjs). */
@@ -277,6 +278,154 @@ function Head({ label, title, children, light = false }: { label: string; title:
   );
 }
 
+// --- pricing ---------------------------------------------------------------------
+
+const LOCALES: Record<Lang, string> = { it: "it-IT", en: "en-GB", de: "de-DE", fr: "fr-FR" };
+const fill = (text: string, vars: Record<string, string | number>) =>
+  text.replace(/\{(\w+)\}/g, (_, key: string) => String(vars[key] ?? ""));
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, Number.isFinite(value) ? value : min));
+
+function CalcInput({ id, label, value, onChange, max }: { id: string; label: string; value: number; onChange: (v: number) => void; max: number }) {
+  return (
+    <div className="lp-calc-field">
+      <label htmlFor={`${id}-n`}>{label}</label>
+      <div className="lp-calc-inputs">
+        <input
+          type="range"
+          aria-label={label}
+          min={0}
+          max={max}
+          step={max > 100 ? 50 : 1}
+          value={Math.min(value, max)}
+          onChange={(e) => onChange(Number(e.target.value))}
+        />
+        <input
+          id={`${id}-n`}
+          type="number"
+          inputMode="numeric"
+          min={0}
+          max={max * 10}
+          value={value}
+          onChange={(e) => onChange(clamp(Math.floor(Number(e.target.value)), 0, max * 10))}
+        />
+      </div>
+    </div>
+  );
+}
+
+function Pricing({ t, lang }: { t: Dict; lang: Lang }) {
+  const p = t.pricing;
+  const [interval, setInterval] = useState<PriceInterval>("month");
+  const [riders, setRiders] = useState(4);
+  const [orders, setOrders] = useState(400);
+  const money = (value: number) =>
+    new Intl.NumberFormat(LOCALES[lang], {
+      style: "currency",
+      currency: "EUR",
+      minimumFractionDigits: Number.isInteger(value) ? 0 : 2,
+      maximumFractionDigits: 2,
+    }).format(value);
+  const best = cheapestPlan(riders, orders, interval);
+  const large = riders > 30 || orders > 6000;
+
+  return (
+    <section className="lp-pricing" id="pricing">
+      <div className="lp-wrap">
+        <div className="lp-pricing-top">
+          <Head label={p.label} title={p.title}>
+            <p className="lp-lead">{p.subtitle}</p>
+          </Head>
+          <div className="lp-toggle" role="group" aria-label={`${p.monthly} / ${p.yearly}`}>
+            {(["month", "year"] as const).map((value) => (
+              <button key={value} type="button" className={interval === value ? "is-on" : ""} aria-pressed={interval === value} onClick={() => setInterval(value)}>
+                {value === "month" ? p.monthly : p.yearly}
+                {value === "year" && <span className="lp-toggle-note">{p.yearlyNote}</span>}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="lp-plans">
+          {PRICE_PLANS.map((plan) => {
+            const info = p.plans[plan.code];
+            const price = interval === "year" ? plan.priceYear : plan.priceMonth;
+            return (
+              <article key={plan.code} className={`lp-plan${plan.code === "pro" ? " is-popular" : ""}`}>
+                {plan.code === "pro" && <span className="lp-plan-badge">{p.popular}</span>}
+                <h3>{info.name}</h3>
+                <p className="lp-plan-tagline">{info.tagline}</p>
+                <p className="lp-plan-price">
+                  <strong>{money(price)}</strong> <span>{interval === "year" ? p.perYear : p.perMonth}</span>
+                </p>
+                <ul>
+                  <li><CheckOutlined />{fill(p.ridersIncluded, { n: plan.includedRiders })}</li>
+                  <li><CheckOutlined />{fill(p.ordersIncluded, { n: plan.includedOrders.toLocaleString(LOCALES[lang]) })}</li>
+                  <li><CheckOutlined />{fill(p.extraRider, { price: money(plan.extraRider) })}</li>
+                  <li><CheckOutlined />{fill(p.extraOrders, { price: money(plan.extraOrders), block: plan.ordersBlock })}</li>
+                </ul>
+                <a className={`lp-btn ${plan.code === "pro" ? "lp-btn-primary" : "lp-btn-quiet"}`} href="#contact">
+                  {p.cta}
+                </a>
+              </article>
+            );
+          })}
+        </div>
+        <p className="lp-pricing-note">{p.everyPlan} {p.vat}</p>
+        <p className="lp-pricing-note">{p.yearlyTerms}</p>
+
+        <div className="lp-calc" id="calculator">
+          <div className="lp-calc-intro">
+            <p className="lp-label">{p.calc.label}</p>
+            <h3>{p.calc.title}</h3>
+            <p>{p.calc.subtitle}</p>
+            <CalcInput id="lp-riders" label={p.calc.riders} value={riders} onChange={setRiders} max={60} />
+            <CalcInput id="lp-orders" label={p.calc.orders} value={orders} onChange={setOrders} max={12000} />
+          </div>
+          <div className="lp-calc-out" aria-live="polite">
+            {PRICE_PLANS.map((plan) => {
+              const cost = monthlyCost(plan, riders, orders, interval);
+              return (
+                <div key={plan.code} className={`lp-calc-row${plan.code === best.code ? " is-best" : ""}`}>
+                  <div className="lp-calc-plan">
+                    <strong>{p.plans[plan.code].name}</strong>
+                    {plan.code === best.code && <span className="lp-calc-best">{p.calc.best}</span>}
+                  </div>
+                  <ul className="lp-calc-lines">
+                    <li><span>{p.calc.base}</span><span>{money(cost.base)}</span></li>
+                    <li>
+                      <span>{p.calc.extraRiders}{cost.extraRiderCount > 0 && ` (${cost.extraRiderCount})`}</span>
+                      <span>{cost.extraRiders > 0 ? `+${money(cost.extraRiders)}` : p.calc.included}</span>
+                    </li>
+                    <li>
+                      <span>{p.calc.extraOrders}{cost.extraOrderBlocks > 0 && ` (${cost.extraOrderBlocks} × ${plan.ordersBlock})`}</span>
+                      <span>{cost.extraOrders > 0 ? `+${money(cost.extraOrders)}` : p.calc.included}</span>
+                    </li>
+                  </ul>
+                  <p className="lp-calc-total">
+                    <span>{p.calc.total}</span>
+                    <strong>{money(cost.total)}</strong>
+                  </p>
+                </div>
+              );
+            })}
+            <p className="lp-calc-note">{large ? p.calc.over : p.calc.note}</p>
+          </div>
+        </div>
+
+        <div className="lp-custom">
+          <div>
+            <h3>{p.custom.title}</h3>
+            <p>{p.custom.text}</p>
+          </div>
+          <a className="lp-btn lp-btn-quiet" href="#contact">
+            {p.custom.cta} <ArrowRightOutlined />
+          </a>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default function LandingPage() {
   const [lang, setLang] = useState<Lang>(() => detectLang());
   const [scrolled, setScrolled] = useState(false);
@@ -315,6 +464,7 @@ export default function LandingPage() {
     () => [
       { href: "#product", label: t.nav.product },
       { href: "#start", label: t.nav.start },
+      { href: "#pricing", label: t.nav.pricing },
       { href: "#faq", label: t.nav.faq },
       { href: "#contact", label: t.nav.contact },
     ],
@@ -485,6 +635,9 @@ export default function LandingPage() {
             </a>
           </div>
         </section>
+
+        {/* Pricing and cost calculator */}
+        <Pricing t={t} lang={lang} />
 
         {/* FAQ */}
         <section className="lp-faq" id="faq">

@@ -383,6 +383,34 @@ sends. Verify actual receipt and order navigation on
 an invited rider’s real iPhone and Android device. Assign a pilot delivery, then reschedule and reassign a pickup
 to confirm that only the currently assigned rider receives the reminder.
 
+### 6b. Subscriptions and billing e-mails
+
+Apply the billing migration (`20261127000000_subscription_billing.sql`) with the other migrations (section 3), then rebuild the
+web app and console so they know the new pages. Limit, trial and payment e-mails use a second Edge Function and the same timer as
+the rider push worker. The function needs the secrets of the other functions in `.env.functions`: `PUSH_WORKER_TOKEN` (already
+set by section 6), `RESEND_API_KEY` and `CONTACT_FROM_EMAIL` (a sender on a domain verified in Resend). Optional:
+`PLATFORM_APP_URL=https://platform.example.com` adds a link to the e-mails, and `BILLING_REPLY_TO` sets the reply address.
+
+```bash
+(
+  set -e
+  source /opt/echobox/deploy-env.sh
+  ECHOBOX_BILLING_FUNCTION=/opt/echobox/app/supabase/functions/notify-billing
+  install -d /opt/echobox/supabase/volumes/functions/notify-billing
+  install -m 644 "$ECHOBOX_BILLING_FUNCTION"/{index.ts,templates.ts} \
+    /opt/echobox/supabase/volumes/functions/notify-billing/
+  echobox_supabase up -d --no-deps --force-recreate --wait functions
+  systemctl start echobox-push.service
+  journalctl -u echobox-push.service -n 10 --no-pager
+)
+```
+
+Always recreate `functions` through `echobox_supabase`: it passes every Compose file of the stack. A bare `docker compose up` for one
+service drops the override files and breaks the container. `run-push-worker.py` is part of the checkout, so `git pull` updates the
+timer's script; nothing else to install. To test, open the console -> Fatturazione -> Invia email, send a reminder to a company you
+control, and check the **Email** tab: it shows *Inviata*, or the error code (`email_not_configured`, `resend_403` for an unverified
+sender domain). Notices are retried up to five times. The model and the operator guide are in [BILLING.md](BILLING.md).
+
 ### 7. Backups and retention
 
 A self-hosted stack has no managed backups. The public `/delete-account` page promises that deleted data leaves the backups within 30 days, so the backups must not be kept longer than that.

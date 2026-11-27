@@ -133,3 +133,21 @@ The app has Italian and English (`src/i18n`). To add German or French: add the l
 `en.ts` (the unit test lists every missing text), the dayjs and antd locales in `src/lib/dates.ts` and `src/App.tsx`, and take
 the landing screenshots in that language (`capture.mjs`). Not yet translated: e-mails sent by Supabase Auth (invitation,
 confirmation, reset), the PDF header text of the order export, and the public privacy, terms and cookie pages.
+
+## 12. Subscriptions and billing follow-ups
+
+The plans, limits, invoices, requests, notices, console pages, customer screen and landing pricing are in
+([BILLING.md](BILLING.md)). Still open:
+
+- [ ] **Fix the real prices.** The numbers (Starter 29, Pro 79, Business 149) are a starting point. Change them in the console,
+  then in `src/features/billing/pricing.ts` (the test compares it with the migration seed).
+- [ ] **Decide on a free trial for new sign-ups**: Piani -> "Prova per i nuovi clienti". Off by default, so new companies keep
+  full access until an operator assigns a plan.
+- [ ] **Pick the electronic invoicing service** (SDI) and decide how invoice links get into the console.
+- [ ] **Automatic payments** with Stripe (Checkout, customer portal, webhook that marks invoices paid): the data model is ready.
+- [ ] A monthly job that creates the draft invoice of every active company from `estimate_bill`, for the operator to review.
+- [ ] Mobile app: show the same notices to company admins using `company_billing()`.
+- [ ] Hard limits per plan (block new orders), only if soft limits turn out to be abused.
+- [ ] Billing e-mails in German and French, and per-company language.
+- [ ] Companies that already exist have no subscription (full access): assign them a plan or a forever subscription from the console.
+- [ ] Add the yearly terms (refund of whole months left, upgrade difference, downgrade at renewal) to the legal terms page `/terms` after a lawyer has read them.

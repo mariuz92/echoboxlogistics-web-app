@@ -9,6 +9,7 @@ import {
 import { CONFIG } from "../config/configuration";
 import { useCurrentUser } from "../providers/current-user";
 import { usePlatformSettings } from "../features/platform/runtime";
+import { BillingAlerts } from "../features/billing/BillingAlerts";
 import { WorkspaceLayout } from "./WorkspaceLayout";
 import { t } from "../i18n";
 import { LanguageSwitch } from "../i18n/LanguageSwitch";
@@ -77,6 +78,7 @@ export function AppLayout() {
         menu: userMenu,
       }}>
       {settings.notice && <Alert type="info" showIcon title={settings.notice} style={{ marginBottom: 16 }} />}
+      {isAdmin && <BillingAlerts />}
       {access === "read_only" && <Alert type="warning" showIcon title={t("L’azienda ha accesso in sola lettura.")} style={{ marginBottom: 16 }} />}
       {access === "closeout" && <Alert type="warning" showIcon title={t("Puoi completare gli incarichi già in corso.")} style={{ marginBottom: 16 }} />}
       <Outlet />

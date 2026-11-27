@@ -436,3 +436,7 @@ verify_jwt = false
 [functions.notify-rider]
 enabled = true
 verify_jwt = false
+
+[functions.notify-billing]
+enabled = true
+verify_jwt = false
