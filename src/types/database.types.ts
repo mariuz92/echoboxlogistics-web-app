@@ -661,6 +661,7 @@ export type Database = {
       }
       get_dashboard_insights: { Args: { p_month?: string }; Returns: Json }
       get_dashboard_stats: { Args: { p_month?: string }; Returns: Json }
+      get_public_plans: { Args: never; Returns: Json }
       get_public_tenant: {
         Args: { p_slug: string }
         Returns: {
@@ -687,6 +688,10 @@ export type Database = {
       platform_finish_invitation: {
         Args: { p_attempt_id: string; p_invitation_id: string; p_state: string }
         Returns: boolean
+      }
+      platform_highlight_plan: {
+        Args: { p_code: string; p_highlighted: boolean; p_reason: string }
+        Returns: undefined
       }
       platform_issue_detail: { Args: { p_issue_id: string }; Returns: Json }
       platform_issue_queue: {

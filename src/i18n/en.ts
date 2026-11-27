@@ -133,6 +133,7 @@ export const EN: Record<string, string> = {
   "L’azienda non esiste più.": "The company no longer exists.",
   "Il rimborso supera quanto è stato incassato e non ancora rimborsato.": "The refund is more than was received and not yet refunded.",
   "L’azienda non ha un abbonamento.": "The company has no subscription.",
+  "Il piano non esiste più.": "The plan no longer exists.",
   "Un abbonamento per sempre deve essere attivo.": "A forever subscription must be active.",
   "Una prova deve avere una data di fine.": "A trial must have an end date.",
   "Indica una durata tra 1 e 365 giorni.": "Enter a duration between 1 and 365 days.",

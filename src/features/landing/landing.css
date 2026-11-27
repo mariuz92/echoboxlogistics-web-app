@@ -781,7 +781,7 @@ body:has(.lp) {
 
 .lp-plans {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(var(--plans, 3), minmax(0, 1fr));
   gap: 24px;
   margin-top: 56px;
   align-items: stretch;

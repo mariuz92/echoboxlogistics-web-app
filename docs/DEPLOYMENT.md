@@ -405,6 +405,19 @@ set by section 6), `RESEND_API_KEY` and `CONTACT_FROM_EMAIL` (a sender on a doma
 )
 ```
 
+**Prices on the landing page.** Apply `20261128000000_public_plans.sql`, then deploy the `public-plans` function the same way
+(it needs no extra secret) and recreate `functions` once for both:
+
+```bash
+install -d /opt/echobox/supabase/volumes/functions/public-plans
+install -m 644 /opt/echobox/app/supabase/functions/public-plans/index.ts /opt/echobox/supabase/volumes/functions/public-plans/
+echobox_supabase up -d --no-deps --force-recreate --wait functions
+curl -s https://api.example.com/functions/v1/public-plans | head -c 300; echo
+```
+
+The answer should be `{"plans":[{"code":"starter",...`. Route `/functions/v1/public-plans` through the API proxy like `contact`, and keep the landing
+domain in `ALLOWED_ORIGINS`. The landing page takes the plans from the same host as its `contactEndpoint`; see [BILLING.md](BILLING.md#prices-on-the-landing-page).
+
 Always recreate `functions` through `echobox_supabase`: it passes every Compose file of the stack. A bare `docker compose up` for one
 service drops the override files and breaks the container. `run-push-worker.py` is part of the checkout, so `git pull` updates the
 timer's script; nothing else to install. To test, open the console -> Fatturazione -> Invia email, send a reminder to a company you

@@ -7,7 +7,7 @@ import { MinusCircleOutlined, PlusOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { PageHeader } from "../src/shared/components/PageHeader";
 import {
-  submitAction, type BillingCompany, type BillingInvoice, type BillingNotice, type BillingOverview,
+  highlightPlan, submitAction, type BillingCompany, type BillingInvoice, type BillingNotice, type BillingOverview,
   type BillingRequest, type Company, type NoticeKind, type Plan, type Snapshot,
 } from "../src/features/platform/api";
 import { estimateFromPlan } from "../src/features/billing/estimate";
@@ -82,8 +82,8 @@ function planFields(isEdit: boolean) {
       </Col>
     </Row>
     <Form.Item name="available" label="Assegnabile" valuePropName="checked"><Switch /></Form.Item>
-    <Form.Item name="is_public" label="Visibile al cliente per cambiare piano" valuePropName="checked"
-      extra="Spegni per i piani su misura: restano assegnabili solo da qui."><Switch /></Form.Item>
+    <Form.Item name="is_public" label="Visibile ai clienti e sul sito" valuePropName="checked"
+      extra="Compare nell’elenco dei piani del cliente e nei prezzi del sito. Spegni per i piani su misura: restano assegnabili solo da qui."><Switch /></Form.Item>
     <Form.Item name="sort_order" label="Ordine"><InputNumber precision={0} style={{ width: "100%" }} /></Form.Item>
   </>;
 }
@@ -105,7 +105,7 @@ export function Plans({ snapshot, overview, edit }: { snapshot: Snapshot; overvi
 
   const defaults = overview?.trial_defaults;
   return <>
-    <PageHeader title="Piani" subtitle="Prezzi e limiti dei piani assegnabili alle aziende. Puoi creare piani su misura."
+    <PageHeader title="Piani" subtitle="Prezzi e limiti dei piani. I piani disponibili e visibili ai clienti compaiono anche sul sito, con il calcolatore: i cambi qui si vedono sul sito entro pochi minuti."
       actions={<Button type="primary" onClick={() => open()}>Crea piano</Button>} />
     <Flex vertical gap={16}>
       <Card><Table rowKey="code" scroll={{ x: 960 }} pagination={false} dataSource={snapshot.plans} columns={[
@@ -120,9 +120,22 @@ export function Plans({ snapshot, overview, edit }: { snapshot: Snapshot; overvi
         { title: "Rider extra", render: (_, p: Plan) => money(p.extra_rider_price, p.currency) },
         { title: "Ordini extra", render: (_, p: Plan) => `${money(p.extra_orders_price, p.currency)} / ${p.orders_block}` },
         { title: "Stato", render: (_, p: Plan) => <Tag color={p.available ? "green" : "default"}>{p.available ? "Disponibile" : "Archiviato"}</Tag> },
-        { title: "Azioni", render: (_, p: Plan) => <Flex gap={6}>
+        { title: "Sito", render: (_, p: Plan) => p.available && p.is_public
+          ? <Flex vertical gap={4} align="flex-start">
+            <Tag color="blue">Pubblicato</Tag>
+            {p.highlighted ? <Tag color="gold">Il più scelto</Tag> : null}
+          </Flex> : <Typography.Text type="secondary">Non pubblicato</Typography.Text> },
+        { title: "Azioni", render: (_, p: Plan) => <Flex gap={6} wrap>
           <Button size="small" onClick={() => open(p)}>Modifica</Button>
           <Button size="small" onClick={() => open(p, true)}>Duplica</Button>
+          {p.available && p.is_public && <Button size="small" onClick={() => edit({
+            title: p.highlighted ? "Togli il badge “Il più scelto”" : "Evidenzia sul sito",
+            values: { reason: p.highlighted ? "Badge rimosso" : "Piano evidenziato sul sito" },
+            description: p.highlighted
+              ? `${p.name} non avrà più il badge “Il più scelto” sul sito.`
+              : `${p.name} avrà il badge “Il più scelto” sul sito, al posto di quello attuale.`,
+            submit: async (fields) => { await highlightPlan(p.code, !p.highlighted, String(fields.reason)); },
+          })}>{p.highlighted ? "Togli badge" : "Evidenzia"}</Button>}
         </Flex> },
       ]} /></Card>
       {defaults && <Card title="Prova per i nuovi clienti" extra={<Button onClick={() => edit({

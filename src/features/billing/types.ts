@@ -25,6 +25,8 @@ export interface AdminPlan extends PlanInfo {
   available: boolean;
   is_public: boolean;
   sort_order: number;
+  /** Carries the "most popular" badge on the landing page. */
+  highlighted: boolean;
 }
 
 export interface Usage {

@@ -304,6 +304,14 @@ export interface BillingOverview {
 }
 export type { InvoiceStatus };
 
+/** Chooses which plan carries the "most popular" badge on the landing page. */
+export async function highlightPlan(code: string, highlighted: boolean, reason: string) {
+  const { error } = await platformClient.rpc("platform_highlight_plan", {
+    p_code: code, p_highlighted: highlighted, p_reason: reason,
+  });
+  if (error) throw error;
+}
+
 export async function getBillingOverview() {
   const { data, error } = await platformClient.rpc("platform_billing_overview");
   if (error) throw error;
@@ -361,6 +369,7 @@ const MESSAGES: Record<string, string> = {
   company_has_billing_history: t("L’azienda ha fatture o pagamenti da conservare: puoi solo sospenderla."),
   refund_exceeds_payments: t("Il rimborso supera quanto è stato incassato e non ancora rimborsato."),
   subscription_not_found: t("L’azienda non ha un abbonamento."),
+  plan_not_found: t("Il piano non esiste più."),
 };
 
 export function actionError(error: unknown) {

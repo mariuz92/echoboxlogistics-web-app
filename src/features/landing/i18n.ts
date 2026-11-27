@@ -37,7 +37,6 @@ export interface Pricing {
   subtitle: string;
   monthly: string;
   yearly: string;
-  yearlyNote: string;
   perMonth: string;
   perYear: string;
   vat: string;
@@ -46,6 +45,8 @@ export interface Pricing {
   /** {n} is the number. */
   ridersIncluded: string;
   ordersIncluded: string;
+  ridersUnlimited: string;
+  ordersUnlimited: string;
   /** {price} and {block} are filled in. */
   extraRider: string;
   extraOrders: string;
@@ -260,7 +261,6 @@ const it: Dict = {
       "Ogni piano include rider e ordini. Se li superi non ti blocchiamo: il servizio continua e l'extra viene addebitato nella fattura successiva.",
     monthly: "Mensile",
     yearly: "Annuale",
-    yearlyNote: "2 mesi gratis",
     perMonth: "/ mese",
     perYear: "/ anno",
     vat: "Prezzi in euro, IVA esclusa.",
@@ -272,6 +272,8 @@ const it: Dict = {
     },
     ridersIncluded: "{n} rider inclusi",
     ordersIncluded: "{n} ordini al mese inclusi",
+    ridersUnlimited: "Rider illimitati",
+    ordersUnlimited: "Ordini illimitati",
     extraRider: "Rider in più: {price} al mese",
     extraOrders: "Ordini in più: {price} ogni {block}",
     everyPlan: "Tutti i piani includono tutte le funzioni: ordini, canali radio, modulo di prenotazione, app per i rider, notifiche e statistiche.",
@@ -486,7 +488,6 @@ const en: Dict = {
       "Every plan includes riders and orders. If you go over, nothing is blocked: the service keeps running and the extra is added to your next invoice.",
     monthly: "Monthly",
     yearly: "Yearly",
-    yearlyNote: "2 months free",
     perMonth: "/ month",
     perYear: "/ year",
     vat: "Prices in euro, VAT not included.",
@@ -498,6 +499,8 @@ const en: Dict = {
     },
     ridersIncluded: "{n} riders included",
     ordersIncluded: "{n} orders per month included",
+    ridersUnlimited: "Unlimited riders",
+    ordersUnlimited: "Unlimited orders",
     extraRider: "Extra riders: {price} per month",
     extraOrders: "Extra orders: {price} per {block}",
     everyPlan: "Every plan has every feature: orders, radio channels, booking form, rider app, notifications and statistics.",
@@ -712,7 +715,6 @@ const de: Dict = {
       "Jeder Tarif enthält Fahrer und Aufträge. Überschreiten Sie diese, wird nichts gesperrt: Der Dienst läuft weiter, und der Mehrbetrag steht auf der nächsten Rechnung.",
     monthly: "Monatlich",
     yearly: "Jährlich",
-    yearlyNote: "2 Monate gratis",
     perMonth: "/ Monat",
     perYear: "/ Jahr",
     vat: "Preise in Euro, zzgl. MwSt.",
@@ -724,6 +726,8 @@ const de: Dict = {
     },
     ridersIncluded: "{n} Fahrer inklusive",
     ordersIncluded: "{n} Aufträge pro Monat inklusive",
+    ridersUnlimited: "Unbegrenzt viele Fahrer",
+    ordersUnlimited: "Unbegrenzt viele Aufträge",
     extraRider: "Weiterer Fahrer: {price} pro Monat",
     extraOrders: "Weitere Aufträge: {price} pro {block}",
     everyPlan: "Jeder Tarif enthält alle Funktionen: Aufträge, Funkkanäle, Buchungsformular, Fahrer-App, Benachrichtigungen und Statistiken.",
@@ -938,7 +942,6 @@ const fr: Dict = {
       "Chaque formule inclut des livreurs et des commandes. Si vous les dépassez, rien n'est bloqué : le service continue et le supplément est ajouté à la facture suivante.",
     monthly: "Mensuel",
     yearly: "Annuel",
-    yearlyNote: "2 mois offerts",
     perMonth: "/ mois",
     perYear: "/ an",
     vat: "Prix en euros, hors TVA.",
@@ -950,6 +953,8 @@ const fr: Dict = {
     },
     ridersIncluded: "{n} livreurs inclus",
     ordersIncluded: "{n} commandes par mois incluses",
+    ridersUnlimited: "Livreurs illimités",
+    ordersUnlimited: "Commandes illimitées",
     extraRider: "Livreur supplémentaire : {price} par mois",
     extraOrders: "Commandes supplémentaires : {price} par {block}",
     everyPlan: "Toutes les formules incluent toutes les fonctions : commandes, canaux radio, formulaire de réservation, application livreur, notifications et statistiques.",
