@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Alert, App, Button, DatePicker, Flex, Input, InputNumber, Modal, Switch, Table, Tag, Typography } from "antd";
-import { SaveOutlined } from "@ant-design/icons";
+import { Alert, App, Button, DatePicker, Flex, Input, InputNumber, Modal, Popconfirm, Switch, Table, Tag, Typography } from "antd";
+import { ExportOutlined, SaveOutlined } from "@ant-design/icons";
 import { useQueryClient } from "@tanstack/react-query";
 import { useReadyUser } from "../../../providers/current-user";
 import { getErrorMessage } from "../../../lib/errors";
@@ -8,7 +8,8 @@ import { dayjs, fmtDateTime, fmtTime, getPeriodRange, isoToWallClock, type DateR
 import { StatusTag } from "../../../shared/components/StatusTag";
 import { MAX_CHANNELS, channelCount, formatChannelList, parseChannelList, type ChannelUse } from "../../../types/domain";
 import { updateTenant } from "../../settings/api";
-import { queryKeys, useChannelBoard } from "../hooks";
+import { queryKeys, useChannelBoard, useOrderMutations } from "../hooks";
+import { getChannelFreeActions } from "../orderActions";
 import { numberLocale, t, tn } from "../../../i18n";
 
 interface ChannelBoardProps {
@@ -182,12 +183,19 @@ function occupiedText(u: ChannelUse, timezone: string): string {
   }`;
 }
 
-/** The occupied channels as a table. Overdue ones (pickup not done) are marked and listed first. */
-export function ChannelUseTable({ uses, timezone, loading = false, emptyText }: {
+/**
+ * The occupied channels as a table. Overdue ones (pickup not done) are marked and listed first.
+ * With `onFree` each row can give the channel back (radios returned, or cancel the order); with
+ * `onOpen` it can jump to the order.
+ */
+export function ChannelUseTable({ uses, timezone, loading = false, emptyText, onFree, onOpen, busyOrderId }: {
   uses: ChannelUse[];
   timezone: string;
   loading?: boolean;
   emptyText: string;
+  onFree?: (use: ChannelUse, status: "picked_up" | "cancelled") => void;
+  onOpen?: (use: ChannelUse) => void;
+  busyOrderId?: string;
 }) {
   const rows = [...uses].sort((a, b) => Number(b.overdue) - Number(a.overdue) || a.channel - b.channel);
   return (
@@ -198,7 +206,7 @@ export function ChannelUseTable({ uses, timezone, loading = false, emptyText }: 
       loading={loading}
       pagination={rows.length > 10 ? { pageSize: 10, size: "small", showSizeChanger: false } : false}
       locale={{ emptyText }}
-      scroll={{ x: 520 }}
+      scroll={{ x: onFree || onOpen ? 760 : 520 }}
       columns={[
         { title: t("Canale"), dataIndex: "channel", width: 80 },
         { title: t("Guida"), dataIndex: "guide_name", ellipsis: true },
@@ -213,6 +221,45 @@ export function ChannelUseTable({ uses, timezone, loading = false, emptyText }: 
           ),
         },
         { title: t("Stato"), dataIndex: "status", render: (s) => <StatusTag status={s} /> },
+        ...(onFree || onOpen ? [{
+          title: "",
+          key: "actions",
+          render: (_: unknown, u: ChannelUse) => {
+            const { returned, cancel } = getChannelFreeActions(u);
+            const busy = busyOrderId === u.order_id;
+            return (
+              <Flex gap={4} wrap>
+                {onOpen && (
+                  <Button size="small" icon={<ExportOutlined />} disabled={busy} onClick={() => onOpen(u)}>
+                    {t("Apri ordine")}
+                  </Button>
+                )}
+                {onFree && returned && (
+                  <Popconfirm
+                    title={t("Le radio sono state restituite?")}
+                    description={t("L'ordine passa a «Ritirato» e il canale {channel} torna libero.", { channel: u.channel })}
+                    okText={t("Libera canale")}
+                    cancelText={t("No")}
+                    onConfirm={() => onFree(u, "picked_up")}
+                  >
+                    <Button size="small" type="primary" loading={busy}>{t("Libera")}</Button>
+                  </Popconfirm>
+                )}
+                {onFree && cancel && (
+                  <Popconfirm
+                    title={t("Annullare l'ordine?")}
+                    description={cancel.confirm}
+                    okText={t("Conferma")}
+                    cancelText={t("No")}
+                    onConfirm={() => onFree(u, "cancelled")}
+                  >
+                    <Button size="small" danger disabled={busy}>{t("Annulla ordine")}</Button>
+                  </Popconfirm>
+                )}
+              </Flex>
+            );
+          },
+        }] : []),
       ]}
     />
   );
@@ -223,17 +270,28 @@ export function ChannelUseTable({ uses, timezone, loading = false, emptyText }: 
  * occupied from the delivery until the radios are picked up, so one that was not returned shows on
  * every following day. The list updates by itself (see useChannelBoard): no search or refresh needed.
  */
-export function OccupiedChannels({ open, onClose, period, excludeOrderId }: ChannelBoardProps & {
+export function OccupiedChannels({ open, onClose, period, excludeOrderId, onOpenOrder }: ChannelBoardProps & {
   period?: DateRange;
   excludeOrderId?: string;
+  /** Jump to an order (the screen that owns the order drawer provides it). */
+  onOpenOrder?: (orderId: string) => void;
 }) {
+  const { message } = App.useApp();
   const { timezone } = useReadyUser();
+  const { setStatus } = useOrderMutations();
   const [day, setDay] = useState<Dayjs>(() => isoToWallClock(new Date().toISOString(), timezone));
 
   const range = useMemo(() => period ?? getPeriodRange(day, "day", timezone), [period, day, timezone]);
   const { data, isPlaceholderData, isFetching, isError, refetch } = useChannelBoard(range, open);
   const uses = isPlaceholderData ? [] : (data ?? []).filter((use) => use.order_id !== excludeOrderId);
   const channels = new Set(uses.map((u) => u.channel)).size;
+
+  // Giving a channel back records the return of the radios (or cancels the order): the same
+  // change as in the order menu, so it also shows in the order's history. The list refreshes itself.
+  const free = (use: ChannelUse, status: "picked_up" | "cancelled") =>
+    setStatus.mutate({ orderId: use.order_id, status }, {
+      onSuccess: () => void message.success(t("Canale {channel} liberato", { channel: use.channel })),
+    });
 
   return (
     <Modal
@@ -283,6 +341,9 @@ export function OccupiedChannels({ open, onClose, period, excludeOrderId }: Chan
             timezone={timezone}
             loading={isFetching && uses.length === 0}
             emptyText={period ? t("Nessun canale occupato in questi orari") : t("Nessun canale occupato in questa giornata")}
+            onFree={free}
+            onOpen={onOpenOrder ? (u) => onOpenOrder(u.order_id) : undefined}
+            busyOrderId={setStatus.isPending ? setStatus.variables?.orderId : undefined}
           />
         )}
       </Flex>

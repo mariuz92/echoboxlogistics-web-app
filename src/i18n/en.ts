@@ -4,6 +4,13 @@
  * src/i18n/i18n.test.ts checks that every text in the code is covered here.
  */
 export const EN: Record<string, string> = {
+  "Apri ordine": "Open order",
+  "Le radio sono state restituite?": "Have the radios been returned?",
+  "L'ordine passa a «Ritirato» e il canale {channel} torna libero.": "The order becomes “Picked up” and channel {channel} is free again.",
+  "Libera canale": "Free channel",
+  "Libera": "Free",
+  "Annullare l'ordine?": "Cancel the order?",
+  "Canale {channel} liberato": "Channel {channel} freed",
   "Dal {from} fino al ritiro": "From {from} until pickup",
   "Ritiro in ritardo": "Pickup overdue",
   "Un canale è occupato dalla consegna fino al ritiro. Se il ritiro non è stato registrato, resta occupato anche nei giorni successivi, finché l'ordine non è ritirato o annullato. L'elenco si aggiorna da solo.": "A channel is occupied from the delivery until the pickup. If the pickup has not been recorded, it stays occupied on the following days too, until the order is picked up or cancelled. The list updates by itself.",

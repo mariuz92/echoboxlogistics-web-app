@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getStatusActions, isPickupOverdue, needsAssignment } from "./orderActions";
+import { getChannelFreeActions, getStatusActions, isPickupOverdue, needsAssignment } from "./orderActions";
 
 const pickupPlanned = { pickup_address: "Via Roma 1", pickup_at: "2026-11-18T10:00:00Z" };
 const noPickup = { pickup_address: null, pickup_at: null };
@@ -70,5 +70,32 @@ describe("needsAssignment", () => {
     expect(needsAssignment({ status: "awaiting_pickup" })).toBe(true);
     expect(needsAssignment({ status: "delivery_assigned" })).toBe(false);
     expect(needsAssignment({ status: "delivered" })).toBe(false);
+  });
+});
+
+describe("getChannelFreeActions", () => {
+  const at = { pickup_at: null };
+
+  it("records the return of the radios once they are out", () => {
+    for (const status of ["delivered", "awaiting_pickup", "pickup_assigned", "out_for_pickup"] as const) {
+      expect(getChannelFreeActions({ status, ...at }).returned?.status).toBe("picked_up");
+    }
+  });
+
+  it("only offers to cancel an order that was never delivered", () => {
+    for (const status of ["received", "delivery_assigned", "out_for_delivery"] as const) {
+      const actions = getChannelFreeActions({ status, ...at });
+      expect(actions.returned).toBeUndefined();
+      expect(actions.cancel?.status).toBe("cancelled");
+    }
+  });
+
+  it("offers cancelling next to the return of the radios", () => {
+    expect(getChannelFreeActions({ status: "delivered", ...at }).cancel?.status).toBe("cancelled");
+  });
+
+  it("offers nothing for orders that no longer hold a channel", () => {
+    expect(getChannelFreeActions({ status: "picked_up", ...at })).toEqual({});
+    expect(getChannelFreeActions({ status: "cancelled", ...at })).toEqual({});
   });
 });

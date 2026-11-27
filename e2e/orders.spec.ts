@@ -280,6 +280,41 @@ test.describe("orders (admin)", () => {
     await expect(occupied.getByRole("row").filter({ hasText: guide })).toHaveCount(0, { timeout: 45_000 });
   });
 
+  test("a channel can be freed from the occupied channels window", async ({ page }) => {
+    const guide = e2eName("Libera");
+    await createOrder(page, guide, { channel: 24 });
+
+    await page.getByRole("button", { name: "Canali occupati" }).click();
+    const occupied = page.getByRole("dialog").filter({ hasText: "Canali occupati" });
+    const row = occupied.getByRole("row").filter({ hasText: guide });
+    await expect(row).toContainText("24");
+
+    // an order that was never delivered can only be cancelled; this gives the channel back
+    await row.getByRole("button", { name: "Annulla ordine" }).click();
+    await page.getByRole("button", { name: "Conferma" }).click();
+    await expect(page.getByText("Canale 24 liberato")).toBeVisible();
+    await expect(occupied.getByRole("row").filter({ hasText: guide })).toHaveCount(0);
+
+    // the order itself shows the change
+    await occupied.getByRole("button", { name: "Chiudi", exact: true }).last().click();
+    await expect(rowOf(page, guide).getByText("Annullato")).toBeVisible();
+  });
+
+  test("an occupied channel leads to its order", async ({ page }) => {
+    const guide = e2eName("Apri");
+    await createOrder(page, guide, { channel: 23 });
+
+    await page.getByRole("button", { name: "Canali occupati" }).click();
+    const occupied = page.getByRole("dialog").filter({ hasText: "Canali occupati" });
+    await occupied.getByRole("row").filter({ hasText: guide }).getByRole("button", { name: "Apri ordine" }).click();
+
+    // the window closes and the order's details open
+    await expect(occupied).toBeHidden();
+    const drawer = drawerOf(page);
+    await expect(drawer.getByText("Dettagli ordine")).toBeVisible();
+    await expect(drawer.getByText(guide)).toBeVisible();
+  });
+
   test("occupied channels are listed, and disabled channels are refused by the order form", async ({ page }) => {
     const guide = e2eName("Board");
     await createOrder(page, guide, { channel: 33 });

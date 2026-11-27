@@ -52,6 +52,21 @@ export function getStatusActions(order: Pick<Order, "status" | "pickup_address" 
   }
 }
 
+/**
+ * What an admin can do to give a channel back from the occupied channels window: record that the
+ * radios came back (only once they are out), or cancel the order. Same rules as the order menu.
+ */
+export function getChannelFreeActions(order: Pick<Order, "status" | "pickup_at">): {
+  returned?: StatusAction;
+  cancel?: StatusAction;
+} {
+  const actions = getStatusActions({ status: order.status, pickup_at: order.pickup_at, pickup_address: null });
+  return {
+    returned: actions.find((a) => a.status === "picked_up"),
+    cancel: actions.find((a) => a.status === "cancelled"),
+  };
+}
+
 function cancel(): StatusAction {
   return {
     status: "cancelled",
