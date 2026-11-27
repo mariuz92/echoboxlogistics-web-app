@@ -30,9 +30,9 @@ insert into private.platform_plans
   (code, name, description, price_month, price_year, included_riders, included_orders,
    extra_rider_price, extra_orders_price, orders_block, sort_order)
 values
-  ('starter', 'Starter', 'Small teams getting started', 29, 290, 3, 300, 5, 8, 100, 10),
-  ('pro', 'Pro', 'Growing operations', 79, 790, 10, 1500, 4, 6, 100, 20),
-  ('business', 'Business', 'Large operations', 149, 1490, 30, 6000, 3, 5, 100, 30)
+  ('starter', 'Starter', '', 29, 290, 3, 300, 5, 8, 100, 10),
+  ('pro', 'Pro', '', 79, 790, 10, 1500, 4, 6, 100, 20),
+  ('business', 'Business', '', 149, 1490, 30, 6000, 3, 5, 100, 30)
 on conflict (code) do update set
   description = excluded.description, price_month = excluded.price_month, price_year = excluded.price_year,
   included_riders = excluded.included_riders, included_orders = excluded.included_orders,

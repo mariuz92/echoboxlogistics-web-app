@@ -1,11 +1,13 @@
 import { useMemo, useState } from "react";
-import { App, Alert, Button, Card, Col, Flex, Form, Input, Row, Select, Space, Switch, Typography } from "antd";
+import { useSearchParams } from "react-router";
+import { App, Alert, Button, Card, Col, Flex, Form, Input, Row, Select, Space, Switch, Tabs, Typography } from "antd";
 import { AppstoreOutlined, CopyOutlined, LinkOutlined } from "@ant-design/icons";
 import { getErrorMessage } from "../../lib/errors";
 import { useReadyUser } from "../../providers/current-user";
 import { PageHeader } from "../../shared/components/PageHeader";
 import { usePageTitle } from "../../shared/hooks/usePageTitle";
 import { ChannelSettings } from "../orders/components/ChannelBoard";
+import { SubscriptionPanel } from "../billing/SubscriptionPanel";
 import { updateTenant } from "./api";
 import { channelCount } from "../../types/domain";
 import { numberLocale, t, tn } from "../../i18n";
@@ -29,8 +31,7 @@ function timezones(): string[] {
   return FALLBACK_ZONES;
 }
 
-export function SettingsPage() {
-  usePageTitle(t("Impostazioni"));
+function CompanySettings() {
   const { message } = App.useApp();
   const { tenant, refresh } = useReadyUser();
   const [form] = Form.useForm<CompanyForm>();
@@ -69,8 +70,6 @@ export function SettingsPage() {
 
   return (
     <>
-      <PageHeader title={t("Impostazioni")} subtitle={t("Dati dell'azienda, fuso orario e prenotazioni online.")} />
-
       <Row gutter={[16, 16]}>
         <Col xs={24} lg={14}>
           <Card title={t("Azienda")}>
@@ -151,6 +150,26 @@ export function SettingsPage() {
       </Row>
 
       <ChannelSettings open={channelsOpen} onClose={() => setChannelsOpen(false)} />
+    </>
+  );
+}
+
+export function SettingsPage() {
+  usePageTitle(t("Impostazioni"));
+  const [params, setParams] = useSearchParams();
+  const tab = params.get("tab") === "subscription" ? "subscription" : "company";
+
+  return (
+    <>
+      <PageHeader title={t("Impostazioni")} subtitle={t("Dati dell'azienda, fuso orario, prenotazioni online e abbonamento.")} />
+      <Tabs
+        activeKey={tab}
+        onChange={(key) => setParams(key === "subscription" ? { tab: key } : {}, { replace: true })}
+        items={[
+          { key: "company", label: t("Azienda"), children: <CompanySettings /> },
+          { key: "subscription", label: t("Abbonamento"), children: <SubscriptionPanel /> },
+        ]}
+      />
     </>
   );
 }

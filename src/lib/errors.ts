@@ -18,6 +18,9 @@ const MESSAGES: Record<string, string> = {
   // Onboarding / auth
   company_exists:
     t("Esiste già un'azienda con questo nome. Chiedi a un amministratore di invitarti."),
+  request_already_open: t("Hai già una richiesta di cambio piano in corso. Annullala per inviarne un’altra."),
+  plan_unavailable: t("Questo piano non è disponibile."),
+  not_authorized: t("Solo gli amministratori possono gestire l’abbonamento."),
   company_suspended: t("L’azienda è sospesa. Contatta il supporto EchoBox."),
   write_not_applied: t("L’operazione non è consentita o il record non è più disponibile."),
   company_access_restricted: t("Questa operazione non è disponibile con l’accesso attuale dell’azienda."),
