@@ -29,6 +29,8 @@ import { useReadyUser } from "../../providers/current-user";
 import { PageHeader } from "../../shared/components/PageHeader";
 import { usePageTitle } from "../../shared/hooks/usePageTitle";
 import { ORDER_STATUSES, ORDER_STATUS_META, type Order, type OrderStatus } from "../../types/domain";
+import { getErrorMessage } from "../../lib/errors";
+import { getOrder } from "./api";
 import { needsAssignment } from "./orderActions";
 import { useOrders, useOrdersRealtime, usePendingPickups } from "./hooks";
 import { OrdersTable } from "./components/OrdersTable";
@@ -140,6 +142,17 @@ export function OrdersPage() {
 
   const openOrder = (order: Order, mode: DrawerMode) =>
     setDrawer({ open: true, mode, id: order.id, snapshot: order });
+
+  // From the occupied channels window: show the order, wherever it falls in time.
+  const openFromChannels = async (orderId: string) => {
+    try {
+      const order = await getOrder(orderId);
+      setChannelsOpen(false);
+      openOrder(order, "view");
+    } catch (error) {
+      void message.error(getErrorMessage(error));
+    }
+  };
 
   // Pickups that are unscheduled or late, regardless of the visible period.
   const overduePickups = useMemo(
@@ -286,7 +299,7 @@ export function OrdersPage() {
         onModeChange={(mode) => setDrawer((d) => ({ ...d, mode }))}
       />
 
-      <OccupiedChannels open={channelsOpen} onClose={() => setChannelsOpen(false)} />
+      <OccupiedChannels open={channelsOpen} onClose={() => setChannelsOpen(false)} onOpenOrder={(id) => void openFromChannels(id)} />
 
       <Modal
         title={t("Ritiri da pianificare o in ritardo")}

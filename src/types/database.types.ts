@@ -655,6 +655,7 @@ export type Database = {
           delivery_at: string
           guide_name: string
           order_id: string
+          overdue: boolean
           pickup_at: string
           status: Database["public"]["Enums"]["order_status"]
         }[]
@@ -688,6 +689,10 @@ export type Database = {
       platform_finish_invitation: {
         Args: { p_attempt_id: string; p_invitation_id: string; p_state: string }
         Returns: boolean
+      }
+      platform_generate_invoices: {
+        Args: { p_month?: string; p_reason: string; p_tenant?: string }
+        Returns: number
       }
       platform_highlight_plan: {
         Args: { p_code: string; p_highlighted: boolean; p_reason: string }
@@ -723,6 +728,16 @@ export type Database = {
       }
       platform_pending_invitation: { Args: never; Returns: Json }
       platform_runtime_settings: { Args: never; Returns: Json }
+      platform_update_draft_invoice: {
+        Args: {
+          p_due_at?: string
+          p_external_url?: string
+          p_invoice_id: string
+          p_lines: Json
+          p_reason: string
+        }
+        Returns: undefined
+      }
       read_push_delivery: {
         Args: { p_delivery_id: string; p_lease_id: string }
         Returns: {

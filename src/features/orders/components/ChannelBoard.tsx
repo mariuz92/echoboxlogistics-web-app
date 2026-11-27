@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Alert, App, Button, DatePicker, Flex, Input, InputNumber, Modal, Switch, Table, Typography } from "antd";
-import { SaveOutlined } from "@ant-design/icons";
+import { Alert, App, Button, DatePicker, Flex, Input, InputNumber, Modal, Popconfirm, Switch, Table, Tag, Typography } from "antd";
+import { ExportOutlined, SaveOutlined } from "@ant-design/icons";
 import { useQueryClient } from "@tanstack/react-query";
 import { useReadyUser } from "../../../providers/current-user";
 import { getErrorMessage } from "../../../lib/errors";
@@ -8,7 +8,8 @@ import { dayjs, fmtDateTime, fmtTime, getPeriodRange, isoToWallClock, type DateR
 import { StatusTag } from "../../../shared/components/StatusTag";
 import { MAX_CHANNELS, channelCount, formatChannelList, parseChannelList, type ChannelUse } from "../../../types/domain";
 import { updateTenant } from "../../settings/api";
-import { queryKeys, useChannelBoard } from "../hooks";
+import { queryKeys, useChannelBoard, useOrderMutations } from "../hooks";
+import { getChannelFreeActions } from "../orderActions";
 import { numberLocale, t, tn } from "../../../i18n";
 
 interface ChannelBoardProps {
@@ -170,30 +171,127 @@ export function ChannelSettings({ open, onClose }: ChannelBoardProps) {
   );
 }
 
+/** What the table shows for one occupied channel: the period, or "until pickup" when it has no end. */
+function occupiedText(u: ChannelUse, timezone: string): string {
+  if (u.busy_until === null) {
+    return t("Dal {from} fino al ritiro", { from: fmtDateTime(u.delivery_at, timezone) });
+  }
+  return `${fmtDateTime(u.delivery_at, timezone)} – ${
+    dayjs(u.busy_until).tz(timezone).isSame(dayjs(u.delivery_at).tz(timezone), "day")
+      ? fmtTime(u.busy_until, timezone)
+      : fmtDateTime(u.busy_until, timezone)
+  }`;
+}
+
 /**
- * Lists channel use for a selected day or for the schedule in the order form.
+ * The occupied channels as a table. Overdue ones (pickup not done) are marked and listed first.
+ * With `onFree` each row can give the channel back (radios returned, or cancel the order); with
+ * `onOpen` it can jump to the order.
  */
-export function OccupiedChannels({ open, onClose, period, excludeOrderId }: ChannelBoardProps & {
+export function ChannelUseTable({ uses, timezone, loading = false, emptyText, onFree, onOpen, busyOrderId }: {
+  uses: ChannelUse[];
+  timezone: string;
+  loading?: boolean;
+  emptyText: string;
+  onFree?: (use: ChannelUse, status: "picked_up" | "cancelled") => void;
+  onOpen?: (use: ChannelUse) => void;
+  busyOrderId?: string;
+}) {
+  const rows = [...uses].sort((a, b) => Number(b.overdue) - Number(a.overdue) || a.channel - b.channel);
+  return (
+    <Table<ChannelUse>
+      size="small"
+      rowKey={(u) => `${u.channel}-${u.order_id}`}
+      dataSource={rows}
+      loading={loading}
+      pagination={rows.length > 10 ? { pageSize: 10, size: "small", showSizeChanger: false } : false}
+      locale={{ emptyText }}
+      scroll={{ x: onFree || onOpen ? 760 : 520 }}
+      columns={[
+        { title: t("Canale"), dataIndex: "channel", width: 80 },
+        { title: t("Guida"), dataIndex: "guide_name", ellipsis: true },
+        {
+          title: t("Occupato"),
+          key: "when",
+          render: (_, u) => (
+            <Flex vertical gap={2}>
+              <span>{occupiedText(u, timezone)}</span>
+              {u.overdue && <Tag color="red" style={{ width: "fit-content", margin: 0 }}>{t("Ritiro in ritardo")}</Tag>}
+            </Flex>
+          ),
+        },
+        { title: t("Stato"), dataIndex: "status", render: (s) => <StatusTag status={s} /> },
+        ...(onFree || onOpen ? [{
+          title: "",
+          key: "actions",
+          render: (_: unknown, u: ChannelUse) => {
+            const { returned, cancel } = getChannelFreeActions(u);
+            const busy = busyOrderId === u.order_id;
+            return (
+              <Flex gap={4} wrap>
+                {onOpen && (
+                  <Button size="small" icon={<ExportOutlined />} disabled={busy} onClick={() => onOpen(u)}>
+                    {t("Apri ordine")}
+                  </Button>
+                )}
+                {onFree && returned && (
+                  <Popconfirm
+                    title={t("Le radio sono state restituite?")}
+                    description={t("L'ordine passa a «Ritirato» e il canale {channel} torna libero.", { channel: u.channel })}
+                    okText={t("Libera canale")}
+                    cancelText={t("No")}
+                    onConfirm={() => onFree(u, "picked_up")}
+                  >
+                    <Button size="small" type="primary" loading={busy}>{t("Libera")}</Button>
+                  </Popconfirm>
+                )}
+                {onFree && cancel && (
+                  <Popconfirm
+                    title={t("Annullare l'ordine?")}
+                    description={cancel.confirm}
+                    okText={t("Conferma")}
+                    cancelText={t("No")}
+                    onConfirm={() => onFree(u, "cancelled")}
+                  >
+                    <Button size="small" danger disabled={busy}>{t("Annulla ordine")}</Button>
+                  </Popconfirm>
+                )}
+              </Flex>
+            );
+          },
+        }] : []),
+      ]}
+    />
+  );
+}
+
+/**
+ * Lists channel use for a selected day or for the schedule in the order form. A channel stays
+ * occupied from the delivery until the radios are picked up, so one that was not returned shows on
+ * every following day. The list updates by itself (see useChannelBoard): no search or refresh needed.
+ */
+export function OccupiedChannels({ open, onClose, period, excludeOrderId, onOpenOrder }: ChannelBoardProps & {
   period?: DateRange;
   excludeOrderId?: string;
+  /** Jump to an order (the screen that owns the order drawer provides it). */
+  onOpenOrder?: (orderId: string) => void;
 }) {
+  const { message } = App.useApp();
   const { timezone } = useReadyUser();
+  const { setStatus } = useOrderMutations();
   const [day, setDay] = useState<Dayjs>(() => isoToWallClock(new Date().toISOString(), timezone));
-  const [search, setSearch] = useState("");
-
-  useEffect(() => {
-    if (open) setSearch("");
-  }, [open]);
 
   const range = useMemo(() => period ?? getPeriodRange(day, "day", timezone), [period, day, timezone]);
   const { data, isPlaceholderData, isFetching, isError, refetch } = useChannelBoard(range, open);
   const uses = isPlaceholderData ? [] : (data ?? []).filter((use) => use.order_id !== excludeOrderId);
-
-  const q = search.trim().toLowerCase();
-  const rows = q
-    ? uses.filter((u) => String(u.channel) === q || u.guide_name.toLowerCase().includes(q))
-    : uses;
   const channels = new Set(uses.map((u) => u.channel)).size;
+
+  // Giving a channel back records the return of the radios (or cancels the order): the same
+  // change as in the order menu, so it also shows in the order's history. The list refreshes itself.
+  const free = (use: ChannelUse, status: "picked_up" | "cancelled") =>
+    setStatus.mutate({ orderId: use.order_id, status }, {
+      onSuccess: () => void message.success(t("Canale {channel} liberato", { channel: use.channel })),
+    });
 
   return (
     <Modal
@@ -219,14 +317,6 @@ export function OccupiedChannels({ open, onClose, period, excludeOrderId }: Chan
               allowClear={false}
             />
           )}
-          <Input.Search
-            aria-label={t("Cerca canale o guida")}
-            placeholder={t("Canale o guida")}
-            allowClear
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            style={{ maxWidth: 240 }}
-          />
           {data && !isPlaceholderData && !isError && (
             <Typography.Text type="secondary">
               {period
@@ -236,7 +326,7 @@ export function OccupiedChannels({ open, onClose, period, excludeOrderId }: Chan
           )}
         </Flex>
         <Typography.Text type="secondary">
-          {t("Un canale è occupato dalla consegna al ritiro, o fino a fine giornata se il ritiro non è pianificato.")}
+          {t("Un canale è occupato dalla consegna fino al ritiro. Se il ritiro non è stato registrato, resta occupato anche nei giorni successivi, finché l'ordine non è ritirato o annullato. L'elenco si aggiorna da solo.")}
         </Typography.Text>
         {isError ? (
           <Alert
@@ -245,33 +335,17 @@ export function OccupiedChannels({ open, onClose, period, excludeOrderId }: Chan
             title={t("Impossibile caricare i canali occupati.")}
             action={<Button size="small" onClick={() => void refetch()}>{t("Riprova")}</Button>}
           />
-        ) : <Table<ChannelUse>
-          size="small"
-          rowKey={(u) => `${u.channel}-${u.order_id}`}
-          dataSource={rows}
-          loading={isFetching && uses.length === 0}
-          pagination={rows.length > 10 ? { pageSize: 10, size: "small", showSizeChanger: false } : false}
-          locale={{ emptyText: q
-            ? t("Nessun canale occupato corrisponde alla ricerca")
-            : period ? t("Nessun canale occupato in questi orari") : t("Nessun canale occupato in questa giornata")
-          }}
-          scroll={{ x: 520 }}
-          columns={[
-            { title: t("Canale"), dataIndex: "channel", width: 80 },
-            { title: t("Guida"), dataIndex: "guide_name", ellipsis: true },
-            {
-              title: t("Occupato"),
-              key: "when",
-              render: (_, u) =>
-                `${fmtDateTime(u.delivery_at, timezone)} – ${
-                  dayjs(u.busy_until).tz(timezone).isSame(dayjs(u.delivery_at).tz(timezone), "day")
-                    ? fmtTime(u.busy_until, timezone)
-                    : fmtDateTime(u.busy_until, timezone)
-                }`,
-            },
-            { title: t("Stato"), dataIndex: "status", render: (s) => <StatusTag status={s} /> },
-          ]}
-        />}
+        ) : (
+          <ChannelUseTable
+            uses={uses}
+            timezone={timezone}
+            loading={isFetching && uses.length === 0}
+            emptyText={period ? t("Nessun canale occupato in questi orari") : t("Nessun canale occupato in questa giornata")}
+            onFree={free}
+            onOpen={onOpenOrder ? (u) => onOpenOrder(u.order_id) : undefined}
+            busyOrderId={setStatus.isPending ? setStatus.variables?.orderId : undefined}
+          />
+        )}
       </Flex>
     </Modal>
   );

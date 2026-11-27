@@ -36,6 +36,13 @@ export async function listOrders(range: DateRange): Promise<Order[]> {
   return asOrders(data);
 }
 
+/** One order with its riders (an order outside the period on screen, opened from the channels window). */
+export async function getOrder(id: string): Promise<Order> {
+  const { data, error } = await supabase.from("orders").select(ORDER_SELECT).eq("id", id).single();
+  if (error) throw error;
+  return data as unknown as Order;
+}
+
 /** Delivered orders still waiting for their radios to come back. */
 export async function listPendingPickups(): Promise<Order[]> {
   const { data, error } = await supabase

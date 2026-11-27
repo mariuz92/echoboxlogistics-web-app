@@ -24,8 +24,10 @@ export interface ChannelUse {
   status: OrderStatus;
   delivery_at: string;
   pickup_at: string | null;
-  /** End of the period in which the order occupies its channel. */
-  busy_until: string;
+  /** End of the period in which the order occupies its channel; null = until the order is closed. */
+  busy_until: string | null;
+  /** The planned pickup has passed but the order is still open: the channel stays occupied. */
+  overdue: boolean;
 }
 
 /** The channel configuration of a company (any equipment: 1 to 10,000 channels). */
@@ -198,6 +200,20 @@ export function channelWindowEnd(deliveryIso: string, pickupIso: string | null |
   return (end.isBefore(min) ? min : end).toISOString();
 }
 
+/** Stands for "until the order is closed" when a period needs an end. */
+export const OPEN_END = "9999-12-31T00:00:00.000Z";
+
+/**
+ * Like channelWindowEnd, but an order whose planned end has already passed is still open and keeps
+ * its channel until it is closed, so its period has no end. Mirrors private.channel_hold() in SQL.
+ */
+export function channelHoldEnd(
+  deliveryIso: string, pickupIso: string | null | undefined, tz: string, now: Date = new Date(),
+): string {
+  const planned = channelWindowEnd(deliveryIso, pickupIso, tz);
+  return Date.parse(planned) <= now.getTime() ? OPEN_END : planned;
+}
+
 /** Orders in `uses` that hold `channel` during [from, to), ignoring `excludeOrderId`. */
 export function channelConflicts<T extends Pick<ChannelUse, "channel" | "order_id" | "delivery_at" | "busy_until">>(
   uses: T[],
@@ -213,7 +229,7 @@ export function channelConflicts<T extends Pick<ChannelUse, "channel" | "order_i
       u.channel === channel &&
       u.order_id !== excludeOrderId &&
       Date.parse(u.delivery_at) < end &&
-      Date.parse(u.busy_until) > start,
+      (u.busy_until === null || Date.parse(u.busy_until) > start),
   );
 }
 

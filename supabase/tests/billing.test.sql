@@ -74,6 +74,9 @@ select is(jsonb_array_length(private.estimate_bill('dddd0000-0000-4000-8000-0000
   'estimate lists base, extra riders and extra orders');
 
 -- Notices: limits reached create one notice each, recipients are the company admins.
+-- The worker also prepares invoice drafts (covered by invoice_drafts.test.sql): keep them out of these fixtures.
+insert into private.platform_settings(singleton, invoices_generated_at) values (true, now())
+on conflict (singleton) do update set invoices_generated_at = now();
 select ok(jsonb_array_length(public.claim_billing_notices(25)) >= 2, 'limits reached produce notices to send');
 select is((select count(*) from private.billing_notices
   where tenant_id = 'dddd0000-0000-4000-8000-0000000000a1' and kind = 'limit_orders_100')::integer, 1,

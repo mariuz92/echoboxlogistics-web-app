@@ -121,10 +121,14 @@ Any open order can be cancelled by an admin. Rules worth knowing:
 EchoBox is model agnostic: whatever radioguide system a company uses, it describes its channels as a
 range `tenants.channel_min … channel_max` (1 to 10,000 channels) plus `disabled_channels`.
 
-A channel is **busy only while a group has the radios**: from the order's delivery to its planned
-pickup, or to the end of the delivery day when no pickup is planned (`private.channel_window`); closed
-orders (`picked_up` / `cancelled`) hold nothing. The same channel can therefore serve a morning group
-and an afternoon group, and a one-channel company can run tours back to back.
+A channel is **busy while a group has the radios**: from the order's delivery to its planned
+pickup, or to the end of the delivery day when no pickup is planned (`private.channel_window`). If that
+planned time has passed and the order is still open (radios not returned), the hold has **no end** and the
+channel stays occupied on every following day until the order is picked up or cancelled
+(`private.channel_hold`; the board marks these `overdue`). Closed orders (`picked_up` / `cancelled`) hold
+nothing; planning the pickup again to a later time gives the hold a new end. The same channel can
+therefore serve a morning group and an afternoon group, and a one-channel company can run tours back
+to back. The occupied-channels list updates by itself (Realtime on `orders`, plus a 30 s refresh).
 
 - `channels_exclusive = true` (default): `orders_guard` rejects an order whose channel window overlaps
   another open order on the same channel (`channel_busy`, SQLSTATE `23P01`), under a per-channel

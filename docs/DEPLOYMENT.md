@@ -405,6 +405,9 @@ set by section 6), `RESEND_API_KEY` and `CONTACT_FROM_EMAIL` (a sender on a doma
 )
 ```
 
+**Invoice drafts.** Apply `20261129000000_invoice_drafts.sql`. Nothing else to deploy: the worker that already calls `notify-billing` prepares the
+monthly drafts. Check them in the console under Fatturazione -> Fatture; **Genera bozze** prepares a past month on demand. See [BILLING.md](BILLING.md#invoices-are-prepared-automatically).
+
 **Prices on the landing page.** Apply `20261128000000_public_plans.sql`, then deploy the `public-plans` function the same way
 (it needs no extra secret) and recreate `functions` once for both:
 

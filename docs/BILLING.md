@@ -54,16 +54,38 @@ The rules are in one place, `src/features/billing/proration.ts`, with tests. The
 puts the company in read-only; approving a mid-year upgrade offers to issue the difference invoice; approving a downgrade schedules it.
 These terms are shown on the landing page and in Settings. They are not yet in the legal terms (`/terms`): ask your lawyer to add them.
 
+## Invoices are prepared automatically
+
+Every month the system prepares a **draft invoice** for each paying company (state active or past due; not trials, not "forever",
+not cancelled, and only companies with a plan), from the real figures of the month that has just ended in the company's time zone:
+
+| Plan | What the draft contains |
+|---|---|
+| Monthly | base fee + extra riders + extra orders of the closed month |
+| Yearly | extra riders and extra orders of the closed month only (the base fee was paid in advance); no draft when there are no extras |
+| Yearly, term ending within 30 days | the **renewal** invoice of the next term, at the price of the plan that will apply then (a scheduled downgrade is already taken into account) |
+
+- Drafts appear in **Fatturazione -> Fatture**, with the tag *Automatica* and a counter on the tab. Nothing is sent to the customer and
+  customers cannot see a draft.
+- **Review, then issue:** *Modifica* corrects the lines (a discount, a different quantity, a note) and the due date; *Emetti* gives the draft its
+  real number (`EB-<year>-<n>`) and makes it visible to the customer; *Scarta* voids it. A voided draft is **not created again**; this is
+  why automatic drafts are discarded, not deleted. Placeholder numbers (`BOZZA-...`) disappear at issue, so voided drafts leave no gaps.
+- There is one draft per company and period, so running the generation again never duplicates anything.
+- **When:** the same worker that sends the billing e-mails prepares them, at most once an hour, so they exist a few minutes after midnight
+  of the 1st. If the worker is not running, use **Genera bozze**: pick a closed month (any past month works) for all companies or one.
+- **Sending stays manual for now.** Issue the legal invoice in your invoicing service (SDI), paste its link, and mark it paid when the
+  money arrives. When sending, e-invoicing or payment collection are automated later, they start from these same invoices.
+
 ## Operator (Superadmin console)
 
 | Where | What |
 |---|---|
 | **Piani** | Create, edit, duplicate and archive plans. Mark a plan "Su misura" to hide it from customers and from the site. Choose the plan with the **"Il più scelto"** badge. Set a **free trial for new companies** (plan and days; 0 = off). |
 | **Fatturazione** | Companies with usage bars (amber from 80%, red at 100%), payment state and amount due. Tabs for all invoices, who paid, plan requests and the e-mail queue. Filters: limit reached, in trial, overdue, unpaid, no subscription. |
-| Company -> **Abbonamento** | Change plan, state, interval, **forever**, grace and close-out dates, billing e-mail and notes. Start a trial. See usage and the month's estimate, create an invoice from the estimate, mark it paid, send a reminder. **Disdici** cancels and proposes the refund. A scheduled downgrade is shown here. |
+| Company -> **Abbonamento** | Change plan, state, interval, **forever**, grace and close-out dates, billing e-mail and notes. Start a trial. See usage and the month's estimate, create an invoice from the estimate (or review the one prepared automatically), mark it paid, send a reminder. **Disdici** cancels and proposes the refund. A scheduled downgrade is shown here. |
 | Company header | **Sospendi** blocks access. **Rimuovi** deletes the company, its orders and its people for good: only when suspended and only if it has **no invoices or payments** (they must be kept for accounting). Otherwise leave it suspended. |
 
-**Invoices**: the console records invoices and their payment; it does not issue the fiscal document. Issue the legal invoice
+**Invoices**: the console prepares, records and tracks invoices and their payment; it does not issue the fiscal document. Issue the legal invoice
 (including electronic invoicing through SDI) with your invoicing service and paste its link into the invoice. Numbers default to
 `EB-<year>-<n>`.
 

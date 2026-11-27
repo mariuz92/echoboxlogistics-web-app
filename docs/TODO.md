@@ -145,7 +145,9 @@ The plans, limits, invoices, requests, notices, console pages, customer screen a
   full access until an operator assigns a plan.
 - [ ] **Pick the electronic invoicing service** (SDI) and decide how invoice links get into the console.
 - [ ] **Automatic payments** with Stripe (Checkout, customer portal, webhook that marks invoices paid): the data model is ready.
-- [ ] A monthly job that creates the draft invoice of every active company from `estimate_bill`, for the operator to review.
+- [x] Draft invoices are prepared automatically every month (and yearly renewals 30 days ahead); the operator reviews and issues them.
+- [ ] Automate the next steps on top of the drafts: e-mail the issued invoice to the customer, create the fiscal invoice in the e-invoicing service (SDI), collect the payment (Stripe / SEPA) and mark it paid by itself.
+- [ ] An operator e-mail summary when new drafts are ready (today the Fatture tab shows a counter).
 - [ ] Mobile app: show the same notices to company admins using `company_billing()`.
 - [ ] Hard limits per plan (block new orders), only if soft limits turn out to be abused.
 - [ ] Billing e-mails in German and French, and per-company language.
