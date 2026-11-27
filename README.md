@@ -129,6 +129,7 @@ Dependabot (`.github/dependabot.yml`) proposes weekly updates for npm, GitHub Ac
 - [Database](docs/DATABASE.md): schema, ER diagram, RLS, RPC reference
 - [API](docs/API.md): RPCs and the Edge Function, with examples (useful for other clients such as a mobile app)
 - [Deployment](docs/DEPLOYMENT.md): Supabase project, Docker, hosting
+- [Subscriptions and billing](docs/BILLING.md): plans, limits, invoices, reminders, how the console and apps use them
 - [Development](docs/DEVELOPMENT.md): day-to-day workflow, testing, conventions
 - [Migration from Firebase](docs/MIGRATION_FROM_FIREBASE.md): what changed, field mapping, bugs fixed
 - [Moving the Flutter app](docs/MOBILE_MIGRATION.md): guide for porting the mobile app from Firebase to Supabase
