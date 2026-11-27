@@ -249,7 +249,13 @@ export interface BillingCompany {
   unpaid: number;
   last_paid_at: string | null;
 }
-export interface BillingInvoice extends Invoice { tenant_id: string; company_name: string; created_at: string }
+export interface BillingInvoice extends Invoice {
+  tenant_id: string;
+  company_name: string;
+  created_at: string;
+  /** Set on drafts prepared automatically (month:YYYY-MM or renewal:YYYY-MM-DD). */
+  auto_key: string | null;
+}
 export interface BillingPayment {
   id: string;
   kind: "payment" | "refund";
@@ -294,6 +300,8 @@ export interface BillingOverview {
     unpaid_total: number;
     overdue_invoices: number;
     open_requests: number;
+    /** Invoices in draft waiting to be reviewed and issued. */
+    drafts: number;
   };
   companies: BillingCompany[];
   invoices: BillingInvoice[];
@@ -308,6 +316,25 @@ export type { InvoiceStatus };
 export async function highlightPlan(code: string, highlighted: boolean, reason: string) {
   const { error } = await platformClient.rpc("platform_highlight_plan", {
     p_code: code, p_highlighted: highlighted, p_reason: reason,
+  });
+  if (error) throw error;
+}
+
+/** Prepares the draft invoices of a closed month (all companies, or one). Returns how many were created. */
+export async function generateInvoices(reason: string, month?: string, tenantId?: string) {
+  const { data, error } = await platformClient.rpc("platform_generate_invoices", {
+    p_reason: reason, p_month: month, p_tenant: tenantId,
+  });
+  if (error) throw error;
+  return Number(data);
+}
+
+/** Corrects the lines of a draft invoice before it is issued. */
+export async function updateDraftInvoice(
+  invoiceId: string, lines: Json, reason: string, dueAt?: string, externalUrl?: string,
+) {
+  const { error } = await platformClient.rpc("platform_update_draft_invoice", {
+    p_invoice_id: invoiceId, p_lines: lines, p_reason: reason, p_due_at: dueAt, p_external_url: externalUrl,
   });
   if (error) throw error;
 }
@@ -370,6 +397,10 @@ const MESSAGES: Record<string, string> = {
   refund_exceeds_payments: t("Il rimborso supera quanto è stato incassato e non ancora rimborsato."),
   subscription_not_found: t("L’azienda non ha un abbonamento."),
   plan_not_found: t("Il piano non esiste più."),
+  auto_invoice_use_void: t("Una bozza automatica non si elimina: scartala, così non viene creata di nuovo."),
+  invoice_not_draft: t("Solo le bozze si possono modificare."),
+  invalid_lines: t("Controlla le righe: ognuna ha un importo numerico."),
+  month_invalid: t("Scegli il primo giorno del mese."),
 };
 
 export function actionError(error: unknown) {

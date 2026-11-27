@@ -7,7 +7,7 @@ import { MinusCircleOutlined, PlusOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { PageHeader } from "../src/shared/components/PageHeader";
 import {
-  highlightPlan, submitAction, type BillingCompany, type BillingInvoice, type BillingNotice, type BillingOverview,
+  generateInvoices, highlightPlan, submitAction, updateDraftInvoice, type BillingCompany, type BillingInvoice, type BillingNotice, type BillingOverview,
   type BillingRequest, type Company, type NoticeKind, type Plan, type Snapshot,
 } from "../src/features/platform/api";
 import { estimateFromPlan } from "../src/features/billing/estimate";
@@ -33,7 +33,8 @@ const REQUEST: Record<BillingRequest["status"], [string, string]> = {
 const round2 = (value: number) => Math.round(value * 100) / 100;
 const planName = (plans: Plan[], code: string | null) => plans.find((p) => p.code === code)?.name ?? code ?? "—";
 
-function invoiceTag(invoice: Pick<BillingInvoice, "status" | "due_at">) {
+function invoiceTag(invoice: Pick<BillingInvoice, "status" | "due_at"> & { auto_key?: string | null }) {
+  if (invoice.status === "draft" && invoice.auto_key) return <Flex gap={4} wrap><Tag color="gold">Bozza</Tag><Tag>Automatica</Tag></Flex>;
   if (invoice.status === "issued" && invoice.due_at && dayjs(invoice.due_at).isBefore(dayjs())) {
     return <Tag color="red">Scaduta</Tag>;
   }
@@ -250,12 +251,72 @@ function invoiceEditor(
   });
 }
 
+/** Corrects a draft (a discount, an adjusted quantity, a note) before it is issued. */
+function draftEditor(invoice: BillingInvoice, edit: OpenEditor) {
+  edit({
+    title: `Modifica bozza ${invoice.auto_key ? "automatica" : invoice.number}`,
+    description: `${invoice.company_name} · ${day(invoice.period_start)} – ${day(invoice.period_end)}. Le righe e gli importi vengono ricalcolati al salvataggio.`,
+    values: {
+      lines: invoice.lines.map((l) => ({ label: l.label ?? l.code ?? "", quantity: l.quantity, unit_price: l.unit_price })),
+      due_at: invoice.due_at ? dayjs(invoice.due_at).format("YYYY-MM-DD") : undefined,
+      external_url: invoice.external_url ?? undefined, reason: "Bozza rivista",
+    },
+    submit: async (fields) => {
+      const lines = (fields.lines as unknown as { label: string; quantity: number; unit_price: number }[]).map((l) => ({
+        code: "custom", label: l.label, quantity: l.quantity, unit_price: l.unit_price, amount: round2(l.quantity * l.unit_price),
+      }));
+      await updateDraftInvoice(invoice.id, lines, String(fields.reason),
+        typeof fields.due_at === "string" && fields.due_at ? fields.due_at : undefined,
+        typeof fields.external_url === "string" && fields.external_url ? fields.external_url : undefined);
+    },
+    fields: <>
+      <Row gutter={12}>
+        <Col xs={24} sm={12}><Form.Item name="due_at" label="Scadenza" extra="Vuoto = 30 giorni dall’emissione"><Input type="date" /></Form.Item></Col>
+        <Col xs={24} sm={12}><Form.Item name="external_url" label="Link alla fattura (opzionale)" rules={[{ type: "url" }]}><Input placeholder="https://" /></Form.Item></Col>
+      </Row>
+      <Typography.Text strong>Righe</Typography.Text>
+      <Form.List name="lines">{(fields, { add, remove }) => <Flex vertical gap={4} style={{ margin: "8px 0 16px" }}>
+        {fields.map(({ key, name }) => <Flex key={key} gap={8} align="start">
+          <Form.Item name={[name, "label"]} rules={[{ required: true, whitespace: true, max: 120 }]} style={{ flex: 1, marginBottom: 4 }}><Input placeholder="Descrizione" /></Form.Item>
+          <Form.Item name={[name, "quantity"]} rules={REQUIRED} style={{ marginBottom: 4 }}><InputNumber min={0} placeholder="Qtà" style={{ width: 76 }} /></Form.Item>
+          <Form.Item name={[name, "unit_price"]} rules={REQUIRED} style={{ marginBottom: 4 }}><InputNumber precision={2} placeholder="Prezzo" style={{ width: 104 }} /></Form.Item>
+          <Button type="text" aria-label="Rimuovi riga" icon={<MinusCircleOutlined />} disabled={fields.length === 1} onClick={() => remove(name)} />
+        </Flex>)}
+        <Button type="dashed" icon={<PlusOutlined />} onClick={() => add({ label: "", quantity: 1, unit_price: 0 })}>Aggiungi riga</Button>
+      </Flex>}</Form.List>
+    </>,
+  });
+}
+
+/** Prepares the drafts of a closed month now: all companies, or one. */
+function generateEditor(edit: OpenEditor, companies: { id: string; name: string }[]) {
+  const previous = dayjs().subtract(1, "month").format("YYYY-MM");
+  edit({
+    title: "Genera bozze di fattura", values: { month: previous, reason: "Bozze del mese" },
+    description: "Il sistema prepara ogni mese le bozze del mese appena concluso. Qui puoi prepararle subito o per un mese passato. "
+      + "Si crea una sola bozza per azienda e mese: quelle già esistenti, anche annullate, non vengono ripetute.",
+    submit: async (fields) => {
+      await generateInvoices(String(fields.reason), `${String(fields.month)}-01`,
+        typeof fields.tenant_id === "string" && fields.tenant_id ? fields.tenant_id : undefined);
+    },
+    fields: <>
+      <Form.Item name="month" label="Mese" rules={REQUIRED} extra="Solo mesi già conclusi."><Input type="month" max={dayjs().subtract(1, "month").format("YYYY-MM")} /></Form.Item>
+      <Form.Item name="tenant_id" label="Azienda (vuoto = tutte)">
+        <Select allowClear showSearch optionFilterProp="label" options={companies.map((c) => ({ value: c.id, label: c.name }))} />
+      </Form.Item>
+    </>,
+  });
+}
+
 function invoiceActions(invoice: BillingInvoice, edit: OpenEditor) {
   const id = invoice.id;
   return <Flex gap={6} wrap>
-    {invoice.status === "draft" && <Button size="small" onClick={() => edit({
+    {invoice.status === "draft" && <Button size="small" onClick={() => draftEditor(invoice, edit)}>Modifica</Button>}
+    {invoice.status === "draft" && <Button size="small" type="primary" onClick={() => edit({
       title: "Emetti fattura", action: "set_invoice_status", values: { invoice_id: id, status: "issued", reason: "Fattura emessa" },
-      description: `La fattura ${invoice.number} diventa visibile al cliente.`,
+      description: invoice.auto_key
+        ? "La bozza prende il numero definitivo e diventa visibile al cliente. Non viene inviata: l’invio resta a te."
+        : `La fattura ${invoice.number} diventa visibile al cliente.`,
     })}>Emetti</Button>}
     {invoice.status === "issued" && <Button size="small" type="primary" onClick={() => edit({
       title: "Segna come pagata", action: "set_invoice_status", dates: ["paid_at"],
@@ -271,9 +332,14 @@ function invoiceActions(invoice: BillingInvoice, edit: OpenEditor) {
       title: "Annulla fattura", action: "set_invoice_status", values: { invoice_id: id, status: "void" },
       description: `La fattura ${invoice.number} resta in archivio come annullata.`,
     })}>Annulla</Button>}
-    {invoice.status === "draft" && <Button size="small" danger onClick={() => edit({
-      title: "Elimina bozza", action: "delete_invoice", values: { invoice_id: id }, description: invoice.number,
-    })}>Elimina</Button>}
+    {invoice.status === "draft" && (invoice.auto_key
+      ? <Button size="small" danger onClick={() => edit({
+        title: "Scarta bozza", action: "set_invoice_status", values: { invoice_id: id, status: "void", reason: "Bozza non necessaria" },
+        description: "La bozza resta in archivio come annullata e non verrà creata di nuovo.",
+      })}>Scarta</Button>
+      : <Button size="small" danger onClick={() => edit({
+        title: "Elimina bozza", action: "delete_invoice", values: { invoice_id: id }, description: invoice.number,
+      })}>Elimina</Button>)}
   </Flex>;
 }
 
@@ -433,7 +499,11 @@ export function Billing({ overview, snapshot, edit, openCompany }: {
           ]} />
         </Card>
       </Flex> },
-      { key: "invoices", label: "Fatture", children: <Card><Table<BillingInvoice> rowKey="id" scroll={{ x: 900 }} dataSource={overview.invoices}
+      { key: "invoices", label: <Flex gap={6} align="center">Fatture{summary.drafts > 0 && <Tag color="gold" style={{ margin: 0 }}>{summary.drafts}</Tag>}</Flex>,
+        children: <Flex vertical gap={16}>
+        {summary.drafts > 0 && <Alert type="info" showIcon
+          title={`${summary.drafts} ${summary.drafts === 1 ? "bozza da rivedere" : "bozze da rivedere"}: controlla le righe, poi emetti. Le bozze sono preparate in automatico a inizio mese dai dati del mese concluso.`} />}
+        <Card title="Fatture" extra={<Button onClick={() => generateEditor(edit, overview.companies)}>Genera bozze</Button>}><Table<BillingInvoice> rowKey="id" scroll={{ x: 900 }} dataSource={overview.invoices}
         expandable={{ expandedRowRender: (row) => <InvoiceLines lines={row.lines} /> }} columns={[
           { title: "Numero", render: (_, r) => r.external_url
             ? <a href={r.external_url} target="_blank" rel="noreferrer noopener">{r.number}</a> : r.number },
@@ -444,7 +514,7 @@ export function Billing({ overview, snapshot, edit, openCompany }: {
           { title: "Scadenza", render: (_, r) => day(r.due_at) },
           { title: "Pagata il", render: (_, r) => day(r.paid_at) },
           { title: "Azioni", render: (_, r) => invoiceActions(r, edit) },
-        ]} /></Card> },
+        ]} /></Card></Flex> },
       { key: "payments", label: "Pagamenti", children: <Card><Table rowKey="id" scroll={{ x: 560 }} dataSource={overview.payments} columns={[
         { title: "Azienda", render: (_, r) => link(r.tenant_id, r.company_name) },
         { title: "Tipo", render: (_, r) => r.kind === "refund" ? <Tag color="red">Rimborso</Tag> : <Tag color="green">Pagamento</Tag> },
