@@ -360,7 +360,7 @@ function Pricing({ t, lang }: { t: Dict; lang: Lang }) {
                 <h3>{info.name}</h3>
                 <p className="lp-plan-tagline">{info.tagline}</p>
                 <div className="lp-plan-money">
-                  <p className="lp-plan-was" aria-hidden={!yearly}>{yearly ? money(listPrice) : "\u00a0"}</p>
+                  {yearly && <p className="lp-plan-was">{money(listPrice)}</p>}
                   <p className="lp-plan-price">
                     <strong>{money(price)}</strong> <span>{yearly ? p.perYear : p.perMonth}</span>
                   </p>

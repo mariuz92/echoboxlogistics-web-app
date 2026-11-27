@@ -279,7 +279,7 @@ const it: Dict = {
       "Piano annuale: si paga in anticipo. Se disdici ti rimborsiamo il canone dei mesi interi che restano, non i rider e gli ordini extra già usati. Un upgrade si paga per i mesi rimanenti; un downgrade vale dal rinnovo.",
     saving: "Risparmi {amount}",
     monthlyEquivalent: "pari a {price} al mese",
-    monthlyHint: "Con il piano annuale: {price} al mese (−{percent}%)",
+    monthlyHint: "Annuale: {price} al mese (−{percent}%)",
     cta: "Richiedi una demo",
     custom: {
       title: "Servono più rider o un piano su misura?",
@@ -505,7 +505,7 @@ const en: Dict = {
       "Yearly plan: paid in advance. If you cancel we refund the base fee for the whole months left, not the extra riders and orders already used. An upgrade is paid for the remaining months; a downgrade starts at the renewal.",
     saving: "You save {amount}",
     monthlyEquivalent: "equal to {price} per month",
-    monthlyHint: "With the yearly plan: {price} per month (−{percent}%)",
+    monthlyHint: "Yearly: {price} per month (−{percent}%)",
     cta: "Request a demo",
     custom: {
       title: "Need more riders or a custom plan?",
@@ -731,7 +731,7 @@ const de: Dict = {
       "Jahrestarif: Zahlung im Voraus. Bei Kündigung erstatten wir die Grundgebühr für die verbleibenden vollen Monate, nicht die bereits genutzten zusätzlichen Fahrer und Aufträge. Ein Upgrade wird für die restlichen Monate berechnet; ein Downgrade gilt ab der Verlängerung.",
     saving: "Sie sparen {amount}",
     monthlyEquivalent: "entspricht {price} pro Monat",
-    monthlyHint: "Mit dem Jahrestarif: {price} pro Monat (−{percent}%)",
+    monthlyHint: "Jährlich: {price} pro Monat (−{percent}%)",
     cta: "Demo vereinbaren",
     custom: {
       title: "Mehr Fahrer oder ein individueller Tarif?",
@@ -957,7 +957,7 @@ const fr: Dict = {
       "Formule annuelle : payée d'avance. En cas de résiliation, nous remboursons le forfait des mois entiers restants, pas les livreurs et commandes supplémentaires déjà utilisés. Une montée en gamme se paie pour les mois restants ; une baisse de formule s'applique au renouvellement.",
     saving: "Vous économisez {amount}",
     monthlyEquivalent: "soit {price} par mois",
-    monthlyHint: "Avec la formule annuelle : {price} par mois (−{percent}%)",
+    monthlyHint: "Annuel : {price} par mois (−{percent}%)",
     cta: "Réserver une démo",
     custom: {
       title: "Besoin de plus de livreurs ou d'une formule sur mesure ?",

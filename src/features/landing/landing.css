@@ -834,7 +834,6 @@ body:has(.lp) {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  min-height: 118px;
 }
 
 .lp-plan-was {
