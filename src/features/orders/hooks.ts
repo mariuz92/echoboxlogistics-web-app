@@ -56,13 +56,18 @@ export const usePendingPickups = () =>
 export const useRiderJobs = () =>
   useQuery({ queryKey: queryKeys.riderJobs, queryFn: listRiderJobs });
 
-/** Channels in use during [from, to). */
+/**
+ * Channels in use during [from, to). It updates itself: any change to an order refetches it
+ * (useOrdersRealtime), and it is also refreshed every 30 seconds while it is on screen, so an
+ * occupied or freed channel shows up without the user doing anything.
+ */
 export const useChannelBoard = (range: { from: string; to: string } | null, enabled = true) =>
   useQuery({
     queryKey: queryKeys.channelBoard(range?.from ?? "", range?.to ?? ""),
     queryFn: () => getChannelBoard(range!.from, range!.to),
     enabled: enabled && Boolean(range),
     placeholderData: keepPreviousData,
+    refetchInterval: 30_000,
   });
 
 export const useOrderEvents = (orderId: string | undefined) =>

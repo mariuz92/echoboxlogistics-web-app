@@ -655,6 +655,7 @@ export type Database = {
           delivery_at: string
           guide_name: string
           order_id: string
+          overdue: boolean
           pickup_at: string
           status: Database["public"]["Enums"]["order_status"]
         }[]

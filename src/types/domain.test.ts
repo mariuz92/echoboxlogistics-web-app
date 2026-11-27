@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   channelConflicts,
   channelCount,
+  channelHoldEnd,
   channelWindowEnd,
+  OPEN_END,
   formatChannelList,
   getAssignBlocker,
   getAssignableLeg,
@@ -98,6 +100,8 @@ describe("channelConflicts", () => {
     { channel: 5, order_id: "a", delivery_at: "2026-07-10T08:00:00Z", busy_until: "2026-07-10T12:00:00Z" },
     { channel: 5, order_id: "b", delivery_at: "2026-07-10T13:00:00Z", busy_until: "2026-07-10T16:00:00Z" },
     { channel: 6, order_id: "c", delivery_at: "2026-07-10T08:00:00Z", busy_until: "2026-07-10T20:00:00Z" },
+    // Radios not returned: the hold has no end.
+    { channel: 7, order_id: "d", delivery_at: "2026-07-08T08:00:00Z", busy_until: null },
   ];
 
   it("finds orders on the same channel whose times overlap", () => {
@@ -158,5 +162,30 @@ describe("hasRole", () => {
     expect(hasRole(null, "admin")).toBe(false);
     expect(hasRole({ roles: ["rider"] }, "admin")).toBe(false);
     expect(hasRole({ roles: ["rider", "admin"] }, "admin")).toBe(true);
+  });
+});
+
+describe("open-ended holds (radios not returned)", () => {
+  const now = new Date("2026-07-12T10:00:00Z");
+  const uses = [{ channel: 7, order_id: "d", delivery_at: "2026-07-08T08:00:00Z", busy_until: null }];
+
+  it("channelHoldEnd keeps the planned end while it is in the future", () => {
+    expect(channelHoldEnd("2026-07-13T08:00:00.000Z", "2026-07-13T12:00:00.000Z", "Europe/Rome", now)).toBe("2026-07-13T12:00:00.000Z");
+  });
+
+  it("channelHoldEnd has no end once the planned pickup has passed", () => {
+    expect(channelHoldEnd("2026-07-10T08:00:00.000Z", "2026-07-10T12:00:00.000Z", "Europe/Rome", now)).toBe(OPEN_END);
+    // no planned pickup: the end of the delivery day has passed too
+    expect(channelHoldEnd("2026-07-10T08:00:00.000Z", null, "Europe/Rome", now)).toBe(OPEN_END);
+  });
+
+  it("an unreturned channel conflicts with any later period, even days after", () => {
+    expect(channelConflicts(uses, 7, "2026-07-12T09:00:00Z", "2026-07-12T10:00:00Z").map((u) => u.order_id)).toEqual(["d"]);
+    expect(channelConflicts(uses, 7, "2026-08-01T09:00:00Z", "2026-08-01T10:00:00Z").map((u) => u.order_id)).toEqual(["d"]);
+  });
+
+  it("but not before it started, nor on another channel", () => {
+    expect(channelConflicts(uses, 7, "2026-07-07T09:00:00Z", "2026-07-07T10:00:00Z")).toEqual([]);
+    expect(channelConflicts(uses, 8, "2026-07-12T09:00:00Z", "2026-07-12T10:00:00Z")).toEqual([]);
   });
 });

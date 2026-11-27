@@ -11,6 +11,7 @@ The schema lives in `supabase/migrations/` (apply order = file name order):
 | `…000400_bootstrap_profile_lock.sql` | makes `bootstrap_profile()` safe under concurrent first-login calls (advisory lock) |
 | `20261119000000_contact_messages.sql` | `contact_messages` for the landing-page contact form (service role only, written by the `contact` Edge Function) |
 | `20261120000000_channels_any_range.sql` | channel range 1–10,000 per company, time-based channel conflicts, `get_channel_board` |
+| `20261130000000_channel_hold_until_freed.sql` | a channel stays occupied until its order is picked up or cancelled (`channel_hold`), `overdue` on the board |
 
 | `20261120010000_platform_console.sql` | private platform operators, configuration, plans, subscriptions, payments, issues and audit, plus MFA-checked RPCs |
 | `20261120010100_platform_access.sql` | operator invitation acceptance, ownership guard and subscription access enforcement |
@@ -162,8 +163,9 @@ Constraints:
 - `pickup_at >= delivery_at`
 - `delivery_assigned` / `out_for_delivery` require `delivery_rider_id`; `pickup_assigned` / `out_for_pickup` require `pickup_rider_id`
 - an open order occupies its channel from `delivery_at` to `pickup_at` (or the end of the delivery day
-  without a pickup); with `channels_exclusive`, two open orders on the same channel cannot overlap in
-  time (checked by `orders_guard` under a per-channel advisory lock)
+  without a pickup) and, once that time has passed without the order being closed, until it is picked up
+  or cancelled (`private.channel_hold`); with `channels_exclusive`, two open orders on the same channel
+  cannot overlap in time (checked by `orders_guard` under a per-channel advisory lock)
 
 ### `order_events`
 Append-only audit log filled by a trigger: `created`, `status_changed`, `assigned`, `updated`,
@@ -219,7 +221,7 @@ authorisation failures use SQLSTATE `42501`. See [API.md](API.md) for request ex
 | `assign_order(order, leg, rider)` | admin | Assign / unassign a rider to the `delivery` or `pickup` leg |
 | `admin_set_status(order, status)` | admin | Cancel, re-open, or move an order forward manually |
 | `rider_order_action(order, action, lost)` | rider | `claim_pickup`, `start_delivery`, `complete_delivery`, `start_pickup`, `complete_pickup` |
-| `get_channel_board(from, to)` | admin | Open orders holding a channel during the period, with `busy_until` |
+| `get_channel_board(from, to)` | admin | Open orders holding a channel during the period, with `busy_until` (`null` = until the order is closed) and `overdue` (planned pickup passed, radios not returned) |
 | `get_dashboard_insights(month)` | admin | The dashboard's figures for a month (and the 12 months around it), in the tenant time zone: revenue and quality against the previous period, capacity, alerts, rider workload, guides, lead time, locations |
 | `get_public_tenant(slug)` | anon | Company name, time zone and whether bookings are open |
 | `create_public_order(...)` | anon | Public booking: validates, throttles, upserts the guide, creates the order |

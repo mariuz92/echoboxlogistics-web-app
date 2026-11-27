@@ -1,8 +1,8 @@
 import { useMemo, useRef, useState, type ChangeEvent } from "react";
 import { Button, Flex, Form, Input, Typography } from "antd";
 import { useReadyUser } from "../../../providers/current-user";
-import { fmtTime, wallClockToIso, type Dayjs } from "../../../lib/dates";
-import { channelConflicts, channelWindowEnd } from "../../../types/domain";
+import { fmtDateTime, fmtTime, wallClockToIso, type Dayjs } from "../../../lib/dates";
+import { channelConflicts, channelHoldEnd } from "../../../types/domain";
 import { useChannelBoard } from "../hooks";
 import { OccupiedChannels } from "./ChannelBoard";
 import { t } from "../../../i18n";
@@ -31,7 +31,7 @@ export function ChannelPicker({ orderId }: ChannelPickerProps) {
     const from = wallClockToIso(deliveryAt, timezone);
     const pickup = pickupAt ? wallClockToIso(pickupAt, timezone) : null;
     if (pickup && Date.parse(pickup) < Date.parse(from)) return null;
-    return { from, to: channelWindowEnd(from, pickup, timezone) };
+    return { from, to: channelHoldEnd(from, pickup, timezone) };
   }, [deliveryAt, pickupAt, timezone]);
 
   const inRange = channel != null && Number.isInteger(channel) && channel >= min && channel <= max;
@@ -64,7 +64,9 @@ export function ChannelPicker({ orderId }: ChannelPickerProps) {
     status = { type: "secondary", text: t("Verifica disponibilità del canale…"), blocking: false };
   } else if (conflicts.length) {
     const who = conflicts
-      .map((c) => `${c.guide_name} (${fmtTime(c.delivery_at, timezone)}–${fmtTime(c.busy_until, timezone)})`)
+      .map((c) => c.busy_until === null
+        ? t("{guide} (dalle {from}, in attesa di ritiro)", { guide: c.guide_name, from: fmtDateTime(c.delivery_at, timezone) })
+        : `${c.guide_name} (${fmtTime(c.delivery_at, timezone)}–${fmtTime(c.busy_until, timezone)})`)
       .join(", ");
     status = tenant.channels_exclusive
       ? { type: "danger", text: t("Canale {channel} occupato da {who}.", { channel, who }), blocking: true }

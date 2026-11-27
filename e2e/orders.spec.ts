@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "./helpers";
-import { cleanupE2eData, e2eName, failOnBrowserErrors, isoDay, loginAsAdmin, pickerDate } from "./helpers";
+import { cleanupE2eData, e2eName, failOnBrowserErrors, isoDay, loginAsAdmin, newUserContext, pickerDate } from "./helpers";
 
 const drawerOf = (page: Page) => page.getByRole("dialog");
 const rowOf = (page: Page, text: string) => page.getByRole("row").filter({ hasText: text });
@@ -254,16 +254,42 @@ test.describe("orders (admin)", () => {
     expect(download.suggestedFilename()).toMatch(/^ordini_\d{4}-\d{2}-\d{2}\.pdf$/);
   });
 
+  test("the occupied channels list updates by itself when another user frees a channel", async ({ page, browser }) => {
+    const guide = e2eName("Live");
+    await createOrder(page, guide, { channel: 29 });
+
+    await page.getByRole("button", { name: "Canali occupati" }).click();
+    const occupied = page.getByRole("dialog").filter({ hasText: "Canali occupati" });
+    await expect(occupied.getByRole("row").filter({ hasText: guide })).toContainText("29");
+
+    // another administrator cancels the order in a second browser: nobody touches the first screen
+    const context = await newUserContext(browser);
+    try {
+      const other = await context.newPage();
+      await loginAsAdmin(other);
+      await openRowMenu(other, guide);
+      await other.getByRole("menuitem", { name: "Cambia stato" }).click();
+      await other.getByRole("menuitem", { name: "Annulla ordine" }).click();
+      await other.getByRole("button", { name: "Conferma" }).click();
+      await expect(rowOf(other, guide).getByText("Annullato")).toBeVisible();
+    } finally {
+      await context.close();
+    }
+
+    // the channel is freed on the first screen without a refresh (live update, at most 30 s)
+    await expect(occupied.getByRole("row").filter({ hasText: guide })).toHaveCount(0, { timeout: 45_000 });
+  });
+
   test("occupied channels are listed, and disabled channels are refused by the order form", async ({ page }) => {
     const guide = e2eName("Board");
     await createOrder(page, guide, { channel: 33 });
 
-    // the "occupied channels" window lists the order and its channel; search narrows it
+    // the "occupied channels" window lists the order and its channel; there is nothing to search or refresh
     await page.getByRole("button", { name: "Canali occupati" }).click();
     const occupied = page.getByRole("dialog").filter({ hasText: "Canali occupati" });
     await expect(occupied.getByRole("row").filter({ hasText: guide })).toContainText("33");
-    await occupied.getByLabel("Cerca canale o guida").fill("33");
-    await expect(occupied.getByRole("row").filter({ hasText: guide })).toBeVisible();
+    await expect(occupied.getByLabel("Cerca canale o guida")).toHaveCount(0);
+    await expect(occupied.getByText(/L'elenco si aggiorna da solo/)).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(occupied).toBeHidden();
 
