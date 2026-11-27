@@ -139,8 +139,8 @@ confirmation, reset), the PDF header text of the order export, and the public pr
 The plans, limits, invoices, requests, notices, console pages, customer screen and landing pricing are in
 ([BILLING.md](BILLING.md)). Still open:
 
-- [ ] **Fix the real prices.** The numbers (Starter 29, Pro 79, Business 149) are a starting point. Change them in the console,
-  then in `src/features/billing/pricing.ts` (the test compares it with the migration seed).
+- [ ] **Fix the real prices.** The numbers (Starter 29, Pro 79, Business 149) are a starting point. Change them in the console:
+  customers, invoices and the landing page follow. Then update the fallback in `src/features/billing/pricing.ts`.
 - [ ] **Decide on a free trial for new sign-ups**: Piani -> "Prova per i nuovi clienti". Off by default, so new companies keep
   full access until an operator assigns a plan.
 - [ ] **Pick the electronic invoicing service** (SDI) and decide how invoice links get into the console.

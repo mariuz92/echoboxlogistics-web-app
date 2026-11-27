@@ -440,3 +440,7 @@ verify_jwt = false
 [functions.notify-billing]
 enabled = true
 verify_jwt = false
+
+[functions.public-plans]
+enabled = true
+verify_jwt = false

@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type CSSProperties, type FormEvent, type ReactNode } from "react";
 import { ArrowRightOutlined, CheckOutlined, CloseOutlined, MenuOutlined } from "@ant-design/icons";
 import { CONFIG } from "../../config/configuration";
-import { getLandingConfig } from "./config";
+import { getLandingConfig, getPlansEndpoint } from "./config";
 import { DICTS, LANGS, LANG_NAMES, SECTION_IDS, detectLang, rememberLang, type Dict, type Lang, type SectionId } from "./i18n";
 import { DELETE_CONTENT } from "./deleteAccountContent";
-import { PRICE_PLANS, cheapestPlan, monthlyCost, type PriceInterval } from "../billing/pricing";
+import { PRICE_PLANS, cheapestPlan, monthlyCost, parsePublicPlans, priceSaving, type PriceInterval, type PricePlan } from "../billing/pricing";
 import "./landing.css";
 
 /** Screenshots in public/images/screens (made by scripts/screenshots/capture.mjs). */
@@ -313,20 +313,57 @@ function CalcInput({ id, label, value, onChange, max }: { id: string; label: str
   );
 }
 
-function Pricing({ t, lang }: { t: Dict; lang: Lang }) {
+/**
+ * The plans of the price list: the built-in ones at once, replaced by the ones set in the Superadmin
+ * console as soon as the public-plans function answers. If it is not configured, slow, or answers
+ * something unexpected, the built-in prices stay.
+ */
+function usePublicPlans(): readonly PricePlan[] {
+  const [plans, setPlans] = useState<readonly PricePlan[]>(PRICE_PLANS);
+  useEffect(() => {
+    const url = getPlansEndpoint();
+    if (!url) return;
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => controller.abort(), 6000);
+    fetch(url, { signal: controller.signal, headers: { Accept: "application/json" } })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { plans?: unknown } | null) => {
+        const parsed = parsePublicPlans(data?.plans);
+        if (parsed) setPlans(parsed);
+      })
+      .catch(() => undefined)
+      .finally(() => window.clearTimeout(timer));
+    return () => {
+      controller.abort();
+      window.clearTimeout(timer);
+    };
+  }, []);
+  return plans;
+}
+
+function Pricing({ t, lang, plans }: { t: Dict; lang: Lang; plans: readonly PricePlan[] }) {
   const p = t.pricing;
   const [interval, setInterval] = useState<PriceInterval>("month");
   const [riders, setRiders] = useState(4);
   const [orders, setOrders] = useState(400);
+  const currency = plans[0]?.currency ?? "EUR";
   const money = (value: number) =>
     new Intl.NumberFormat(LOCALES[lang], {
       style: "currency",
-      currency: "EUR",
+      currency,
       minimumFractionDigits: Number.isInteger(value) ? 0 : 2,
       maximumFractionDigits: 2,
     }).format(value);
-  const best = cheapestPlan(riders, orders, interval);
-  const large = riders > 30 || orders > 6000;
+  // The yearly switch only exists when at least one plan has a yearly discount.
+  const hasYearly = plans.some((plan) => priceSaving(plan) !== null);
+  const view: PriceInterval = hasYearly ? interval : "month";
+  // The badge on the yearly switch is the best real discount among the plans.
+  const bestPercent = Math.max(0, ...plans.map((plan) => priceSaving(plan)?.percent ?? 0));
+  const best = cheapestPlan(plans, riders, orders, view);
+  // Above the biggest included amounts a custom plan makes more sense than extras.
+  const roomRiders = plans.some((plan) => plan.includedRiders === null) ? Infinity : Math.max(...plans.map((plan) => plan.includedRiders ?? 0));
+  const roomOrders = plans.some((plan) => plan.includedOrders === null) ? Infinity : Math.max(...plans.map((plan) => plan.includedOrders ?? 0));
+  const large = riders > roomRiders || orders > roomOrders;
 
   return (
     <section className="lp-pricing" id="pricing">
@@ -335,52 +372,51 @@ function Pricing({ t, lang }: { t: Dict; lang: Lang }) {
           <Head label={p.label} title={p.title}>
             <p className="lp-lead">{p.subtitle}</p>
           </Head>
-          <div className="lp-toggle" role="group" aria-label={`${p.monthly} / ${p.yearly}`}>
-            {(["month", "year"] as const).map((value) => (
-              <button key={value} type="button" className={interval === value ? "is-on" : ""} aria-pressed={interval === value} onClick={() => setInterval(value)}>
-                {value === "month" ? p.monthly : p.yearly}
-                {value === "year" && <span className="lp-toggle-note">{p.yearlyNote}</span>}
-              </button>
-            ))}
-          </div>
+          {hasYearly && (
+            <div className="lp-toggle" role="group" aria-label={`${p.monthly} / ${p.yearly}`}>
+              {(["month", "year"] as const).map((value) => (
+                <button key={value} type="button" className={view === value ? "is-on" : ""} aria-pressed={view === value} onClick={() => setInterval(value)}>
+                  {value === "month" ? p.monthly : p.yearly}
+                  {value === "year" && <span className="lp-toggle-note">−{bestPercent}%</span>}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
-        <div className="lp-plans">
-          {PRICE_PLANS.map((plan) => {
-            const info = p.plans[plan.code];
-            const yearly = interval === "year";
-            const price = yearly ? plan.priceYear : plan.priceMonth;
-            const listPrice = plan.priceMonth * 12;
-            const saving = listPrice - plan.priceYear;
-            const percent = Math.round((saving / listPrice) * 100);
-            const perMonth = money(Math.round((plan.priceYear / 12) * 100) / 100);
+        <div className="lp-plans" style={{ "--plans": plans.length } as CSSProperties}>
+          {plans.map((plan) => {
+            const tagline = p.plans[plan.code as keyof typeof p.plans]?.tagline ?? plan.description;
+            const yearly = view === "year";
+            const deal = priceSaving(plan);
+            const price = yearly ? plan.priceYear ?? plan.priceMonth * 12 : plan.priceMonth;
             return (
-              <article key={plan.code} className={`lp-plan${plan.code === "pro" ? " is-popular" : ""}`}>
-                {plan.code === "pro" && <span className="lp-plan-badge">{p.popular}</span>}
-                <h3>{info.name}</h3>
-                <p className="lp-plan-tagline">{info.tagline}</p>
+              <article key={plan.code} className={`lp-plan${plan.highlighted ? " is-popular" : ""}`}>
+                {plan.highlighted && <span className="lp-plan-badge">{p.popular}</span>}
+                <h3>{plan.name}</h3>
+                <p className="lp-plan-tagline">{tagline}</p>
                 <div className="lp-plan-money">
-                  <p className="lp-plan-was" aria-hidden={!yearly}>{yearly ? money(listPrice) : "\u00a0"}</p>
+                  {yearly && deal && <p className="lp-plan-was">{money(deal.listPrice)}</p>}
                   <p className="lp-plan-price">
                     <strong>{money(price)}</strong> <span>{yearly ? p.perYear : p.perMonth}</span>
                   </p>
-                  {saving > 0 && (yearly ? (
+                  {deal && (yearly ? (
                     <p className="lp-plan-save">
-                      <span className="lp-plan-pct">−{percent}%</span>
-                      <span>{fill(p.saving, { amount: money(saving) })}</span>
-                      <small>{fill(p.monthlyEquivalent, { price: perMonth })}</small>
+                      <span className="lp-plan-pct">−{deal.percent}%</span>
+                      <span>{fill(p.saving, { amount: money(deal.saving) })}</span>
+                      <small>{fill(p.monthlyEquivalent, { price: money(deal.perMonth) })}</small>
                     </p>
                   ) : (
-                    <p className="lp-plan-hint">{fill(p.monthlyHint, { price: perMonth, percent })}</p>
+                    <p className="lp-plan-hint">{fill(p.monthlyHint, { price: money(deal.perMonth), percent: deal.percent })}</p>
                   ))}
                 </div>
                 <ul>
-                  <li><CheckOutlined />{fill(p.ridersIncluded, { n: plan.includedRiders })}</li>
-                  <li><CheckOutlined />{fill(p.ordersIncluded, { n: plan.includedOrders.toLocaleString(LOCALES[lang]) })}</li>
-                  <li><CheckOutlined />{fill(p.extraRider, { price: money(plan.extraRider) })}</li>
-                  <li><CheckOutlined />{fill(p.extraOrders, { price: money(plan.extraOrders), block: plan.ordersBlock })}</li>
+                  <li><CheckOutlined />{plan.includedRiders === null ? p.ridersUnlimited : fill(p.ridersIncluded, { n: plan.includedRiders })}</li>
+                  <li><CheckOutlined />{plan.includedOrders === null ? p.ordersUnlimited : fill(p.ordersIncluded, { n: plan.includedOrders.toLocaleString(LOCALES[lang]) })}</li>
+                  {plan.includedRiders !== null && <li><CheckOutlined />{fill(p.extraRider, { price: money(plan.extraRider) })}</li>}
+                  {plan.includedOrders !== null && <li><CheckOutlined />{fill(p.extraOrders, { price: money(plan.extraOrders), block: plan.ordersBlock })}</li>}
                 </ul>
-                <a className={`lp-btn ${plan.code === "pro" ? "lp-btn-primary" : "lp-btn-quiet"}`} href="#contact">
+                <a className={`lp-btn ${plan.highlighted ? "lp-btn-primary" : "lp-btn-quiet"}`} href="#contact">
                   {p.cta}
                 </a>
               </article>
@@ -399,12 +435,12 @@ function Pricing({ t, lang }: { t: Dict; lang: Lang }) {
             <CalcInput id="lp-orders" label={p.calc.orders} value={orders} onChange={setOrders} max={12000} />
           </div>
           <div className="lp-calc-out" aria-live="polite">
-            {PRICE_PLANS.map((plan) => {
-              const cost = monthlyCost(plan, riders, orders, interval);
+            {plans.map((plan) => {
+              const cost = monthlyCost(plan, riders, orders, view);
               return (
                 <div key={plan.code} className={`lp-calc-row${plan.code === best.code ? " is-best" : ""}`}>
                   <div className="lp-calc-plan">
-                    <strong>{p.plans[plan.code].name}</strong>
+                    <strong>{plan.name}</strong>
                     {plan.code === best.code && <span className="lp-calc-best">{p.calc.best}</span>}
                   </div>
                   <ul className="lp-calc-lines">
@@ -449,6 +485,7 @@ export default function LandingPage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [zoom, setZoom] = useState<{ shot: ShotId; alt: string } | null>(null);
   const t = DICTS[lang];
+  const plans = usePublicPlans();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -654,7 +691,7 @@ export default function LandingPage() {
         </section>
 
         {/* Pricing and cost calculator */}
-        <Pricing t={t} lang={lang} />
+        <Pricing t={t} lang={lang} plans={plans} />
 
         {/* FAQ */}
         <section className="lp-faq" id="faq">

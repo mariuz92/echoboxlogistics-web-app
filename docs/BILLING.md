@@ -58,7 +58,7 @@ These terms are shown on the landing page and in Settings. They are not yet in t
 
 | Where | What |
 |---|---|
-| **Piani** | Create, edit, duplicate and archive plans. Mark a plan "Su misura" to hide it from customers. Set a **free trial for new companies** (plan and days; 0 = off). |
+| **Piani** | Create, edit, duplicate and archive plans. Mark a plan "Su misura" to hide it from customers and from the site. Choose the plan with the **"Il più scelto"** badge. Set a **free trial for new companies** (plan and days; 0 = off). |
 | **Fatturazione** | Companies with usage bars (amber from 80%, red at 100%), payment state and amount due. Tabs for all invoices, who paid, plan requests and the e-mail queue. Filters: limit reached, in trial, overdue, unpaid, no subscription. |
 | Company -> **Abbonamento** | Change plan, state, interval, **forever**, grace and close-out dates, billing e-mail and notes. Start a trial. See usage and the month's estimate, create an invoice from the estimate, mark it paid, send a reminder. **Disdici** cancels and proposes the refund. A scheduled downgrade is shown here. |
 | Company header | **Sospendi** blocks access. **Rimuovi** deletes the company, its orders and its people for good: only when suspended and only if it has **no invoices or payments** (they must be kept for accounting). Otherwise leave it suspended. |
@@ -124,11 +124,36 @@ add there, in order:
 | `cancel_plan_change_request()` | company admins | cancels it |
 | `platform_company_access()` | everyone | `full`, `closeout`, `read_only` or `suspended` (already used for restrictions) |
 
+## Prices on the landing page
+
+The landing page reads its plans from the database, so **a price changed in the console appears on the site within minutes**,
+with no deploy:
+
+1. The `public-plans` Edge Function returns the plans that are **available and visible to customers** ("Visibile ai clienti e
+   sul sito" in the plan editor), in their display order. Custom plans and archived plans are never published.
+2. The landing page shows them: price, yearly price with its discount, included riders and orders (or "unlimited"), extras, and the
+   calculator. The yearly switch and the badge on it are computed from the real prices. The price list has **three choices**: the
+   site shows the first three published plans (by "Ordine", then name); Piani warns you if you publish more. Bigger or special needs go
+   through the "piano su misura" contact box, not a fourth plan.
+3. **Piani -> Evidenzia** chooses the plan that carries the "Il più scelto" badge (one at a time; Pro by default).
+4. The answer is cached for 5 minutes by browsers and the CDN.
+
+If the function is not deployed, not configured, slow (6 seconds) or answers something unexpected, the page shows the built-in
+prices from `src/features/billing/pricing.ts` and nothing breaks. Keep that file in line with your real prices (the test
+`pricing.test.ts` compares it with the seed), so the fallback never shows old numbers.
+
+The name shown is the plan's name. The short text under it is translated for Starter, Pro and Business; for a plan you add, it is
+the plan's description (one language), so leave it empty or write it in the language you prefer.
+
+**Switching it on:** apply `20261128000000_public_plans.sql`, deploy the function (DEPLOYMENT.md 6b) and make sure the landing page
+knows your API address: it uses `contactEndpoint` (the `contact` function) and takes the plans from the same host
+(`.../functions/v1/public-plans`); set `plansEndpoint` in `src/features/landing/config.ts` or
+`window.__ECHOBOX_LANDING__` in `landing/index.html` to use another address. The landing domain must be in `ALLOWED_ORIGINS`.
+
 ## Changing the prices
 
-Edit the plan in the console: customers and invoices use the new price immediately. The landing page shows
-`src/features/billing/pricing.ts`: update it to match, change the seed in the migration only for new installations, and keep
-`pricing.test.ts` passing (it compares the file with the migration seed).
+Edit the plan in the console (Piani -> Modifica): customers, invoices and the landing page use the new price. Then update the
+fallback in `src/features/billing/pricing.ts` when the change is for good.
 
 ## Taking payments automatically (later)
 

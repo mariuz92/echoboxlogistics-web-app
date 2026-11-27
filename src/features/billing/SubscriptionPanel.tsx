@@ -129,10 +129,8 @@ function PlanCard({ plan, current, billing, interval, best, onChoose }: {
           </Flex>
         </Flex>
 
-        <div style={{ minHeight: 104 }}>
-          <div style={{ minHeight: 22 }}>
-            {yearly && deal && <Typography.Text delete type="secondary">{money(deal.listPrice, plan.currency)}</Typography.Text>}
-          </div>
+        <div>
+          {yearly && deal && <div><Typography.Text delete type="secondary">{money(deal.listPrice, plan.currency)}</Typography.Text></div>}
           <Flex align="baseline" gap={6}>
             <Typography.Text strong style={{ fontSize: 36, lineHeight: 1.1 }}>{money(price, plan.currency)}</Typography.Text>
             <Typography.Text type="secondary">/ {yearly ? t("anno") : t("mese")}</Typography.Text>

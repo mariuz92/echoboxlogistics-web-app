@@ -1,20 +1,23 @@
 /**
  * Configuration of the marketing site.
  *
- * The landing page is a static showcase: it never reads environment variables, never signs
- * anybody in and does not talk to the app's backend, so it can be built and hosted on its own
- * domain (the app, with its login, lives on another one).
+ * The landing page is a static showcase: it never reads environment variables and never signs
+ * anybody in, so it can be built and hosted on its own domain (the app, with its login, lives on
+ * another one). It has two optional, public integrations, both Edge Functions that hold no secret:
  *
- * The only optional integration is the contact form. Set `contactEndpoint` to the public URL of
- * the `contact` Edge Function (https://<project-ref>.supabase.co/functions/v1/contact; it is
- * public by design and holds no secret). While it is empty the contact section shows the support
- * e-mail address instead of the form, so the page is complete either way.
+ *  - `contactEndpoint`: the `contact` function (https://<api-host>/functions/v1/contact). While it
+ *    is empty the contact section shows the support e-mail address instead of the form.
+ *  - `plansEndpoint`: the `public-plans` function, which returns the plans and prices set in the
+ *    Superadmin console. When empty it is derived from `contactEndpoint` (same host, /public-plans).
+ *    If it is missing or unreachable the page shows the built-in prices (src/features/billing/pricing.ts).
  *
- * Without rebuilding, a host can also set it before the page script runs:
+ * The page is complete either way. Without rebuilding, a host can also set them before the page
+ * script runs:
  *   <script>window.__ECHOBOX_LANDING__ = { contactEndpoint: "https://…/functions/v1/contact" };</script>
  */
 export interface LandingConfig {
   contactEndpoint: string;
+  plansEndpoint: string;
 }
 
 declare global {
@@ -25,9 +28,17 @@ declare global {
 
 const DEFAULTS: LandingConfig = {
   contactEndpoint: "",
+  plansEndpoint: "",
 };
 
 export function getLandingConfig(): LandingConfig {
   const runtime = typeof window !== "undefined" ? window.__ECHOBOX_LANDING__ : undefined;
   return { ...DEFAULTS, ...runtime };
+}
+
+/** Where the plans are read from: the configured address, else next to the contact function, else nowhere. */
+export function getPlansEndpoint(): string {
+  const config = getLandingConfig();
+  if (config.plansEndpoint) return config.plansEndpoint;
+  return /\/contact\/?$/.test(config.contactEndpoint) ? config.contactEndpoint.replace(/\/contact\/?$/, "/public-plans") : "";
 }
