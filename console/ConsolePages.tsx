@@ -4,43 +4,17 @@ import {
   Select, Statistic, Switch, Table, Tabs, Tag, Typography,
 } from "antd";
 import dayjs from "dayjs";
-import type { Json } from "../src/types/database.types";
 import { PageHeader } from "../src/shared/components/PageHeader";
 import {
-  actionError, sendInvite, submitAction, type AccessMode, type Action, type Company,
-  type Snapshot, type SubscriptionState,
+  actionError, sendInvite, submitAction, type BillingOverview, type Company, type Snapshot,
 } from "../src/features/platform/api";
 import { CompanyOperations, IssueQueue, IssueTable } from "./ConsoleSupport";
+import {
+  accessTag, date, label, money, REQUIRED, SUBSCRIPTION, type Editor, type OpenEditor, type Values,
+} from "./shared";
+import { CompanyBilling, DeleteCompanyButton } from "./BillingPages";
 
-type Values = Record<string, Json | undefined>;
-type Editor = {
-  title: string;
-  values?: Values;
-  fields?: ReactNode;
-  description?: string;
-  dates?: string[];
-  reasonLabel?: string;
-} & ({ action: Action; send?: boolean } | { submit: (fields: Values) => Promise<void> });
-export type OpenEditor = (editor: Editor) => void;
-
-const REQUIRED = [{ required: true }];
-const DATE = "YYYY-MM-DDTHH:mm";
-const date = (value: string | null) => value ? dayjs(value).format("DD/MM/YYYY HH:mm") : "—";
-const dateInput = (value: string | null | undefined) => value ? dayjs(value).format(DATE) : undefined;
-const label = (value: string) => value.replaceAll("_", " ");
-
-const ACCESS: Record<AccessMode, [string, string]> = {
-  full: ["Attiva", "green"],
-  closeout: ["Chiusura incarichi", "gold"],
-  read_only: ["Sola lettura", "orange"],
-  suspended: ["Sospesa", "red"],
-};
-const SUBSCRIPTION: Record<SubscriptionState, string> = {
-  trial: "Prova", active: "Attivo", past_due: "Pagamento in ritardo", expired: "Scaduto", cancelled: "Annullato",
-};
-function accessTag(mode: AccessMode) {
-  return <Tag color={ACCESS[mode][1]}>{ACCESS[mode][0]}</Tag>;
-}
+export type { OpenEditor } from "./shared";
 
 export function ActionEditor({ editor, close, refresh }: { editor: Editor; close: () => void; refresh: () => void }) {
   const { message } = App.useApp();
@@ -100,8 +74,9 @@ async function notifyInvite(id: string, message: ReturnType<typeof App.useApp>["
   }
 }
 
-export function Overview({ snapshot, openIssue, openQueue }: {
-  snapshot: Snapshot; openIssue: (id: string) => void; openQueue: () => void;
+export function Overview({ snapshot, overview, openIssue, openQueue, openBilling }: {
+  snapshot: Snapshot; overview?: BillingOverview; openIssue: (id: string) => void; openQueue: () => void;
+  openBilling: () => void;
 }) {
   const { summary } = snapshot;
   return <>
@@ -114,6 +89,16 @@ export function Overview({ snapshot, openIssue, openQueue }: {
         <Col key={title} xs={12} xl={6}><Card size="small"><Statistic title={title} value={value} /></Card></Col>
       ))}
     </Row>
+    {overview && <Card title="Fatturazione" extra={<Button type="link" onClick={openBilling}>Apri</Button>} style={{ marginTop: 16 }}>
+      <Row gutter={[16, 16]}>
+        {([
+          ["Ricavo mensile ricorrente", money(overview.summary.mrr)], ["Prove in corso", overview.summary.trials],
+          ["Da incassare", money(overview.summary.unpaid_total)], ["Richieste di piano", overview.summary.open_requests],
+        ] as [string, string | number][]).map(([title, value]) => (
+          <Col key={title} xs={12} xl={6}><Statistic title={title} value={value} /></Col>
+        ))}
+      </Row>
+    </Card>}
     <Card title="Problemi recenti" extra={<Button type="link" onClick={openQueue}>Apri coda</Button>} style={{ marginTop: 16 }}>
       <IssueTable issues={snapshot.issues.slice(0, 5)} openIssue={openIssue} pagination={false} compact />
     </Card>
@@ -122,8 +107,10 @@ export function Overview({ snapshot, openIssue, openQueue }: {
 
 export function Companies({
   userId, snapshot, company, onCompany, search, onSearch, openEditor, refresh, tab, onTab, openIssue, openOrderHistory,
+  overview, overviewFailed,
 }: {
   userId: string; snapshot: Snapshot; company?: Company; onCompany: (id?: string) => void;
+  overview?: BillingOverview; overviewFailed: boolean;
   search?: string; onSearch: (value: string) => void;
   openEditor: OpenEditor; refresh: () => void;
   tab: string; onTab: (tab: string) => void; openIssue: (id: string) => void; openOrderHistory: (orderId: string) => void;
@@ -165,6 +152,7 @@ export function Companies({
     <PageHeader title={company.name} subtitle={<>{company.slug} · {company.timezone} {accessTag(company.access_mode)}</>} actions={
       <>
         <Button onClick={() => onCompany()}>Tutte le aziende</Button>
+        <DeleteCompanyButton company={company} edit={openEditor} onDeleted={() => onCompany()} />
         <Button danger={company.is_active} onClick={() => openEditor({
           title: company.is_active ? "Sospendi azienda" : "Riattiva azienda",
           action: "set_company_active", values: { tenant_id: company.id, active: !company.is_active },
@@ -232,88 +220,12 @@ export function Companies({
           ]} />
         </Card>
       </Flex> },
-      { key: "billing", label: "Abbonamento", children: <CompanyBilling snapshot={snapshot} company={company} edit={openEditor} /> },
+      { key: "billing", label: "Abbonamento", children: <CompanyBilling snapshot={snapshot} company={company} overview={overview}
+        overviewFailed={overviewFailed} edit={openEditor} /> },
       { key: "operations", label: "Operazioni", children: <CompanyOperations orders={snapshot.orders} company={company} openOrder={openOrderHistory} /> },
       { key: "issues", label: "Problemi", children: <IssueQueue userId={userId} tenantId={company.id} openIssue={openIssue} /> },
       { key: "audit", label: "Audit", children: <Card><AuditTable snapshot={snapshot} /></Card> },
     ]} />
-  </>;
-}
-
-function CompanyBilling({ snapshot, company, edit }: { snapshot: Snapshot; company: Company; edit: OpenEditor }) {
-  const sub = snapshot.subscription;
-  const dates = ["ends_at", "grace_until", "closeout_until"];
-  return <Flex vertical gap={16}>
-    <Card title="Abbonamento" extra={<Button type="primary"
-      disabled={!snapshot.plans.some((plan) => plan.available || plan.code === sub?.plan_code)}
-      onClick={() => edit({
-        title: "Modifica abbonamento", action: "save_subscription", dates,
-        values: { tenant_id: company.id, state: sub?.state ?? "active", plan_code: sub?.plan_code,
-          ends_at: dateInput(sub?.ends_at), grace_until: dateInput(sub?.grace_until),
-          closeout_until: dateInput(sub?.closeout_until), billing_email: sub?.billing_email },
-        description: "Le date sono mostrate nel fuso orario del tuo dispositivo.",
-        fields: <>
-          <Form.Item name="plan_code" label="Piano" rules={REQUIRED}>
-            <Select options={snapshot.plans.filter((p) => p.available || p.code === sub?.plan_code)
-              .map((p) => ({ label: p.name, value: p.code }))} />
-          </Form.Item>
-          <Form.Item name="state" label="Stato" rules={REQUIRED}>
-            <Select options={Object.entries(SUBSCRIPTION).map(([value, label]) => ({ value, label }))} />
-          </Form.Item>
-          <Form.Item name="billing_email" label="Email fatturazione" rules={[{ type: "email", max: 254 }]}><Input /></Form.Item>
-          <Form.Item name="ends_at" label="Data fine o rinnovo"><Input type="datetime-local" /></Form.Item>
-          <Form.Item name="grace_until" label="Periodo di tolleranza fino a"><Input type="datetime-local" /></Form.Item>
-          <Form.Item name="closeout_until" label="Chiusura incarichi fino a"><Input type="datetime-local" /></Form.Item>
-        </>,
-      })}>Modifica abbonamento</Button>}>
-      <Descriptions size="small" column={{ xs: 1, md: 2 }} items={[
-        { key: "plan", label: "Piano", children: snapshot.plans.find((p) => p.code === sub?.plan_code)?.name ?? "Senza piano" },
-        { key: "status", label: "Stato", children: sub ? SUBSCRIPTION[sub.state] : "—" },
-        { key: "ends", label: "Data fine o rinnovo", children: date(sub?.ends_at ?? null) },
-        { key: "grace", label: "Tolleranza fino a", children: date(sub?.grace_until ?? null) },
-        { key: "closeout", label: "Chiusura incarichi fino a", children: date(sub?.closeout_until ?? null) },
-        { key: "email", label: "Email fatturazione", children: sub?.billing_email ?? "—" },
-      ]} />
-    </Card>
-    <Card title="Pagamenti registrati" extra={<Button onClick={() => edit({
-      title: "Registra pagamento", action: "record_payment", dates: ["paid_at"],
-      values: { tenant_id: company.id, currency: "EUR", paid_at: dayjs().format(DATE) },
-      fields: <>
-        <Form.Item name="amount" label="Importo" rules={REQUIRED}><InputNumber min={0.01} precision={2} style={{ width: "100%" }} /></Form.Item>
-        <Form.Item name="currency" label="Valuta" rules={[{ required: true, pattern: /^[A-Za-z]{3}$/ }]}><Input maxLength={3} /></Form.Item>
-        <Form.Item name="reference" label="Riferimento" rules={[{ required: true, whitespace: true, max: 120 }]}><Input /></Form.Item>
-        <Form.Item name="paid_at" label="Data pagamento" rules={REQUIRED}><Input type="datetime-local" /></Form.Item>
-      </>,
-    })}>Registra pagamento</Button>}>
-      <Table rowKey="id" scroll={{ x: 500 }} dataSource={snapshot.payments} columns={[
-        { title: "Riferimento", dataIndex: "reference" },
-        { title: "Importo", render: (_, row) => new Intl.NumberFormat("it-IT", { style: "currency", currency: row.currency }).format(row.amount) },
-        { title: "Data", render: (_, row) => date(row.paid_at) },
-      ]} />
-    </Card>
-  </Flex>;
-}
-
-export function Plans({ snapshot, edit }: { snapshot: Snapshot; edit: OpenEditor }) {
-  function open(plan?: Snapshot["plans"][number]) {
-    edit({
-      action: "save_plan", title: plan ? "Modifica piano" : "Crea piano",
-      values: plan ? { ...plan } : { available: true },
-      fields: <>
-        <Form.Item name="code" label="Codice" rules={[{ required: true, pattern: /^[a-z][a-z0-9_-]{1,39}$/ }]}><Input disabled={!!plan} /></Form.Item>
-        <Form.Item name="name" label="Nome" rules={[{ required: true, whitespace: true, min: 2, max: 80 }]}><Input /></Form.Item>
-        <Form.Item name="available" label="Disponibile" valuePropName="checked"><Switch /></Form.Item>
-      </>,
-    });
-  }
-
-  return <>
-    <PageHeader title="Piani" subtitle="Piani assegnabili agli abbonamenti aziendali." actions={<Button type="primary" onClick={() => open()}>Crea piano</Button>} />
-    <Card><Table rowKey="code" dataSource={snapshot.plans} columns={[
-      { title: "Nome", dataIndex: "name" }, { title: "Codice", dataIndex: "code" },
-      { title: "Disponibilità", render: (_, row) => <Tag color={row.available ? "green" : "default"}>{row.available ? "Disponibile" : "Archiviato"}</Tag> },
-      { title: "Azioni", render: (_, row) => <Button size="small" onClick={() => open(row)}>Modifica</Button> },
-    ]} /></Card>
   </>;
 }
 

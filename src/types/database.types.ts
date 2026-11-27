@@ -607,6 +607,8 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      cancel_plan_change_request: { Args: never; Returns: boolean }
+      claim_billing_notices: { Args: { p_limit?: number }; Returns: Json }
       claim_push_deliveries: {
         Args: { p_limit?: number }
         Returns: {
@@ -614,6 +616,7 @@ export type Database = {
           lease_id: string
         }[]
       }
+      company_billing: { Args: never; Returns: Json }
       create_public_order: {
         Args: {
           p_delivery_address: string
@@ -628,6 +631,10 @@ export type Database = {
           p_slug: string
         }
         Returns: string
+      }
+      finish_billing_notice: {
+        Args: { p_error?: string; p_id: string; p_sent: boolean }
+        Returns: undefined
       }
       finish_push_delivery: {
         Args: {
@@ -663,6 +670,11 @@ export type Database = {
           timezone: string
         }[]
       }
+      platform_billing_action: {
+        Args: { p_action: string; p_values: Json }
+        Returns: Json
+      }
+      platform_billing_overview: { Args: never; Returns: Json }
       platform_company_access: { Args: never; Returns: string }
       platform_console_action: {
         Args: { p_action: string; p_values: Json }
@@ -727,6 +739,10 @@ export type Database = {
           p_code: string
           p_source: string
         }
+        Returns: string
+      }
+      request_plan_change: {
+        Args: { p_interval?: string; p_note?: string; p_plan_code: string }
         Returns: string
       }
       rider_order_action: {

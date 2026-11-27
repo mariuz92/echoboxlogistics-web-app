@@ -3,6 +3,11 @@ import { env } from "../../config/env";
 import type { Database, Json } from "../../types/database.types";
 import type { OrderStatus } from "../../types/domain";
 import { t } from "../../i18n";
+import type {
+  AdminPlan, BillingInterval, Invoice, InvoiceStatus, RequestStatus, SubscriptionState, Usage,
+} from "../billing/types";
+
+export type { SubscriptionState };
 
 export const platformClient = createClient<Database>(
   env.supabaseUrl ?? "http://localhost:54321",
@@ -11,7 +16,6 @@ export const platformClient = createClient<Database>(
 );
 
 export type AccessMode = "full" | "closeout" | "read_only" | "suspended";
-export type SubscriptionState = "trial" | "active" | "past_due" | "expired" | "cancelled";
 export type IssueState = "open" | "investigating" | "resolved";
 export type IssueSeverity = "info" | "warning" | "critical";
 export type IssueSource = "web" | "flutter" | "backend";
@@ -30,14 +34,17 @@ export interface Company {
   subscription_state: SubscriptionState | null;
 }
 
-export interface Plan { code: string; name: string; available: boolean }
+export type Plan = AdminPlan;
 export interface Subscription {
   plan_code: string;
   state: SubscriptionState;
+  billing_interval: BillingInterval;
+  forever: boolean;
   ends_at: string | null;
   grace_until: string | null;
   closeout_until: string | null;
   billing_email: string | null;
+  notes: string;
 }
 export interface Member {
   id: string;
@@ -194,18 +201,108 @@ export async function getOrderHistory(tenantId: string, orderId: string) {
   return data as unknown as OrderHistoryEvent[];
 }
 
-export type Action =
+export type ConsoleAction =
   | "create_company" | "invite_member" | "revoke_invitation" | "renew_invitation" | "set_company_active"
-  | "set_member_enabled" | "transfer_owner" | "save_plan" | "save_subscription"
-  | "record_payment" | "save_settings" | "set_operator" | "handle_contact";
+  | "set_member_enabled" | "transfer_owner" | "record_payment" | "save_settings" | "set_operator" | "handle_contact";
+
+/** Plans, subscriptions, invoices, requests and notices (platform_billing_action). */
+export type BillingAction =
+  | "save_plan" | "save_subscription" | "start_trial" | "save_trial_defaults" | "create_invoice"
+  | "set_invoice_status" | "delete_invoice" | "handle_plan_request" | "send_notice" | "delete_company";
+
+export type Action = ConsoleAction | BillingAction;
+
+const BILLING_ACTIONS: ReadonlySet<string> = new Set<BillingAction>([
+  "save_plan", "save_subscription", "start_trial", "save_trial_defaults", "create_invoice",
+  "set_invoice_status", "delete_invoice", "handle_plan_request", "send_notice", "delete_company",
+]);
 
 export async function submitAction(action: Action, values: Record<string, Json | undefined>) {
-  const { data, error } = await platformClient.rpc("platform_console_action", {
-    p_action: action,
-    p_values: values,
-  });
+  const { data, error } = BILLING_ACTIONS.has(action)
+    ? await platformClient.rpc("platform_billing_action", { p_action: action, p_values: values })
+    : await platformClient.rpc("platform_console_action", { p_action: action, p_values: values });
   if (error) throw error;
   return data as { tenant_id?: string; invitation_id?: string };
+}
+
+export interface BillingCompany {
+  id: string;
+  name: string;
+  slug: string;
+  is_active: boolean;
+  access_mode: AccessMode;
+  plan_code: string | null;
+  plan_name: string | null;
+  state: SubscriptionState | null;
+  billing_interval: BillingInterval | null;
+  forever: boolean | null;
+  ends_at: string | null;
+  billing_email: string | null;
+  usage: Usage;
+  included_orders: number | null;
+  included_riders: number | null;
+  currency: string | null;
+  unpaid: number;
+  last_paid_at: string | null;
+}
+export interface BillingInvoice extends Invoice { tenant_id: string; company_name: string; created_at: string }
+export interface BillingPayment {
+  id: string;
+  tenant_id: string;
+  company_name: string;
+  amount: number;
+  currency: string;
+  reference: string;
+  paid_at: string;
+}
+export interface BillingRequest {
+  id: string;
+  tenant_id: string;
+  company_name: string;
+  from_plan: string | null;
+  to_plan: string;
+  billing_interval: BillingInterval;
+  note: string;
+  status: RequestStatus;
+  response: string | null;
+  created_at: string;
+  handled_at: string | null;
+}
+export type NoticeKind =
+  | "limit_orders_80" | "limit_orders_100" | "limit_riders_100" | "trial_ending" | "past_due"
+  | "payment_reminder" | "custom";
+export interface BillingNotice {
+  id: string;
+  tenant_id: string;
+  company_name: string;
+  kind: NoticeKind;
+  created_at: string;
+  sent_at: string | null;
+  error: string | null;
+  attempts: number;
+}
+export interface BillingOverview {
+  summary: {
+    mrr: number;
+    trials: number;
+    past_due: number;
+    unpaid_total: number;
+    overdue_invoices: number;
+    open_requests: number;
+  };
+  companies: BillingCompany[];
+  invoices: BillingInvoice[];
+  payments: BillingPayment[];
+  requests: BillingRequest[];
+  notices: BillingNotice[];
+  trial_defaults: { plan_code: string | null; days: number };
+}
+export type { InvoiceStatus };
+
+export async function getBillingOverview() {
+  const { data, error } = await platformClient.rpc("platform_billing_overview");
+  if (error) throw error;
+  return data as unknown as BillingOverview;
 }
 
 export async function sendInvite(id: string) {
@@ -242,6 +339,21 @@ const MESSAGES: Record<string, string> = {
   issue_triage_changed: t("La segnalazione è cambiata. Chiudi la modifica e riaprila per usare i dati aggiornati."),
   issue_assignee_unavailable: t("L’operatore selezionato non è disponibile. Aggiorna la pagina e scegli un altro operatore."),
   order_not_found: t("L’ordine non è disponibile per questa azienda."),
+  company_not_found: t("L’azienda non esiste più."),
+  forever_requires_active: t("Un abbonamento per sempre deve essere attivo."),
+  trial_needs_end_date: t("Una prova deve avere una data di fine."),
+  invalid_trial_days: t("Indica una durata tra 1 e 365 giorni."),
+  invoice_lines_required: t("Aggiungi almeno una riga alla fattura."),
+  invalid_amount: t("L’importo totale non può essere negativo."),
+  invoice_not_found: t("La fattura non esiste più."),
+  invoice_final: t("Questa fattura è già pagata o annullata e non può essere modificata."),
+  only_drafts_can_be_deleted: t("Si possono eliminare solo le bozze. Annulla le altre fatture."),
+  request_unavailable: t("La richiesta è già stata gestita."),
+  no_recipient: t("L’azienda non ha un indirizzo email a cui scrivere."),
+  message_required: t("Scrivi il messaggio da inviare."),
+  suspend_company_first: t("Sospendi l’azienda prima di rimuoverla."),
+  confirmation_mismatch: t("Lo slug inserito non corrisponde."),
+  company_has_billing_history: t("L’azienda ha fatture o pagamenti da conservare: puoi solo sospenderla."),
 };
 
 export function actionError(error: unknown) {
