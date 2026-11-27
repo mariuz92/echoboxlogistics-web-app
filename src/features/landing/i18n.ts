@@ -31,9 +31,48 @@ interface ProductSection {
   points: string[];
 }
 
+export interface Pricing {
+  label: string;
+  title: string;
+  subtitle: string;
+  monthly: string;
+  yearly: string;
+  yearlyNote: string;
+  perMonth: string;
+  perYear: string;
+  vat: string;
+  popular: string;
+  plans: Record<"starter" | "pro" | "business", { name: string; tagline: string }>;
+  /** {n} is the number. */
+  ridersIncluded: string;
+  ordersIncluded: string;
+  /** {price} and {block} are filled in. */
+  extraRider: string;
+  extraOrders: string;
+  everyPlan: string;
+  cta: string;
+  custom: { title: string; text: string; cta: string };
+  calc: {
+    label: string;
+    title: string;
+    subtitle: string;
+    riders: string;
+    orders: string;
+    plan: string;
+    base: string;
+    extraRiders: string;
+    extraOrders: string;
+    total: string;
+    best: string;
+    included: string;
+    note: string;
+    over: string;
+  };
+}
+
 export interface Dict {
   meta: { title: string; description: string };
-  nav: { product: string; start: string; faq: string; contact: string; demo: string; menu: string; language: string };
+  nav: { product: string; start: string; pricing: string; faq: string; contact: string; demo: string; menu: string; language: string };
   hero: {
     kicker: string;
     title: string;
@@ -58,6 +97,7 @@ export interface Dict {
     more: Item[];
   };
   start: { label: string; title: string; steps: Item[]; cta: string };
+  pricing: Pricing;
   faq: { label: string; title: string; items: { q: string; a: string }[] };
   contact: {
     label: string;
@@ -96,6 +136,7 @@ const it: Dict = {
   nav: {
     product: "Il prodotto",
     start: "Come si parte",
+    pricing: "Prezzi",
     faq: "Domande",
     contact: "Contatti",
     demo: "Prenota una demo",
@@ -206,6 +247,51 @@ const it: Dict = {
     ],
     cta: "Vuoi vederlo prima? Prenota una demo",
   },
+  pricing: {
+    label: "Prezzi",
+    title: "Un canone fisso. Paghi di più solo se cresci.",
+    subtitle:
+      "Ogni piano include rider e ordini. Se li superi non ti blocchiamo: il servizio continua e l'extra viene addebitato nella fattura successiva.",
+    monthly: "Mensile",
+    yearly: "Annuale",
+    yearlyNote: "2 mesi gratis",
+    perMonth: "/ mese",
+    perYear: "/ anno",
+    vat: "Prezzi in euro, IVA esclusa.",
+    popular: "Il più scelto",
+    plans: {
+      starter: { name: "Starter", tagline: "Per cominciare con un piccolo team" },
+      pro: { name: "Pro", tagline: "Per chi lavora ogni giorno con più rider" },
+      business: { name: "Business", tagline: "Per grandi flotte e alti volumi" },
+    },
+    ridersIncluded: "{n} rider inclusi",
+    ordersIncluded: "{n} ordini al mese inclusi",
+    extraRider: "Rider in più: {price} al mese",
+    extraOrders: "Ordini in più: {price} ogni {block}",
+    everyPlan: "Tutti i piani includono tutte le funzioni: ordini, canali radio, modulo di prenotazione, app per i rider, notifiche e statistiche.",
+    cta: "Richiedi una demo",
+    custom: {
+      title: "Servono più rider o un piano su misura?",
+      text: "Per grandi volumi o esigenze particolari costruiamo un piano insieme a te.",
+      cta: "Parlaci del tuo servizio",
+    },
+    calc: {
+      label: "Calcolatore",
+      title: "Quanto costerebbe a te?",
+      subtitle: "Inserisci i tuoi numeri: vedi il costo mensile di ogni piano e quello più conveniente.",
+      riders: "Rider",
+      orders: "Ordini al mese",
+      plan: "Piano",
+      base: "Canone",
+      extraRiders: "Rider in più",
+      extraOrders: "Ordini in più",
+      total: "Totale al mese",
+      best: "Più conveniente",
+      included: "incluso",
+      note: "Stima indicativa. Gli ordini si contano ogni mese, quelli annullati non contano. Con il piano annuale il canone è il prezzo dell'anno diviso per 12.",
+      over: "Con questi numeri conviene parlarne: possiamo preparare un piano su misura.",
+    },
+  },
   faq: {
     label: "Domande",
     title: "Domande frequenti",
@@ -215,7 +301,7 @@ const it: Dict = {
       { q: "Le guide devono registrarsi?", a: "No. Usano il link di prenotazione della tua azienda e compilano un modulo che richiede un minuto. L'ordine arriva subito a te." },
       { q: "I nostri dati sono separati da quelli di altre aziende?", a: "Sì. Ogni azienda vede solo i propri ordini, rider e guide, e la separazione è applicata direttamente nel database." },
       { q: "In che lingua è l'applicazione?", a: "L'applicazione è in italiano e in inglese, e si cambia lingua dal menu in alto. Questo sito è anche in tedesco e francese: se il tuo team lavora in un'altra lingua, scrivici." },
-      { q: "Quanto costa?", a: "Dipende da quanti rider e ordini gestite. Raccontaci il tuo servizio e ti mandiamo una proposta." },
+      { q: "Quanto costa?", a: "Un canone mensile fisso che include rider e ordini, più un piccolo extra solo se superi i limiti. Trovi i prezzi e un calcolatore nella sezione Prezzi." },
     ],
   },
   contact: {
@@ -271,6 +357,7 @@ const en: Dict = {
   nav: {
     product: "Product",
     start: "Getting started",
+    pricing: "Pricing",
     faq: "Questions",
     contact: "Contact",
     demo: "Book a demo",
@@ -381,6 +468,51 @@ const en: Dict = {
     ],
     cta: "Want to see it first? Book a demo",
   },
+  pricing: {
+    label: "Pricing",
+    title: "A fixed fee. You pay more only when you grow.",
+    subtitle:
+      "Every plan includes riders and orders. If you go over, nothing is blocked: the service keeps running and the extra is added to your next invoice.",
+    monthly: "Monthly",
+    yearly: "Yearly",
+    yearlyNote: "2 months free",
+    perMonth: "/ month",
+    perYear: "/ year",
+    vat: "Prices in euro, VAT not included.",
+    popular: "Most popular",
+    plans: {
+      starter: { name: "Starter", tagline: "To get going with a small team" },
+      pro: { name: "Pro", tagline: "For daily work with several riders" },
+      business: { name: "Business", tagline: "For large fleets and high volumes" },
+    },
+    ridersIncluded: "{n} riders included",
+    ordersIncluded: "{n} orders per month included",
+    extraRider: "Extra riders: {price} per month",
+    extraOrders: "Extra orders: {price} per {block}",
+    everyPlan: "Every plan has every feature: orders, radio channels, booking form, rider app, notifications and statistics.",
+    cta: "Request a demo",
+    custom: {
+      title: "Need more riders or a custom plan?",
+      text: "For large volumes or special needs we build a plan together with you.",
+      cta: "Tell us about your service",
+    },
+    calc: {
+      label: "Calculator",
+      title: "What would it cost you?",
+      subtitle: "Enter your numbers: you see the monthly cost of every plan and the cheapest one.",
+      riders: "Riders",
+      orders: "Orders per month",
+      plan: "Plan",
+      base: "Base fee",
+      extraRiders: "Extra riders",
+      extraOrders: "Extra orders",
+      total: "Total per month",
+      best: "Best value",
+      included: "included",
+      note: "Indicative estimate. Orders are counted every month and cancelled ones do not count. With the yearly plan the base fee is the yearly price divided by 12.",
+      over: "With these numbers it is worth a chat: we can prepare a custom plan.",
+    },
+  },
   faq: {
     label: "Questions",
     title: "Frequently asked questions",
@@ -390,7 +522,7 @@ const en: Dict = {
       { q: "Do guides need to sign up?", a: "No. They use your company's booking link and fill in a form that takes a minute. The order reaches you straight away." },
       { q: "Is our data kept apart from other companies?", a: "Yes. Each company only sees its own orders, riders and guides, and the separation is enforced in the database itself." },
       { q: "What language is the app in?", a: "The app is in Italian and English, and you switch language from the header. This website is also in German and French: if your team works in another language, get in touch." },
-      { q: "How much does it cost?", a: "It depends on how many riders and orders you handle. Tell us about your service and we will send you a proposal." },
+      { q: "How much does it cost?", a: "A fixed monthly fee that includes riders and orders, plus a small extra only if you go over the limits. You will find the prices and a calculator in the Pricing section." },
     ],
   },
   contact: {
@@ -446,6 +578,7 @@ const de: Dict = {
   nav: {
     product: "Produkt",
     start: "Einstieg",
+    pricing: "Preise",
     faq: "Fragen",
     contact: "Kontakt",
     demo: "Demo vereinbaren",
@@ -556,6 +689,51 @@ const de: Dict = {
     ],
     cta: "Lieber erst ansehen? Demo vereinbaren",
   },
+  pricing: {
+    label: "Preise",
+    title: "Eine feste Gebühr. Mehr zahlen Sie nur, wenn Sie wachsen.",
+    subtitle:
+      "Jeder Tarif enthält Fahrer und Aufträge. Überschreiten Sie diese, wird nichts gesperrt: Der Dienst läuft weiter, und der Mehrbetrag steht auf der nächsten Rechnung.",
+    monthly: "Monatlich",
+    yearly: "Jährlich",
+    yearlyNote: "2 Monate gratis",
+    perMonth: "/ Monat",
+    perYear: "/ Jahr",
+    vat: "Preise in Euro, zzgl. MwSt.",
+    popular: "Am beliebtesten",
+    plans: {
+      starter: { name: "Starter", tagline: "Für den Einstieg mit kleinem Team" },
+      pro: { name: "Pro", tagline: "Für den täglichen Betrieb mit mehreren Fahrern" },
+      business: { name: "Business", tagline: "Für große Flotten und hohes Volumen" },
+    },
+    ridersIncluded: "{n} Fahrer inklusive",
+    ordersIncluded: "{n} Aufträge pro Monat inklusive",
+    extraRider: "Weiterer Fahrer: {price} pro Monat",
+    extraOrders: "Weitere Aufträge: {price} pro {block}",
+    everyPlan: "Jeder Tarif enthält alle Funktionen: Aufträge, Funkkanäle, Buchungsformular, Fahrer-App, Benachrichtigungen und Statistiken.",
+    cta: "Demo vereinbaren",
+    custom: {
+      title: "Mehr Fahrer oder ein individueller Tarif?",
+      text: "Für große Mengen oder besondere Anforderungen erstellen wir gemeinsam mit Ihnen einen Tarif.",
+      cta: "Erzählen Sie uns von Ihrem Betrieb",
+    },
+    calc: {
+      label: "Rechner",
+      title: "Was würde es Sie kosten?",
+      subtitle: "Geben Sie Ihre Zahlen ein: Sie sehen die monatlichen Kosten jedes Tarifs und den günstigsten.",
+      riders: "Fahrer",
+      orders: "Aufträge pro Monat",
+      plan: "Tarif",
+      base: "Grundgebühr",
+      extraRiders: "Weitere Fahrer",
+      extraOrders: "Weitere Aufträge",
+      total: "Gesamt pro Monat",
+      best: "Am günstigsten",
+      included: "inklusive",
+      note: "Unverbindliche Schätzung. Aufträge werden pro Monat gezählt, stornierte zählen nicht. Beim Jahrestarif ist die Grundgebühr der Jahrespreis geteilt durch 12.",
+      over: "Mit diesen Zahlen lohnt sich ein Gespräch: Wir können einen individuellen Tarif vorbereiten.",
+    },
+  },
   faq: {
     label: "Fragen",
     title: "Häufige Fragen",
@@ -565,7 +743,7 @@ const de: Dict = {
       { q: "Müssen sich Gästeführer registrieren?", a: "Nein. Sie nutzen den Buchungslink Ihrer Firma und füllen ein Formular aus, das eine Minute dauert. Der Auftrag ist sofort bei Ihnen." },
       { q: "Sind unsere Daten von anderen Firmen getrennt?", a: "Ja. Jede Firma sieht nur ihre eigenen Aufträge, Fahrer und Gästeführer, und die Trennung wird direkt in der Datenbank durchgesetzt." },
       { q: "In welcher Sprache ist die App?", a: "Die App gibt es auf Italienisch und Englisch; die Sprache wechseln Sie oben in der Kopfzeile. Diese Website gibt es auch auf Deutsch und Französisch: Arbeitet Ihr Team in einer anderen Sprache, schreiben Sie uns." },
-      { q: "Was kostet es?", a: "Das hängt davon ab, wie viele Fahrer und Aufträge Sie haben. Erzählen Sie uns von Ihrem Service, und wir schicken Ihnen ein Angebot." },
+      { q: "Was kostet es?", a: "Eine feste monatliche Gebühr, die Fahrer und Aufträge enthält, plus ein kleiner Aufpreis nur bei Überschreitung der Grenzen. Die Preise und einen Rechner finden Sie im Abschnitt Preise." },
     ],
   },
   contact: {
@@ -621,6 +799,7 @@ const fr: Dict = {
   nav: {
     product: "Le produit",
     start: "Démarrer",
+    pricing: "Tarifs",
     faq: "Questions",
     contact: "Contact",
     demo: "Réserver une démo",
@@ -731,6 +910,51 @@ const fr: Dict = {
     ],
     cta: "Envie de le voir d'abord ? Réservez une démo",
   },
+  pricing: {
+    label: "Tarifs",
+    title: "Un forfait fixe. Vous ne payez plus que si vous grandissez.",
+    subtitle:
+      "Chaque formule inclut des livreurs et des commandes. Si vous les dépassez, rien n'est bloqué : le service continue et le supplément est ajouté à la facture suivante.",
+    monthly: "Mensuel",
+    yearly: "Annuel",
+    yearlyNote: "2 mois offerts",
+    perMonth: "/ mois",
+    perYear: "/ an",
+    vat: "Prix en euros, hors TVA.",
+    popular: "Le plus choisi",
+    plans: {
+      starter: { name: "Starter", tagline: "Pour démarrer avec une petite équipe" },
+      pro: { name: "Pro", tagline: "Pour un usage quotidien avec plusieurs livreurs" },
+      business: { name: "Business", tagline: "Pour les grandes flottes et les gros volumes" },
+    },
+    ridersIncluded: "{n} livreurs inclus",
+    ordersIncluded: "{n} commandes par mois incluses",
+    extraRider: "Livreur supplémentaire : {price} par mois",
+    extraOrders: "Commandes supplémentaires : {price} par {block}",
+    everyPlan: "Toutes les formules incluent toutes les fonctions : commandes, canaux radio, formulaire de réservation, application livreur, notifications et statistiques.",
+    cta: "Réserver une démo",
+    custom: {
+      title: "Besoin de plus de livreurs ou d'une formule sur mesure ?",
+      text: "Pour de gros volumes ou des besoins particuliers, nous construisons une formule avec vous.",
+      cta: "Parlez-nous de votre service",
+    },
+    calc: {
+      label: "Simulateur",
+      title: "Combien cela vous coûterait-il ?",
+      subtitle: "Saisissez vos chiffres : vous voyez le coût mensuel de chaque formule et la plus avantageuse.",
+      riders: "Livreurs",
+      orders: "Commandes par mois",
+      plan: "Formule",
+      base: "Forfait",
+      extraRiders: "Livreurs en plus",
+      extraOrders: "Commandes en plus",
+      total: "Total par mois",
+      best: "Le plus avantageux",
+      included: "inclus",
+      note: "Estimation indicative. Les commandes sont comptées chaque mois, les commandes annulées ne comptent pas. Avec la formule annuelle, le forfait est le prix de l'année divisé par 12.",
+      over: "Avec ces chiffres, mieux vaut en parler : nous pouvons préparer une formule sur mesure.",
+    },
+  },
   faq: {
     label: "Questions",
     title: "Questions fréquentes",
@@ -740,7 +964,7 @@ const fr: Dict = {
       { q: "Les guides doivent-ils s'inscrire ?", a: "Non. Ils utilisent le lien de réservation de votre entreprise et remplissent un formulaire d'une minute. La commande vous parvient aussitôt." },
       { q: "Nos données sont-elles séparées de celles des autres entreprises ?", a: "Oui. Chaque entreprise ne voit que ses commandes, livreurs et guides, et la séparation est appliquée dans la base de données elle-même." },
       { q: "Dans quelle langue est l'application ?", a: "L'application est en italien et en anglais, et on change de langue depuis l'en-tête. Ce site existe aussi en allemand et en français : si votre équipe travaille dans une autre langue, écrivez-nous." },
-      { q: "Combien ça coûte ?", a: "Cela dépend du nombre de livreurs et de commandes. Décrivez-nous votre service et nous vous enverrons une offre." },
+      { q: "Combien ça coûte ?", a: "Un forfait mensuel fixe qui inclut des livreurs et des commandes, plus un petit supplément seulement si vous dépassez les limites. Vous trouverez les tarifs et un simulateur dans la section Tarifs." },
     ],
   },
   contact: {

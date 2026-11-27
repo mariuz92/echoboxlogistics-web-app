@@ -32,24 +32,30 @@ export interface CostBreakdown {
   total: number;
 }
 
-/** Monthly cost of a plan for a given number of riders and orders per month. */
-export function monthlyCost(plan: PricePlan, riders: number, orders: number): CostBreakdown {
+export type PriceInterval = "month" | "year";
+
+/**
+ * Cost per month of a plan for a given number of riders and orders per month. With the yearly
+ * interval the base fee is the yearly price spread over 12 months; extras are always monthly.
+ */
+export function monthlyCost(plan: PricePlan, riders: number, orders: number, interval: PriceInterval = "month"): CostBreakdown {
   const extraRiderCount = Math.max(0, Math.floor(riders) - plan.includedRiders);
   const extraOrderBlocks = Math.ceil(Math.max(0, Math.floor(orders) - plan.includedOrders) / plan.ordersBlock);
   const extraRiders = extraRiderCount * plan.extraRider;
   const extraOrders = extraOrderBlocks * plan.extraOrders;
+  const base = interval === "year" ? Math.round((plan.priceYear / 12) * 100) / 100 : plan.priceMonth;
   return {
-    base: plan.priceMonth,
+    base,
     extraRiders,
     extraOrders,
     extraRiderCount,
     extraOrderBlocks,
-    total: plan.priceMonth + extraRiders + extraOrders,
+    total: Math.round((base + extraRiders + extraOrders) * 100) / 100,
   };
 }
 
 /** The plan with the lowest monthly cost for this usage (the cheaper one on ties). */
-export function cheapestPlan(riders: number, orders: number): PricePlan {
+export function cheapestPlan(riders: number, orders: number, interval: PriceInterval = "month"): PricePlan {
   return PRICE_PLANS.reduce((best, plan) =>
-    monthlyCost(plan, riders, orders).total < monthlyCost(best, riders, orders).total ? plan : best);
+    monthlyCost(plan, riders, orders, interval).total < monthlyCost(best, riders, orders, interval).total ? plan : best);
 }

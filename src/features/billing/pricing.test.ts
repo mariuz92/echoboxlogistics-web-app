@@ -23,6 +23,12 @@ describe("monthlyCost", () => {
     expect(monthlyCost(starter, 1, 401).extraOrderBlocks).toBe(2);
   });
 
+  it("spreads the yearly price over twelve months", () => {
+    // 290 / 12 = 24.17 per month: two months free compared with 29 x 12 = 348.
+    expect(monthlyCost(starter, 3, 300, "year").base).toBe(24.17);
+    expect(monthlyCost(starter, 4, 305, "year").total).toBe(37.17);
+  });
+
   it("ignores fractions and negatives", () => {
     expect(monthlyCost(starter, -2, -10).total).toBe(29);
     expect(monthlyCost(starter, 3.9, 300.9).total).toBe(29);
