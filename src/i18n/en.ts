@@ -33,7 +33,6 @@ export const EN: Record<string, string> = {
   "{n} ordini al mese inclusi": "{n} orders per month included",
   "Rider in più: {price} al mese": "Extra riders: {price} per month",
   "Ordini in più: {price} ogni {block}": "Extra orders: {price} per {block}",
-  "Con il tuo utilizzo di questo mese: {price} al mese": "With this month’s usage: {price} per month",
   "Richiesta inviata": "Request sent",
   "Pagata": "Paid",
   "Annullata": "Void",
@@ -57,6 +56,15 @@ export const EN: Record<string, string> = {
   "La tua richiesta per il piano {plan} è stata approvata.": "Your request for the {plan} plan was approved.",
   "La tua richiesta per il piano {plan} non è stata accettata.": "Your request for the {plan} plan was not accepted.",
   "Il tuo abbonamento": "Your subscription",
+  "Il più conveniente per te": "Best value for you",
+  "Passa all’annuale": "Switch to yearly",
+  "Passa al mensile": "Switch to monthly",
+  "Incluso": "Included",
+  "Oltre i limiti": "Beyond the limits",
+  "Per il tuo utilizzo di questo mese": "For this month’s usage",
+  "pari a {price} al mese": "equal to {price} per month",
+  "Con il piano annuale: {price} al mese (−{percent}%)": "With the yearly plan: {price} per month (−{percent}%)",
+  "Piano annuale: lo sconto è sul canone base. Rider e ordini extra restano al prezzo normale e si pagano mese per mese.": "Yearly plan: the discount applies to the base fee. Extra riders and orders stay at the normal price and are paid month by month.",
   "Cambio programmato": "Scheduled change",
   "Dal rinnovo del {date}: piano {plan} ({interval})": "From the renewal on {date}: {plan} plan ({interval})",
   "Piano annuale: si paga in anticipo. Se disdici rimborsiamo il canone dei mesi interi che restano, non i rider e gli ordini extra già usati. Un upgrade si paga per i mesi rimanenti; un downgrade vale dal rinnovo.": "Yearly plan: paid in advance. If you cancel we refund the base fee for the whole months left, not the extra riders and orders already used. An upgrade is paid for the remaining months; a downgrade starts at the renewal.",
@@ -746,6 +754,7 @@ export const EN: Record<string, string> = {
 
 /** Count-dependent texts: Italian singular -> [English singular, English plural]. */
 export const EN_PLURAL: Record<string, [string, string]> = {
+  "{n} mese gratis": ["{n} month free", "{n} months free"],
   "{n} canale occupato in questi orari": ["{n} occupied channel at these times", "{n} occupied channels at these times"],
   "{n} ritiro da pianificare o in ritardo": ["{n} pickup to plan or overdue", "{n} pickups to plan or overdue"],
   "{n} spostamento": ["{n} trip", "{n} trips"],
