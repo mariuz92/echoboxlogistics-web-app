@@ -36,6 +36,7 @@ A separate web build uses the main app's visual style. Privileged SQL RPCs requi
 - [x] Flutter Auth, data and Realtime are on Supabase in [the mobile feature branch](https://github.com/mariuz92/echoboxlogistics_mobile/tree/03e673e790fbe385aaa1082b3e7ab02dadf5c19a). Firebase is used for push.
 - [x] Align Flutter order forms with company channel ranges, disabled channels, and schedule-based availability. [Mobile channel update](https://github.com/mariuz92/echoboxlogistics_mobile/commit/0cbc65b6cac7f44891c8c3d607d0a37f46509ce5)
 - [x] Enforce the company’s channel range in the web order form and show occupied channels for the order’s schedule.
+- [x] Decision: channel sharing stays a **company-wide** setting (`channels_exclusive`); no per-order "share this channel" exception.
 - [ ] Pilot web and Flutter against the same EchoBox Supabase project. Verify channel bookings across both clients, operator invites, and company access messages.
 - [x] Add the Supabase queue and Firebase sender for rider assignments and reminders.
 - [ ] Deploy rider push and verify receipt on an iPhone and an Android phone.
@@ -158,9 +159,9 @@ The plans, limits, invoices, requests, notices, console pages, customer screen a
 
 Rider availability, hourly shifts, the day chart, staffing needs, auto-fill and the hours report are done ([SHIFTS.md](SHIFTS.md)).
 
-- [ ] **Hourly rate per rider** (and an optional overtime rate) with the estimated amount to pay next to the hours; export for the accountant.
-- [ ] **Publish the week**: shifts are visible to riders as soon as they exist; add a draft/published state if the admin wants to prepare a week first.
-- [ ] **Push notifications** to the rider when a shift is created, changed or removed, and a reminder the evening before (the push worker already exists for orders).
+- [ ] **Publish the week** (decided: yes, next). Today shifts are visible to riders as soon as they exist. Add a draft/published state so the admin can prepare a week and publish it when ready; riders (web and mobile) see only published shifts, the admin sees both, and changes to a published shift reach the rider at once.
+- [ ] **Push notifications** (decided: yes, next, together with publishing): tell the rider when a shift is published, changed or removed, plus a reminder the evening before (the push worker already exists for orders).
+- [ ] Hourly rate per rider (and an optional overtime rate) with the estimated amount to pay next to the hours; export for the accountant. Decided: not now, maybe later.
 - [ ] **Mobile app**: availability screen, "my shifts", and the notification; see [MOBILE_UPDATES.md](MOBILE_UPDATES.md).
 - [ ] Recurring availability ("every Monday and Wednesday 09:00–13:00") and "copy last week" for riders.
 - [ ] Recurring staffing needs (a weekly pattern) instead of copying them by hand.
