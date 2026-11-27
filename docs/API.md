@@ -94,6 +94,34 @@ curl -s -X POST "$BASE/rest/v1/rpc/rider_order_action" ... \
 | `get_channel_board` | `{p_from, p_to}` (admin) | `[{channel, order_id, guide_name, status, delivery_at, pickup_at, busy_until, overdue}]`; `busy_until` is `null` while the radios have not been returned |
 | `get_dashboard_insights` | `{p_month: "2026-11-01"}` (admin) | JSON for the decision dashboard: `current` / `previous` (a month in progress is measured up to today and compared with the same days of the month before), `booked_ahead`, `trend` (12 months), `capacity` (most groups and radios out at the same time per day, this month and the next 14 days), `alerts` (overdue pickups, deliveries and pickups without a rider), `stops` (weekday x hour), `guides` (top, new, to win back, losses), `operations` (booking lead time, source, days out, riders), `locations` |
 
+### Rider shifts
+
+Availability, shifts, staffing needs and the hours report. Full list of functions, rules and error codes: [SHIFTS.md](SHIFTS.md#data).
+
+```bash
+# A rider says they are available next Wednesday 09:00-13:00 and 16:00-20:00 (replaces that day)
+curl -s "$BASE/rest/v1/rpc/save_availability" -H "apikey: $ANON" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"p_day":"2026-12-02","p_windows":[{"start":"09:00","end":"13:00"},{"start":"16:00","end":"20:00"}]}'
+
+# Their own availability and shifts for a period (RLS: a rider only gets their own rows)
+curl -s "$BASE/rest/v1/rider_shifts?select=*&start_at=lt.2026-12-07T00:00:00Z&end_at=gt.2026-11-30T00:00:00Z&order=start_at.asc" \
+  -H "apikey: $ANON" -H "Authorization: Bearer $TOKEN"
+
+# An admin plans a shift (to change it later, send the same call with p_shift_id)
+curl -s "$BASE/rest/v1/rpc/admin_save_shift" -H "apikey: $ANON" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"p_rider_id":"<uuid>","p_start_at":"2026-12-02T08:00:00Z","p_end_at":"2026-12-02T12:00:00Z"}'
+```
+
+| Function | Body | Returns |
+|---|---|---|
+| `save_availability` | `{p_day, p_windows, p_rider_id?}` | number of windows saved |
+| `admin_save_shift` | `{p_rider_id, p_start_at, p_end_at, p_note?, p_shift_id?}` | shift id |
+| `admin_delete_shift` | `{p_shift_id}` | – |
+| `admin_create_shifts` | `{p_shifts: [{rider_id, start_at, end_at, note?}]}` (all or none) | number created |
+| `admin_cover_from_availability` | `{p_from, p_to, p_rider_id?}` | number created |
+| `get_rider_hours` | `{p_from, p_to}` (dates) | `[{rider_id, name, paid_minutes, planned_minutes, shifts, adjusted, items:[{shift_id, day, start_at, end_at, planned_start_at, planned_end_at, note}]}]` |
+| `admin_save_need` / `admin_delete_need` / `admin_copy_needs` | see SHIFTS.md | uuid / – / number copied |
+
 ### Public booking (no login)
 
 ```bash
@@ -148,4 +176,4 @@ supabase
   .subscribe()
 ```
 
-Events respect RLS: a rider only receives changes to rows they can read.
+Events respect RLS: a rider only receives changes to rows they can read. The shift screens listen to `rider_availability`, `rider_shifts` and `shift_needs` the same way.

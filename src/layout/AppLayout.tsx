@@ -3,7 +3,7 @@ import { Outlet, useLocation, useNavigate } from "react-router";
 import { useLogout } from "@refinedev/core";
 import { Alert, type MenuProps } from "antd";
 import {
-  BarChartOutlined, CalendarOutlined, LogoutOutlined, ProfileOutlined,
+  BarChartOutlined, CalendarOutlined, ClockCircleOutlined, LogoutOutlined, ProfileOutlined,
   SettingOutlined, SolutionOutlined, TeamOutlined, UserOutlined,
 } from "@ant-design/icons";
 import { CONFIG } from "../config/configuration";
@@ -25,12 +25,14 @@ const ADMIN_NAV: NavItem[] = [
   { key: "/calendar", label: t("Calendario"), icon: <CalendarOutlined /> },
   { key: "/dashboard", label: t("Dashboard"), icon: <BarChartOutlined /> },
   { key: "/riders", label: t("Team e rider"), icon: <TeamOutlined /> },
+  { key: "/shifts", label: t("Turni"), icon: <ClockCircleOutlined /> },
   { key: "/guides", label: t("Guide"), icon: <SolutionOutlined /> },
   { key: "/settings", label: t("Impostazioni"), icon: <SettingOutlined /> },
 ];
 
 const RIDER_NAV: NavItem[] = [
   { key: "/", label: t("Le mie consegne"), icon: <ProfileOutlined /> },
+  { key: "/my-shifts", label: t("I miei turni"), icon: <ClockCircleOutlined /> },
 ];
 
 function selectedKey(pathname: string, items: NavItem[]): string {

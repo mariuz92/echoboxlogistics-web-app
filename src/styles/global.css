@@ -53,6 +53,26 @@ body {
   white-space: nowrap;
 }
 
+/* A cell of the shifts grid: the whole cell is one button. */
+.shift-cell {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  padding: 6px 4px;
+  border: 1px dashed transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+}
+.shift-cell:hover,
+.shift-cell:focus-visible {
+  border-color: currentColor;
+  outline: none;
+}
+
 @media (max-width: 575px) {
   .ant-drawer-body {
     padding: 16px !important;

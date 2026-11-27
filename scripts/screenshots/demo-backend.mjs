@@ -2,7 +2,7 @@
 // landing-page screenshots. It answers the PostgREST, RPC, Auth and Realtime
 // calls the app makes, from the demo data in ./demo-data.mjs.
 
-import { channelBoard, dashboardInsights, riderActivity } from "./demo-data.mjs";
+import { channelBoard, dashboardInsights, riderActivity, riderHours } from "./demo-data.mjs";
 
 export const DEMO_SUPABASE_URL = "http://demo-supabase.localhost:54321";
 export const STORAGE_KEY = "sb-demo-supabase-auth-token";
@@ -187,6 +187,11 @@ export async function installDemoBackend(page, db, { asUserId, log = false } = {
     invitations: () => db.invitations,
     order_events: () => db.order_events,
     rider_activity: () => riderActivity(db),
+    // rider shifts (only present when the demo data has them)
+    rider_availability: () => (isAdmin ? (db.rider_availability ?? []) : (db.rider_availability ?? []).filter((a) => a.rider_id === user.id)),
+    rider_shifts: () => (isAdmin ? (db.rider_shifts ?? []) : (db.rider_shifts ?? []).filter((a) => a.rider_id === user.id)),
+    rider_shift_events: () => db.rider_shift_events ?? [],
+    shift_needs: () => (isAdmin ? (db.shift_needs ?? []) : []),
   };
 
   const rpcs = {
@@ -196,6 +201,7 @@ export async function installDemoBackend(page, db, { asUserId, log = false } = {
     report_platform_issue: () => null,
     bootstrap_profile: () => user,
     get_channel_board: (body) => (isAdmin ? channelBoard(db, body.p_from, body.p_to) : []),
+    get_rider_hours: (body) => riderHours(db, body.p_from, body.p_to),
     get_dashboard_insights: (body) => dashboardInsights(db, (body.p_month ?? "").slice(0, 7)),
     get_public_tenant: () => [
       { name: db.tenant.name, slug: db.tenant.slug, timezone: db.tenant.timezone, accepting_bookings: true },

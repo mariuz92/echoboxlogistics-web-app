@@ -154,6 +154,32 @@ async function adminToken(request: APIRequestContext): Promise<string> {
   return ((await res.json()) as { access_token: string }).access_token;
 }
 
+/** Shifts and availability the tests planned (the demo company has none of its own). */
+async function cleanupShifts(request: APIRequestContext, headers: Record<string, string>) {
+  const rpc = (name: string, data: unknown) =>
+    request.post(`${E2E.supabaseUrl}/rest/v1/rpc/${name}`, { headers, data });
+  const shifts = await request.get(`${E2E.supabaseUrl}/rest/v1/rider_shifts?select=id`, { headers });
+  if (shifts.ok()) {
+    for (const { id } of (await shifts.json()) as { id: string }[]) await rpc("admin_delete_shift", { p_shift_id: id });
+  }
+  const needs = await request.get(`${E2E.supabaseUrl}/rest/v1/shift_needs?select=id`, { headers });
+  if (needs.ok()) {
+    for (const { id } of (await needs.json()) as { id: string }[]) await rpc("admin_delete_need", { p_need_id: id });
+  }
+  const availability = await request.get(`${E2E.supabaseUrl}/rest/v1/rider_availability?select=rider_id,start_at`, { headers });
+  if (availability.ok()) {
+    const days = new Set<string>();
+    for (const row of (await availability.json()) as { rider_id: string; start_at: string }[]) {
+      const day = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Rome" }).format(new Date(row.start_at));
+      days.add(`${row.rider_id}|${day}`);
+    }
+    for (const key of days) {
+      const [rider, day] = key.split("|");
+      await rpc("save_availability", { p_day: day, p_windows: [], p_rider_id: rider });
+    }
+  }
+}
+
 /**
  * Removes what tests created:
  *  - orders and guide contacts named "E2E …" (open orders hold radio channels, so leaving
@@ -165,6 +191,7 @@ export async function cleanupE2eData(playwright: PlaywrightWorkerArgs["playwrigh
   try {
     const token = await adminToken(request);
     const headers = { apikey: E2E.anonKey!, Authorization: `Bearer ${token}` };
+    await cleanupShifts(request, headers);
     await request.delete(`${E2E.supabaseUrl}/rest/v1/orders?guide_name=like.E2E *`, { headers });
     await request.delete(`${E2E.supabaseUrl}/rest/v1/guides?full_name=like.E2E *`, { headers });
 

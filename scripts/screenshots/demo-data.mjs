@@ -875,3 +875,21 @@ export function dashboardInsights(db, monthStr) {
     locations,
   };
 }
+
+/** get_rider_hours: hours per rider for the days [from, to] (a shift counts on the day it starts). */
+export function riderHours(db, from, to) {
+  const rows = new Map();
+  for (const s of db.rider_shifts ?? []) {
+    const day = romeDay(new Date(s.start_at));
+    if (day < from || day > to) continue;
+    const p = db.profiles.find((x) => x.id === s.rider_id);
+    const row = rows.get(s.rider_id) ?? { rider_id: s.rider_id, name: p.full_name, paid_minutes: 0, planned_minutes: 0, shifts: 0, adjusted: 0, items: [] };
+    row.paid_minutes += (Date.parse(s.end_at) - Date.parse(s.start_at)) / 60000;
+    row.planned_minutes += (Date.parse(s.planned_end_at) - Date.parse(s.planned_start_at)) / 60000;
+    row.shifts += 1;
+    if (s.start_at !== s.planned_start_at || s.end_at !== s.planned_end_at) row.adjusted += 1;
+    row.items.push({ shift_id: s.id, day, start_at: s.start_at, end_at: s.end_at, planned_start_at: s.planned_start_at, planned_end_at: s.planned_end_at, note: s.note });
+    rows.set(s.rider_id, row);
+  }
+  return [...rows.values()].sort((a, b) => a.name.localeCompare(b.name));
+}

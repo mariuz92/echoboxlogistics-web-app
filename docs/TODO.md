@@ -148,8 +148,22 @@ The plans, limits, invoices, requests, notices, console pages, customer screen a
 - [x] Draft invoices are prepared automatically every month (and yearly renewals 30 days ahead); the operator reviews and issues them.
 - [ ] Automate the next steps on top of the drafts: e-mail the issued invoice to the customer, create the fiscal invoice in the e-invoicing service (SDI), collect the payment (Stripe / SEPA) and mark it paid by itself.
 - [ ] An operator e-mail summary when new drafts are ready (today the Fatture tab shows a counter).
-- [ ] Mobile app: show the same notices to company admins using `company_billing()`.
+- [ ] Mobile app: everything the app has to follow, with the earlier changes, is in [MOBILE_UPDATES.md](MOBILE_UPDATES.md) (billing notices, access modes, channel board, shifts).
 - [ ] Hard limits per plan (block new orders), only if soft limits turn out to be abused.
 - [ ] Billing e-mails in German and French, and per-company language.
 - [ ] Companies that already exist have no subscription (full access): assign them a plan or a forever subscription from the console.
 - [ ] Add the yearly terms (refund of whole months left, upgrade difference, downgrade at renewal) to the legal terms page `/terms` after a lawyer has read them.
+
+## 13. Shifts follow-ups
+
+Rider availability, hourly shifts, the day chart, staffing needs, auto-fill and the hours report are done ([SHIFTS.md](SHIFTS.md)).
+
+- [ ] **Hourly rate per rider** (and an optional overtime rate) with the estimated amount to pay next to the hours; export for the accountant.
+- [ ] **Publish the week**: shifts are visible to riders as soon as they exist; add a draft/published state if the admin wants to prepare a week first.
+- [ ] **Push notifications** to the rider when a shift is created, changed or removed, and a reminder the evening before (the push worker already exists for orders).
+- [ ] **Mobile app**: availability screen, "my shifts", and the notification; see [MOBILE_UPDATES.md](MOBILE_UPDATES.md).
+- [ ] Recurring availability ("every Monday and Wednesday 09:00–13:00") and "copy last week" for riders.
+- [ ] Recurring staffing needs (a weekly pattern) instead of copying them by hand.
+- [ ] Rider-side requests: swap a shift, say "I cannot make it", with the admin approving.
+- [ ] Break rules and legal limits (daily and weekly rest) as warnings in the planner, per country.
+

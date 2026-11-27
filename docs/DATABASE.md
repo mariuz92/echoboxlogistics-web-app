@@ -12,6 +12,7 @@ The schema lives in `supabase/migrations/` (apply order = file name order):
 | `20261119000000_contact_messages.sql` | `contact_messages` for the landing-page contact form (service role only, written by the `contact` Edge Function) |
 | `20261120000000_channels_any_range.sql` | channel range 1–10,000 per company, time-based channel conflicts, `get_channel_board` |
 | `20261130000000_channel_hold_until_freed.sql` | a channel stays occupied until its order is picked up or cancelled (`channel_hold`), `overdue` on the board |
+| `20261201000000_rider_shifts.sql` | rider availability, hourly shifts (with the planned times and a history), staffing needs, hours report, RPCs ([SHIFTS.md](SHIFTS.md)) |
 
 | `20261120010000_platform_console.sql` | private platform operators, configuration, plans, subscriptions, payments, issues and audit, plus MFA-checked RPCs |
 | `20261120010100_platform_access.sql` | operator invitation acceptance, ownership guard and subscription access enforcement |
@@ -174,6 +175,10 @@ Append-only audit log filled by a trigger: `created`, `status_changed`, `assigne
 ### `contact_messages`
 Each message has a name, email and message body. Company, phone, locale, IP hash and user agent are optional. `emailed_at` or `email_error` records notification delivery, and `handled` tracks whether the operator has handled the message.
 
+### Rider shifts
+`rider_availability`, `rider_shifts`, `rider_shift_events` and `shift_needs`: see [SHIFTS.md](SHIFTS.md). Readable with RLS (riders see their own
+availability and shifts, admins the company; history and needs are admin-only), written only through the RPCs.
+
 ## View: `rider_activity`
 `security_invoker` view: one row per active rider with `is_busy`, `in_progress`, `active_orders`,
 `current_order_id`, `current_leg`, `current_status`, `heading_to`, `scheduled_at`, `last_activity_at`.
@@ -223,6 +228,7 @@ authorisation failures use SQLSTATE `42501`. See [API.md](API.md) for request ex
 | `rider_order_action(order, action, lost)` | rider | `claim_pickup`, `start_delivery`, `complete_delivery`, `start_pickup`, `complete_pickup` |
 | `get_channel_board(from, to)` | admin | Open orders holding a channel during the period, with `busy_until` (`null` = until the order is closed) and `overdue` (planned pickup passed, radios not returned) |
 | `get_dashboard_insights(month)` | admin | The dashboard's figures for a month (and the 12 months around it), in the tenant time zone: revenue and quality against the previous period, capacity, alerts, rider workload, guides, lead time, locations |
+| `save_availability`, `admin_save_shift`, `admin_delete_shift`, `admin_create_shifts`, `admin_cover_from_availability`, `get_rider_hours`, `admin_save_need`, `admin_delete_need`, `admin_copy_needs` | rider / admin | Availability, shifts, staffing needs and the hours report; see [SHIFTS.md](SHIFTS.md) |
 | `get_public_tenant(slug)` | anon | Company name, time zone and whether bookings are open |
 | `create_public_order(...)` | anon | Public booking: validates, throttles, upserts the guide, creates the order |
 
@@ -234,7 +240,7 @@ authorisation failures use SQLSTATE `42501`. See [API.md](API.md) for request ex
 `order_not_claimable`, `invalid_lost_count`, `unknown_action`, `booking_unavailable`,
 `invalid_guide_name`, `invalid_phone`, `invalid_radios_count`, `invalid_delivery_time`,
 `invalid_pickup_time`, `invalid_address`, `too_many_requests`, `channel_busy`, `channel_out_of_range`,
-`channel_disabled`, `channel_used_by_open_order`, `channel_conflicts_exist`.
+`channel_disabled`, `channel_used_by_open_order`, `channel_conflicts_exist`; shifts: see [SHIFTS.md](SHIFTS.md#data).
 
 ## Working with migrations
 

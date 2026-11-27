@@ -403,6 +403,216 @@ export type Database = {
           },
         ]
       }
+      rider_availability: {
+        Row: {
+          created_at: string
+          end_at: string
+          id: string
+          rider_id: string
+          start_at: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          end_at: string
+          id?: string
+          rider_id: string
+          start_at: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          end_at?: string
+          id?: string
+          rider_id?: string
+          start_at?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rider_availability_rider_id_fkey"
+            columns: ["rider_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rider_availability_rider_id_fkey"
+            columns: ["rider_id"]
+            isOneToOne: false
+            referencedRelation: "rider_activity"
+            referencedColumns: ["rider_id"]
+          },
+          {
+            foreignKeyName: "rider_availability_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rider_shift_events: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          event_type: string
+          id: number
+          new_end_at: string | null
+          new_start_at: string | null
+          note: string
+          old_end_at: string | null
+          old_start_at: string | null
+          rider_id: string
+          shift_id: string
+          tenant_id: string
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          event_type: string
+          id?: never
+          new_end_at?: string | null
+          new_start_at?: string | null
+          note?: string
+          old_end_at?: string | null
+          old_start_at?: string | null
+          rider_id: string
+          shift_id: string
+          tenant_id: string
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          event_type?: string
+          id?: never
+          new_end_at?: string | null
+          new_start_at?: string | null
+          note?: string
+          old_end_at?: string | null
+          old_start_at?: string | null
+          rider_id?: string
+          shift_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rider_shift_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      rider_shifts: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          end_at: string
+          id: string
+          note: string
+          planned_end_at: string
+          planned_start_at: string
+          rider_id: string
+          start_at: string
+          tenant_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          end_at: string
+          id?: string
+          note?: string
+          planned_end_at: string
+          planned_start_at: string
+          rider_id: string
+          start_at: string
+          tenant_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          end_at?: string
+          id?: string
+          note?: string
+          planned_end_at?: string
+          planned_start_at?: string
+          rider_id?: string
+          start_at?: string
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rider_shifts_rider_id_fkey"
+            columns: ["rider_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rider_shifts_rider_id_fkey"
+            columns: ["rider_id"]
+            isOneToOne: false
+            referencedRelation: "rider_activity"
+            referencedColumns: ["rider_id"]
+          },
+          {
+            foreignKeyName: "rider_shifts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shift_needs: {
+        Row: {
+          created_at: string
+          end_at: string
+          id: string
+          riders_needed: number
+          start_at: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          end_at: string
+          id?: string
+          riders_needed: number
+          start_at: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          end_at?: string
+          id?: string
+          riders_needed?: number
+          start_at?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_needs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenants: {
         Row: {
           channel_max: number
@@ -507,6 +717,36 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      admin_copy_needs: {
+        Args: { p_from: string; p_offset_days: number; p_to: string }
+        Returns: number
+      }
+      admin_cover_from_availability: {
+        Args: { p_from: string; p_rider_id?: string; p_to: string }
+        Returns: number
+      }
+      admin_create_shifts: { Args: { p_shifts: Json }; Returns: number }
+      admin_delete_need: { Args: { p_need_id: string }; Returns: undefined }
+      admin_delete_shift: { Args: { p_shift_id: string }; Returns: undefined }
+      admin_save_need: {
+        Args: {
+          p_end_at: string
+          p_need_id?: string
+          p_riders_needed: number
+          p_start_at: string
+        }
+        Returns: string
+      }
+      admin_save_shift: {
+        Args: {
+          p_end_at: string
+          p_note?: string
+          p_rider_id: string
+          p_shift_id?: string
+          p_start_at: string
+        }
+        Returns: string
       }
       admin_set_status: {
         Args: {
@@ -672,6 +912,7 @@ export type Database = {
           timezone: string
         }[]
       }
+      get_rider_hours: { Args: { p_from: string; p_to: string }; Returns: Json }
       platform_billing_action: {
         Args: { p_action: string; p_values: Json }
         Returns: Json
@@ -801,6 +1042,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      save_availability: {
+        Args: { p_day: string; p_rider_id?: string; p_windows: Json }
+        Returns: number
       }
       touch_login: { Args: never; Returns: undefined }
       unregister_push_device: {

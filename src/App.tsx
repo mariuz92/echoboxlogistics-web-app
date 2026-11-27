@@ -40,6 +40,8 @@ import { getLang, t } from "./i18n";
 const DashboardPage = lazy(() => import("./features/dashboard/DashboardPage"));
 const CalendarPage = lazy(() => import("./features/calendar/CalendarPage"));
 const TeamPage = lazy(() => import("./features/members/TeamPage"));
+const AdminShiftsPage = lazy(() => import("./features/shifts/AdminShiftsPage"));
+const RiderShiftsPage = lazy(() => import("./features/shifts/RiderShiftsPage"));
 const GuidesPage = lazy(() => import("./features/guides/GuidesPage"));
 const SettingsPage = lazy(() => import("./features/settings/SettingsPage"));
 const ProfilePage = lazy(() => import("./features/settings/ProfilePage"));
@@ -53,6 +55,8 @@ const RESOURCES = [
   { name: "calendar", list: "/calendar" },
   { name: "dashboard", list: "/dashboard" },
   { name: "riders", list: "/riders" },
+  { name: "shifts", list: "/shifts" },
+  { name: "my-shifts", list: "/my-shifts" },
   { name: "guides", list: "/guides" },
   { name: "settings", list: "/settings" },
   { name: "profile", list: "/profile" },
@@ -145,6 +149,24 @@ function AppRoutes() {
                   <TeamPage />
                 </Suspense>
               </AdminOnly>
+            }
+          />
+          <Route
+            path="/shifts"
+            element={
+              <AdminOnly>
+                <Suspense fallback={<SectionSpinner />}>
+                  <AdminShiftsPage />
+                </Suspense>
+              </AdminOnly>
+            }
+          />
+          <Route
+            path="/my-shifts"
+            element={
+              <Suspense fallback={<SectionSpinner />}>
+                <RiderShiftsPage />
+              </Suspense>
             }
           />
           <Route

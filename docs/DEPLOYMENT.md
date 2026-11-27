@@ -427,6 +427,12 @@ timer's script; nothing else to install. To test, open the console -> Fatturazio
 control, and check the **Email** tab: it shows *Inviata*, or the error code (`email_not_configured`, `resend_403` for an unverified
 sender domain). Notices are retried up to five times. The model and the operator guide are in [BILLING.md](BILLING.md).
 
+### 6c. Rider shifts
+
+Apply `20261201000000_rider_shifts.sql` with the other migrations (section 3) and rebuild the web app container (section 4 command, with every
+Compose file). No Edge Function, no secret, no worker. To check: sign in as an admin, open **Turni**; sign in as a rider, open **I miei turni**, save an
+availability, and see it appear on the admin's grid within seconds. See [SHIFTS.md](SHIFTS.md).
+
 ### 7. Backups and retention
 
 A self-hosted stack has no managed backups. The public `/delete-account` page promises that deleted data leaves the backups within 30 days, so the backups must not be kept longer than that.

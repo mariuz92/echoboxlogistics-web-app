@@ -38,6 +38,25 @@ const MESSAGES: Record<string, string> = {
   email_failed: t("Non è stato possibile inviare l'email di invito."),
   invitation_failed: t("Non è stato possibile creare l'invito."),
 
+  // Rider availability and shifts
+  shift_overlap: t("Il rider ha già un turno che si sovrappone a questi orari."),
+  availability_overlap: t("Due fasce di disponibilità si sovrappongono."),
+  shift_not_found: t("Il turno non esiste più."),
+  rider_not_found: t("Rider non trovato o disattivato."),
+  day_in_the_past: t("Non puoi cambiare la disponibilità di un giorno passato."),
+  day_too_far: t("Puoi indicare la disponibilità fino a 90 giorni in anticipo."),
+  invalid_windows: t("Le fasce orarie non sono valide: al massimo 6 al giorno."),
+  invalid_window: t("Una fascia oraria non è valida: la fine deve essere dopo l’inizio."),
+  invalid_slot: t("Gli orari non sono validi: la fine deve essere dopo l’inizio e la durata al massimo 16 ore."),
+  invalid_slot_minutes: t("Gli orari devono essere multipli di 15 minuti."),
+  invalid_note: t("La nota è troppo lunga (massimo 200 caratteri)."),
+  invalid_period: t("Il periodo scelto non è valido."),
+  need_overlap: t("Questo fabbisogno si sovrappone a un altro già inserito."),
+  need_not_found: t("Il fabbisogno non esiste più."),
+  invalid_need: t("Gli orari non sono validi: la fine deve essere dopo l’inizio."),
+  invalid_riders_needed: t("Indica da 1 a 50 rider."),
+  invalid_shifts: t("I turni da creare non sono validi."),
+
   // Members
   last_admin: t("Deve rimanere almeno un amministratore attivo."),
   rider_has_active_orders:
