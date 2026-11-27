@@ -830,11 +830,54 @@ body:has(.lp) {
   min-height: 2.9em;
 }
 
+.lp-plan-money {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 118px;
+}
+
+.lp-plan-was {
+  font-size: 16px;
+  color: var(--muted);
+  text-decoration: line-through;
+  text-decoration-color: var(--coral);
+  text-decoration-thickness: 2px;
+}
+
+.lp-plan-save {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  font-weight: 600;
+  color: #1c7a4a;
+}
+
+.lp-plan-save small {
+  flex-basis: 100%;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.lp-plan-pct {
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: rgba(28, 122, 74, 0.12);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.lp-plan-hint {
+  font-size: 14px;
+  color: var(--muted);
+}
+
 .lp-plan-price {
   display: flex;
   align-items: baseline;
   gap: 8px;
-  margin-top: 6px;
   color: var(--muted);
 }
 

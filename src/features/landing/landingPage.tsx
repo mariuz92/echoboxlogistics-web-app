@@ -348,15 +348,32 @@ function Pricing({ t, lang }: { t: Dict; lang: Lang }) {
         <div className="lp-plans">
           {PRICE_PLANS.map((plan) => {
             const info = p.plans[plan.code];
-            const price = interval === "year" ? plan.priceYear : plan.priceMonth;
+            const yearly = interval === "year";
+            const price = yearly ? plan.priceYear : plan.priceMonth;
+            const listPrice = plan.priceMonth * 12;
+            const saving = listPrice - plan.priceYear;
+            const percent = Math.round((saving / listPrice) * 100);
+            const perMonth = money(Math.round((plan.priceYear / 12) * 100) / 100);
             return (
               <article key={plan.code} className={`lp-plan${plan.code === "pro" ? " is-popular" : ""}`}>
                 {plan.code === "pro" && <span className="lp-plan-badge">{p.popular}</span>}
                 <h3>{info.name}</h3>
                 <p className="lp-plan-tagline">{info.tagline}</p>
-                <p className="lp-plan-price">
-                  <strong>{money(price)}</strong> <span>{interval === "year" ? p.perYear : p.perMonth}</span>
-                </p>
+                <div className="lp-plan-money">
+                  <p className="lp-plan-was" aria-hidden={!yearly}>{yearly ? money(listPrice) : "\u00a0"}</p>
+                  <p className="lp-plan-price">
+                    <strong>{money(price)}</strong> <span>{yearly ? p.perYear : p.perMonth}</span>
+                  </p>
+                  {saving > 0 && (yearly ? (
+                    <p className="lp-plan-save">
+                      <span className="lp-plan-pct">−{percent}%</span>
+                      <span>{fill(p.saving, { amount: money(saving) })}</span>
+                      <small>{fill(p.monthlyEquivalent, { price: perMonth })}</small>
+                    </p>
+                  ) : (
+                    <p className="lp-plan-hint">{fill(p.monthlyHint, { price: perMonth, percent })}</p>
+                  ))}
+                </div>
                 <ul>
                   <li><CheckOutlined />{fill(p.ridersIncluded, { n: plan.includedRiders })}</li>
                   <li><CheckOutlined />{fill(p.ordersIncluded, { n: plan.includedOrders.toLocaleString(LOCALES[lang]) })}</li>

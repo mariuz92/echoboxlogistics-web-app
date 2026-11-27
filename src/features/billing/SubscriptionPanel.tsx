@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Alert, App, Button, Card, Col, Descriptions, Flex, Input, Modal, Progress, Row, Segmented, Table, Tag, Typography } from "antd";
+import { Alert, App, Button, Card, Col, Descriptions, Flex, Input, Modal, Progress, Row, Segmented, Table, Tag, theme, Typography } from "antd";
+import { CheckOutlined, PlusOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { getErrorMessage } from "../../lib/errors";
 import { SectionSpinner } from "../../shared/components/Screens";
-import { t } from "../../i18n";
+import { numberLocale, t, tn } from "../../i18n";
 import { cancelPlanChangeRequest, requestPlanChange } from "./api";
 import { money } from "./alerts";
-import { estimateFromPlan } from "./estimate";
+import { monthlyEquivalent, yearlyDeal } from "./deal";
 import { planChangeKind } from "./proration";
 import { useCompanyBilling } from "./useBilling";
 import {
@@ -85,39 +86,95 @@ function Usage({ billing }: { billing: CompanyBilling }) {
   );
 }
 
-function PlanCard({ plan, current, billing, interval, onChoose }: {
-  plan: PlanInfo; current?: PlanInfo | null; billing: CompanyBilling; interval: BillingInterval; onChoose: (plan: PlanInfo) => void;
+function Line({ icon, children, muted = false }: { icon: "check" | "plus"; children: string; muted?: boolean }) {
+  const { token } = theme.useToken();
+  return (
+    <Flex gap={8} align="baseline">
+      {icon === "check"
+        ? <CheckOutlined style={{ color: token.colorSuccess, fontSize: 13 }} />
+        : <PlusOutlined style={{ color: token.colorTextTertiary, fontSize: 12 }} />}
+      <Typography.Text type={muted ? "secondary" : undefined} style={muted ? { fontSize: 14 } : undefined}>{children}</Typography.Text>
+    </Flex>
+  );
+}
+
+function PlanCard({ plan, current, billing, interval, best, onChoose }: {
+  plan: PlanInfo; current?: PlanInfo | null; billing: CompanyBilling; interval: BillingInterval; best: boolean;
+  onChoose: (plan: PlanInfo) => void;
 }) {
+  const { token } = theme.useToken();
   const isCurrent = current?.code === plan.code && billing.subscription?.interval === interval;
   const pending = billing.request?.to_plan === plan.code && billing.request.billing_interval === interval;
-  const price = interval === "year" ? plan.price_year ?? plan.price_month * 12 : plan.price_month;
-  const saving = interval === "year" ? plan.price_month * 12 - price : 0;
-  const withUsage = estimateFromPlan(plan, "month", billing.usage).total;
-  const higher = current ? plan.price_month > current.price_month : null;
-  const verb = higher === null ? t("Scegli {plan}", { plan: plan.name }) : higher ? t("Upgrade a {plan}", { plan: plan.name }) : t("Downgrade a {plan}", { plan: plan.name });
+  const deal = yearlyDeal(plan);
+  const yearly = interval === "year";
+  const price = yearly ? deal?.price ?? plan.price_month * 12 : plan.price_month;
+  const forYou = monthlyEquivalent(plan, interval, billing.usage);
+  // Same plan, other interval: monthly -> yearly is an upgrade of the commitment, yearly -> monthly a downgrade.
+  const samePlan = !!current && current.code === plan.code;
+  const higher = !current ? null : samePlan ? yearly : plan.price_month > current.price_month;
+  const verb = higher === null ? t("Scegli {plan}", { plan: plan.name })
+    : samePlan ? (yearly ? t("Passa all’annuale") : t("Passa al mensile"))
+    : higher ? t("Upgrade a {plan}", { plan: plan.name }) : t("Downgrade a {plan}", { plan: plan.name });
+  const count = (n: number) => n.toLocaleString(numberLocale());
 
   return (
-    <Card style={{ height: "100%", borderColor: isCurrent ? "var(--ant-color-primary, #1677ff)" : undefined }}
-      title={<Flex justify="space-between" align="center"><span>{plan.name}</span>{isCurrent && <Tag color="blue">{t("Piano attuale")}</Tag>}</Flex>}>
-      <Flex vertical gap={8} style={{ height: "100%" }}>
-        <div>
-          <Typography.Text strong style={{ fontSize: 26 }}>{money(price, plan.currency)}</Typography.Text>
-          <Typography.Text type="secondary"> / {interval === "year" ? t("anno") : t("mese")}</Typography.Text>
-          {saving > 0 && <div><Tag color="green">{t("Risparmi {amount}", { amount: money(saving, plan.currency) })}</Tag></div>}
+    <Card style={{ height: "100%", borderColor: isCurrent ? token.colorPrimary : undefined, boxShadow: isCurrent ? `0 0 0 1px ${token.colorPrimary}` : undefined }}
+      styles={{ body: { height: "100%", padding: 24 } }}>
+      <Flex vertical gap={18} style={{ height: "100%" }}>
+        <Flex justify="space-between" align="center" gap={8} wrap>
+          <Typography.Title level={4} style={{ margin: 0 }}>{plan.name}</Typography.Title>
+          <Flex gap={4} wrap>
+            {isCurrent && <Tag color="blue" style={{ margin: 0 }}>{t("Piano attuale")}</Tag>}
+            {best && <Tag color="green" style={{ margin: 0 }}>{t("Il più conveniente per te")}</Tag>}
+          </Flex>
+        </Flex>
+
+        <div style={{ minHeight: 104 }}>
+          <div style={{ minHeight: 22 }}>
+            {yearly && deal && <Typography.Text delete type="secondary">{money(deal.listPrice, plan.currency)}</Typography.Text>}
+          </div>
+          <Flex align="baseline" gap={6}>
+            <Typography.Text strong style={{ fontSize: 36, lineHeight: 1.1 }}>{money(price, plan.currency)}</Typography.Text>
+            <Typography.Text type="secondary">/ {yearly ? t("anno") : t("mese")}</Typography.Text>
+          </Flex>
+          {deal && (yearly ? (
+            <Flex vertical gap={2} style={{ marginTop: 6 }}>
+              <Flex gap={8} align="center" wrap>
+                <Tag color="green" style={{ margin: 0, fontWeight: 600 }}>−{deal.percent}%</Tag>
+                <Typography.Text style={{ color: token.colorSuccess, fontWeight: 500 }}>
+                  {t("Risparmi {amount}", { amount: money(deal.saving, plan.currency) })} · {tn(deal.monthsFree, "{n} mese gratis", "{n} mesi gratis")}
+                </Typography.Text>
+              </Flex>
+              <Typography.Text type="secondary" style={{ fontSize: 13 }}>{t("pari a {price} al mese", { price: money(deal.perMonth, plan.currency) })}</Typography.Text>
+            </Flex>
+          ) : (
+            <Typography.Text type="secondary" style={{ display: "block", marginTop: 6, fontSize: 13 }}>
+              {t("Con il piano annuale: {price} al mese (−{percent}%)", { price: money(deal.perMonth, plan.currency), percent: deal.percent })}
+            </Typography.Text>
+          ))}
         </div>
-        <ul style={{ paddingInlineStart: 18, margin: 0 }}>
-          <li>{plan.included_riders === null ? t("Rider illimitati") : t("{n} rider inclusi", { n: plan.included_riders })}</li>
-          <li>{plan.included_orders === null ? t("Ordini illimitati") : t("{n} ordini al mese inclusi", { n: plan.included_orders })}</li>
-          {plan.included_riders !== null && <li>{t("Rider in più: {price} al mese", { price: money(plan.extra_rider_price, plan.currency) })}</li>}
-          {plan.included_orders !== null && <li>{t("Ordini in più: {price} ogni {block}", { price: money(plan.extra_orders_price, plan.currency), block: plan.orders_block })}</li>}
-        </ul>
-        {billing.subscription && !isCurrent && (
-          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-            {t("Con il tuo utilizzo di questo mese: {price} al mese", { price: money(withUsage, plan.currency) })}
-          </Typography.Text>
+
+        <Flex vertical gap={8}>
+          <Typography.Text type="secondary" style={{ fontSize: 12, letterSpacing: 0.6, textTransform: "uppercase" }}>{t("Incluso")}</Typography.Text>
+          <Line icon="check">{plan.included_riders === null ? t("Rider illimitati") : t("{n} rider inclusi", { n: count(plan.included_riders) })}</Line>
+          <Line icon="check">{plan.included_orders === null ? t("Ordini illimitati") : t("{n} ordini al mese inclusi", { n: count(plan.included_orders) })}</Line>
+        </Flex>
+
+        {(plan.included_riders !== null || plan.included_orders !== null) && (
+          <Flex vertical gap={6}>
+            <Typography.Text type="secondary" style={{ fontSize: 12, letterSpacing: 0.6, textTransform: "uppercase" }}>{t("Oltre i limiti")}</Typography.Text>
+            {plan.included_riders !== null && <Line icon="plus" muted>{t("Rider in più: {price} al mese", { price: money(plan.extra_rider_price, plan.currency) })}</Line>}
+            {plan.included_orders !== null && <Line icon="plus" muted>{t("Ordini in più: {price} ogni {block}", { price: money(plan.extra_orders_price, plan.currency), block: plan.orders_block })}</Line>}
+          </Flex>
         )}
+
         <div style={{ marginTop: "auto" }}>
-          <Button block type={higher === false ? "default" : "primary"} disabled={isCurrent || pending || !!billing.request} onClick={() => onChoose(plan)}>
+          <div style={{ background: token.colorFillAlter, borderRadius: 8, padding: "10px 12px", marginBottom: 12 }}>
+            <Typography.Text type="secondary" style={{ display: "block", fontSize: 12 }}>{t("Per il tuo utilizzo di questo mese")}</Typography.Text>
+            <Typography.Text strong style={{ fontSize: 18 }}>≈ {money(forYou, plan.currency)}</Typography.Text>
+            <Typography.Text type="secondary"> {t("al mese")}</Typography.Text>
+          </div>
+          <Button block size="large" type={higher === false ? "default" : "primary"} disabled={isCurrent || pending || !!billing.request} onClick={() => onChoose(plan)}>
             {isCurrent ? t("Piano attuale") : pending ? t("Richiesta inviata") : verb}
           </Button>
         </div>
@@ -190,6 +247,10 @@ export function SubscriptionView({ billing }: { billing: CompanyBilling }) {
   const { subscription: sub, plan, request, last_response: reply } = billing;
   const planName = (code: string) => billing.plans.find((p) => p.code === code)?.name ?? code;
   const endLabel = sub?.state === "trial" ? t("Prova fino al") : t("Prossimo rinnovo");
+  const bestPercent = Math.max(0, ...billing.plans.map((p) => yearlyDeal(p)?.percent ?? 0));
+  const bestPlan = billing.plans.length > 1
+    ? billing.plans.reduce((a, b) => (monthlyEquivalent(b, interval, billing.usage) < monthlyEquivalent(a, interval, billing.usage) ? b : a)).code
+    : undefined;
   const change = plan && sub && chosen ? planChangeKind(plan, sub.interval, chosen, interval) : "upgrade";
   const recentReply = reply && dayjs(reply.handled_at).isAfter(dayjs().subtract(14, "day"));
 
@@ -235,11 +296,17 @@ export function SubscriptionView({ billing }: { billing: CompanyBilling }) {
       </Row>
 
       <Card title={t("Piani")} extra={<Segmented<BillingInterval> value={interval} onChange={setInterval}
-        options={[{ value: "month", label: t("Mensile") }, { value: "year", label: t("Annuale") }]} />}>
+        options={[{ value: "month", label: t("Mensile") }, { value: "year", label: (
+          <Flex gap={6} align="center">{t("Annuale")}{bestPercent > 0 && <Tag color="green" style={{ margin: 0 }}>−{bestPercent}%</Tag>}</Flex>
+        ) }]} />}>
+        {interval === "year" && bestPercent > 0 && (
+          <Alert type="success" showIcon style={{ marginBottom: 16 }}
+            title={t("Piano annuale: lo sconto è sul canone base. Rider e ordini extra restano al prezzo normale e si pagano mese per mese.")} />
+        )}
         <Row gutter={[16, 16]}>
           {billing.plans.map((p) => (
             <Col key={p.code} xs={24} md={12} xl={8}>
-              <PlanCard plan={p} current={plan} billing={billing} interval={interval} onChoose={setChosen} />
+              <PlanCard plan={p} current={plan} billing={billing} interval={interval} best={p.code === bestPlan} onChoose={setChosen} />
             </Col>
           ))}
         </Row>

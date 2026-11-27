@@ -52,6 +52,10 @@ export interface Pricing {
   everyPlan: string;
   /** Yearly plan: refund, upgrade and downgrade terms. */
   yearlyTerms: string;
+  /** {amount}, {price} and {percent} are filled in. */
+  saving: string;
+  monthlyEquivalent: string;
+  monthlyHint: string;
   cta: string;
   custom: { title: string; text: string; cta: string };
   calc: {
@@ -273,6 +277,9 @@ const it: Dict = {
     everyPlan: "Tutti i piani includono tutte le funzioni: ordini, canali radio, modulo di prenotazione, app per i rider, notifiche e statistiche.",
     yearlyTerms:
       "Piano annuale: si paga in anticipo. Se disdici ti rimborsiamo il canone dei mesi interi che restano, non i rider e gli ordini extra già usati. Un upgrade si paga per i mesi rimanenti; un downgrade vale dal rinnovo.",
+    saving: "Risparmi {amount}",
+    monthlyEquivalent: "pari a {price} al mese",
+    monthlyHint: "Con il piano annuale: {price} al mese (−{percent}%)",
     cta: "Richiedi una demo",
     custom: {
       title: "Servono più rider o un piano su misura?",
@@ -496,6 +503,9 @@ const en: Dict = {
     everyPlan: "Every plan has every feature: orders, radio channels, booking form, rider app, notifications and statistics.",
     yearlyTerms:
       "Yearly plan: paid in advance. If you cancel we refund the base fee for the whole months left, not the extra riders and orders already used. An upgrade is paid for the remaining months; a downgrade starts at the renewal.",
+    saving: "You save {amount}",
+    monthlyEquivalent: "equal to {price} per month",
+    monthlyHint: "With the yearly plan: {price} per month (−{percent}%)",
     cta: "Request a demo",
     custom: {
       title: "Need more riders or a custom plan?",
@@ -719,6 +729,9 @@ const de: Dict = {
     everyPlan: "Jeder Tarif enthält alle Funktionen: Aufträge, Funkkanäle, Buchungsformular, Fahrer-App, Benachrichtigungen und Statistiken.",
     yearlyTerms:
       "Jahrestarif: Zahlung im Voraus. Bei Kündigung erstatten wir die Grundgebühr für die verbleibenden vollen Monate, nicht die bereits genutzten zusätzlichen Fahrer und Aufträge. Ein Upgrade wird für die restlichen Monate berechnet; ein Downgrade gilt ab der Verlängerung.",
+    saving: "Sie sparen {amount}",
+    monthlyEquivalent: "entspricht {price} pro Monat",
+    monthlyHint: "Mit dem Jahrestarif: {price} pro Monat (−{percent}%)",
     cta: "Demo vereinbaren",
     custom: {
       title: "Mehr Fahrer oder ein individueller Tarif?",
@@ -942,6 +955,9 @@ const fr: Dict = {
     everyPlan: "Toutes les formules incluent toutes les fonctions : commandes, canaux radio, formulaire de réservation, application livreur, notifications et statistiques.",
     yearlyTerms:
       "Formule annuelle : payée d'avance. En cas de résiliation, nous remboursons le forfait des mois entiers restants, pas les livreurs et commandes supplémentaires déjà utilisés. Une montée en gamme se paie pour les mois restants ; une baisse de formule s'applique au renouvellement.",
+    saving: "Vous économisez {amount}",
+    monthlyEquivalent: "soit {price} par mois",
+    monthlyHint: "Avec la formule annuelle : {price} par mois (−{percent}%)",
     cta: "Réserver une démo",
     custom: {
       title: "Besoin de plus de livreurs ou d'une formule sur mesure ?",
